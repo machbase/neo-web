@@ -35,7 +35,7 @@
 
     &:hover:not(:disabled), &:focus-visible {
         color: theme.$warning;
-        background: rgba(theme.$warning, 0.12);
+        background: color-mix(in srgb, #{theme.$warning} 12%, transparent);
     }
     &:focus-visible { outline: 1px solid theme.$warning; }
     &:disabled { cursor: default; }
@@ -55,7 +55,7 @@
     &:focus-visible { outline: 2px solid theme.$accent; outline-offset: 1px; }
     &[aria-pressed='true'], &[data-selected='true'] {
         border-color: theme.$accent;
-        background: rgba(theme.$accent, 0.12);
+        background: color-mix(in srgb, #{theme.$accent} 12%, transparent);
     }
 }
 

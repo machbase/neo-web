@@ -33,7 +33,7 @@
     }
     &__overlap-box--active {
         border-color: theme.$warning;
-        background: rgba(theme.$warning, 0.12);
+        background: color-mix(in srgb, #{theme.$warning} 12%, transparent);
     }
     &__title-button {
         flex: 1 1 auto;
@@ -65,7 +65,7 @@
     }
     &__action--active button, &__extra--active button, &__extra-item--active {
         color: theme.$warning !important;
-        background: rgba(theme.$warning, 0.12) !important;
+        background: color-mix(in srgb, #{theme.$warning} 12%, transparent) !important;
     }
     &__action--active, &__extra--active, &__extra-item--active {
         svg, .panel-header__raw-label {

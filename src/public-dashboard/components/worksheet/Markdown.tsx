@@ -163,7 +163,7 @@ export const Markdown = (props: MarkdownProps) => {
         <div
             ref={sBodyRef}
             className={`mrk-form markdown-body mrk${sMarkdownId}`}
-            style={{ backgroundColor: '#1B1C21', width: '100%' }}
+            style={{ backgroundColor: 'var(--neo-bg-primary, #1B1C21)', width: '100%' }}
             dangerouslySetInnerHTML={{ __html: sMdxText }}
         />
     );

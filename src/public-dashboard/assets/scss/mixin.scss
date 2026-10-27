@@ -118,12 +118,12 @@ $themes: (
 }
 @mixin hover-border {
   &:hover {
-    border: solid 0.5px rgba(255, 255, 255, 1);
+    border: solid 0.5px var(--neo-color-white, rgba(255, 255, 255, 1));
     @include theme() {
       border: solid 0.5px theme-get("text-main-title") !important;
     }
     span {
-      color: rgba(255, 255, 255, 1);
+      color: var(--neo-text-primary, rgba(255, 255, 255, 1));
       @include theme() {
         color: solid 0.5px theme-get("text-main-title") !important;
       }

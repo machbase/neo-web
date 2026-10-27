@@ -12,8 +12,8 @@ export const PublicRoutes = () => {
                     justifyContent: 'center', 
                     alignItems: 'center', 
                     height: '100vh',
-                    background: '#1e1e1e',
-                    color: '#fff'
+                    background: 'var(--neo-bg-primary, #1e1e1e)',
+                    color: 'var(--neo-text-primary, #fff)'
                 }}>
                     <div style={{ textAlign: 'center' }}>
                         <h2>Public Dashboard</h2>

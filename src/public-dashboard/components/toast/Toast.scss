@@ -5,7 +5,7 @@
     border-radius: t.$border-radius-md;
     margin: t.$spacing-0 !important;
     padding: t.$spacing-0 !important;
-    border: 0.5px solid rgba(255, 255, 255, 0.5);
+    border: 0.5px solid color-mix(in srgb, var(--neo-text-primary, rgb(255, 255, 255)) 50%, transparent);
     box-shadow: t.$shadow-xl;
     background-color: t.$bg-elevated;
 

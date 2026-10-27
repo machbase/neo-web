@@ -9,6 +9,6 @@
     border-color: theme.$danger;
 
     &:focus-within {
-        outline: 2px solid rgba(theme.$danger, 0.1);
+        outline: 2px solid color-mix(in srgb, #{theme.$danger} 10%, transparent);
     }
 }

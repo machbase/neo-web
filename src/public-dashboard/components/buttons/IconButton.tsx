@@ -42,7 +42,7 @@ export const IconButton = (props: IconButtonProps) => {
                 width: Number(pWidth) ? pWidth + 'px' : pWidth,
                 minWidth: Number(pWidth) ? pWidth + 'px' : pWidth,
                 height: pHeight + 'px',
-                backgroundColor: pIsActive ? '#52535A' : '',
+                backgroundColor: pIsActive ? 'var(--neo-bg-hover-light, #52535A)' : '',
                 opacity: pDisabled ? 0.5 : 1,
             }}
             onClick={!pDisabled ? onClick : () => null}

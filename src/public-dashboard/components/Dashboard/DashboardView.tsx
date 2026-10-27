@@ -396,7 +396,7 @@ const DashboardView = () => {
                                 pOnEditTime={() => setIsTimeRangeModal(true)}
                                 pOnEditDist={() => setIsDistanceModal(true)}
                             />
-                            <span style={{ width: '1px', height: '18px', margin: '0 6px', background: 'rgba(255, 255, 255, 0.13)' }} />
+                            <span style={{ width: '1px', height: '18px', margin: '0 6px', background: 'var(--neo-bg-input, rgba(255, 255, 255, 0.13))' }} />
                             <AutoRefreshControl pValue={sBoardInformation?.dashboard.timeRange.refresh} pOnChange={changeAutoRefresh} pCycleId={sRingCycleId} />
                         </div>
                     </ErrorBoundary>

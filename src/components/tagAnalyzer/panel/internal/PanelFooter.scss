@@ -11,10 +11,10 @@
         right: 42px;
         bottom: 17px;
         z-index: 3;
-        border: 1px solid rgba(theme.$warning, 0.35);
+        border: 1px solid color-mix(in srgb, #{theme.$warning} 35%, transparent);
         border-radius: theme.$radius;
         padding: 4px 8px;
-        background: rgba(theme.$surface-bg, 0.86);
+        background: color-mix(in srgb, #{theme.$surface-bg} 86%, transparent);
         pointer-events: none;
     }
     .navigator-toolbar {

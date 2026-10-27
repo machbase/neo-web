@@ -51,8 +51,8 @@
 }
 
 .tagSearchButtonPending {
-    background-color: rgba(theme.$accent, 0.08);
-    box-shadow: 0 0 0 1px rgba(theme.$accent, 0.45);
+    background-color: color-mix(in srgb, #{theme.$accent} 8%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, #{theme.$accent} 45%, transparent);
 }
 .columnHeader {
     min-height: 32px;

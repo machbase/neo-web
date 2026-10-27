@@ -29,11 +29,11 @@
         cursor: pointer;
 
         &:hover {
-            background-color: #52535a;
+            background-color: var(--neo-bg-hover-light, #52535a);
         }
 
         svg:hover {
-            fill: #f8f8f8;
+            fill: var(--neo-text-primary, #f8f8f8);
         }
     }
 }
