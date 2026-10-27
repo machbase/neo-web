@@ -137,8 +137,8 @@
  * Provides consistent border, background, and transition effects
  */
 @mixin interactive-field-base {
-    background-color: #2a2a2a;
-    border: 1px solid #3e3e3e;
+    background-color: var(--neo-bg-elevated, #2a2a2a);
+    border: 1px solid var(--neo-border-color-light, #3e3e3e);
     border-radius: br.$border-radius-base;
     transition: border-color 0.3s ease;
 }
@@ -149,7 +149,7 @@
  */
 @mixin interactive-field-hover {
     &:hover:not(:disabled):not(.active):not(.open) {
-        border-color: #5a5a5a;
+        border-color: var(--neo-border-color-medium, #5a5a5a);
     }
 }
 
@@ -158,8 +158,8 @@
  * Blue border with outline for focused/active state
  */
 @mixin interactive-field-active {
-    border-color: rgb(0, 108, 210);
-    outline: 2px solid rgba(0, 108, 210, 0.1);
+    border-color: var(--neo-border-color-focus, rgb(0, 108, 210));
+    outline: 2px solid color-mix(in srgb, var(--neo-border-color-focus, rgb(0, 108, 210)) 10%, transparent);
     outline-offset: 0;
 }
 
@@ -377,7 +377,7 @@
 
         tr {
             &:nth-child(2n) {
-                background-color: rgb(43, 43, 43);
+                background-color: var(--neo-bg-elevated, rgb(43, 43, 43));
             }
 
             &:hover {
@@ -473,11 +473,11 @@
     }
 
     &::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.2);
+        background: var(--neo-bg-input, rgba(255, 255, 255, 0.2));
         border-radius: 3px;
 
         &:hover {
-            background: rgba(255, 255, 255, 0.3);
+            background: var(--neo-btn-copy, rgba(255, 255, 255, 0.3));
         }
     }
 }
@@ -689,7 +689,7 @@
         inset: 0;
         opacity: 0;
         transition: opacity 0.2s ease;
-        background: radial-gradient(closest-side, rgb(0, 108, 210) 0%, rgba(0, 95, 184, 0) 100%);
+        background: radial-gradient(closest-side, var(--neo-bg-active-hover, rgb(0, 108, 210)) 0%, rgba(0, 95, 184, 0) 100%);
         pointer-events: none;
     }
 
@@ -760,7 +760,7 @@
         bottom: 0;
         opacity: 0;
         transition: opacity 0.2s ease;
-        background: radial-gradient(closest-side, rgb(0, 108, 210) 0%, rgba(0, 95, 184, 0) 100%);
+        background: radial-gradient(closest-side, var(--neo-bg-active-hover, rgb(0, 108, 210)) 0%, rgba(0, 95, 184, 0) 100%);
         pointer-events: none;
     }
 
