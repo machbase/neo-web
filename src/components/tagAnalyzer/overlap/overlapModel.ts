@@ -70,8 +70,11 @@ export function formatOverlapElapsedDurationLabel(value: number): string {
         Math.floor(duration / OVERLAP_DURATION_MINUTE_MS) % 60,
         Math.floor(duration / OVERLAP_DURATION_SECOND_MS) % 60,
     ].map((part) => String(part).padStart(2, '0')).join(':');
+    // Sub-second shifts and millisecond data differ only here; whole seconds keep the short form.
+    const milliseconds = duration % OVERLAP_DURATION_SECOND_MS;
+    const fraction = milliseconds ? `.${String(milliseconds).padStart(3, '0')}` : '';
 
-    return `${value < 0 ? '-' : ''}${Math.floor(duration / OVERLAP_DURATION_DAY_MS)}:${clock}`;
+    return `${value < 0 ? '-' : ''}${Math.floor(duration / OVERLAP_DURATION_DAY_MS)}:${clock}${fraction}`;
 }
 
 export function buildOverlapChartOption(
