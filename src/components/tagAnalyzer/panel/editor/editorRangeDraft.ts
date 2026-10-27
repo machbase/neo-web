@@ -8,17 +8,59 @@ import type { PanelInfo } from '../panelModel';
 
 type RangeTarget = 'rangeInput' | 'navigatorRangeInput';
 
-/** Couples the editor draft only; the chart receives this configuration on Apply. */
+type RangeDraftContext = {
+    axisKind: AxisKind;
+    dataRange: AxisRange;
+    currentRange: RangeState;
+    referenceTimeMs: number;
+    /** The Nav input this editor filled in by itself to keep a Main edit inside it. */
+    autoNavigatorInput: RangeExpressionInput | undefined;
+};
+
+/**
+ * Couples the editor draft only; the chart receives this configuration on Apply. A Nav input
+ * filled in for a Main edit belongs to that edit: clearing Main clears it too, so Main Reset
+ * returns both ranges to automatic.
+ */
 export function updateEditorRangeDraft(
     time: PanelInfo['time'],
     target: RangeTarget,
     input: RangeExpressionInput,
-    { axisKind, dataRange, currentRange, referenceTimeMs }: {
-        axisKind: AxisKind;
-        dataRange: AxisRange;
-        currentRange: RangeState;
-        referenceTimeMs: number;
-    },
+    context: RangeDraftContext,
+): { time: PanelInfo['time']; autoNavigatorInput: RangeExpressionInput | undefined } {
+    if (target === 'navigatorRangeInput') {
+        return { time: coupleEditorRanges(time, target, input, context), autoNavigatorInput: undefined };
+    }
+    const navigatorBefore = time.navigatorRangeInput;
+    const isAutoNavigator = context.autoNavigatorInput !== undefined &&
+        navigatorBefore !== undefined &&
+        isSameRangeInput(navigatorBefore, context.autoNavigatorInput);
+    if (isRangeExpressionEmpty(input)) {
+        return {
+            time: isAutoNavigator
+                ? { ...time, rangeInput: input, navigatorRangeInput: { start: '', end: '' } }
+                : { ...time, rangeInput: input },
+            autoNavigatorInput: undefined,
+        };
+    }
+    const nextTime = coupleEditorRanges(time, target, input, context);
+    const navigatorAfter = nextTime.navigatorRangeInput;
+    if (!navigatorAfter || (navigatorBefore && isSameRangeInput(navigatorBefore, navigatorAfter))) {
+        return { time: nextTime, autoNavigatorInput: isAutoNavigator ? context.autoNavigatorInput : undefined };
+    }
+    const wasNavigatorAutomatic = !navigatorBefore || isRangeExpressionEmpty(navigatorBefore) || isAutoNavigator;
+    return { time: nextTime, autoNavigatorInput: wasNavigatorAutomatic ? navigatorAfter : undefined };
+}
+
+function isSameRangeInput(a: RangeExpressionInput, b: RangeExpressionInput): boolean {
+    return a.start === b.start && a.end === b.end;
+}
+
+function coupleEditorRanges(
+    time: PanelInfo['time'],
+    target: RangeTarget,
+    input: RangeExpressionInput,
+    { axisKind, dataRange, currentRange, referenceTimeMs }: RangeDraftContext,
 ): PanelInfo['time'] {
     const resolve = (value: RangeExpressionInput | undefined, fallback: AxisRange, emptyRange: AxisRange) => {
         if (!value || isRangeExpressionEmpty(value)) return emptyRange;

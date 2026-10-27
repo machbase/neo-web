@@ -7,6 +7,7 @@ import {
     isRangeExpressionEmpty,
     type AxisKind,
     type AxisRange,
+    type RangeExpressionInput,
 } from '../../../rangeExpression/rangeModel';
 import { TIME_RANGE_PRESETS } from '../../rangeControl/rangePresets';
 import { resolveRangeInput } from '../../../rangeExpression/rangeInput';
@@ -25,6 +26,8 @@ export default function EditorRangeTab({
     pPreviewRange,
     pDataValidationMessage,
     pOnChangeTimeConfig,
+    pAutoNavigatorInput,
+    pOnAutoNavigatorInputChange,
     pIsActive,
 }: {
     pTimeConfig: PanelInfo['time'];
@@ -35,6 +38,8 @@ export default function EditorRangeTab({
     pPreviewRange?: RangeState;
     pDataValidationMessage?: string;
     pOnChangeTimeConfig: (config: PanelInfo['time']) => void;
+    pAutoNavigatorInput?: RangeExpressionInput;
+    pOnAutoNavigatorInputChange?: (input: RangeExpressionInput | undefined) => void;
     pIsActive: boolean;
 }) {
     if (!pIsActive) return null;
@@ -70,8 +75,10 @@ export default function EditorRangeTab({
                         dataRange: pDataRange,
                         currentRange: { mainRange: pMainRange, navigatorRange: pNavigatorRange },
                         referenceTimeMs: Date.now(),
+                        autoNavigatorInput: pAutoNavigatorInput,
                     });
-                    pOnChangeTimeConfig(next);
+                    pOnChangeTimeConfig(next.time);
+                    pOnAutoNavigatorInputChange?.(next.autoNavigatorInput);
                 };
                 return (
                     <Section key={key} title={title} testId={testId} headerAddon={pAxisKind === 'time' && (

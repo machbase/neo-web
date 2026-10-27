@@ -1022,3 +1022,40 @@ describe('PanelEditor header changes', () => {
         expect(apply.mock.calls[0][0]).toMatchObject({ title: 'Editor title', mode: { isRaw: true } });
     });
 });
+
+describe('PanelEditor automatic Nav range', () => {
+    it('clears the Nav range it filled in for a Main range when Main is reset', () => {
+        const panel = createNewPanelInfo([TIME_SERIES], 'Panel', 'Line');
+        const apply = jest.fn<void, [PanelInfo]>();
+        const view = renderEditor(panel, apply);
+        fireEvent.click(screen.getByTestId('editor-tab-range'));
+        fireEvent.change(mainRangeSection().getByRole('textbox', { name: 'From' }), { target: { value: '150' } });
+        fireEvent.change(mainRangeSection().getByRole('textbox', { name: 'To' }), { target: { value: '200' } });
+        const filledNav = within(screen.getByTestId('editor-nav-range')).getByRole('textbox', { name: 'To' });
+        expect(filledNav).not.toHaveValue('');
+        fireEvent.click(screen.getByTestId('editor-apply'));
+        view.rerender(createEditor(apply.mock.calls[0][0], apply, { pMainRange: { start: 150, end: 200 }, pNavigatorRange: { start: 0, end: 200 } }));
+
+        fireEvent.click(mainRangeSection().getByRole('button', { name: 'Reset' }));
+        fireEvent.click(screen.getByTestId('editor-apply'));
+        expect(apply.mock.calls[1][0].time).toMatchObject({
+            rangeInput: { start: '', end: '' },
+            navigatorRangeInput: { start: '', end: '' },
+        });
+    });
+
+    it('keeps a Nav range the user typed when Main is reset', () => {
+        const panel = createNewPanelInfo([TIME_SERIES], 'Panel', 'Line');
+        const apply = jest.fn<void, [PanelInfo]>();
+        renderEditor(panel, apply);
+        fireEvent.click(screen.getByTestId('editor-tab-range'));
+        const nav = within(screen.getByTestId('editor-nav-range'));
+        fireEvent.change(nav.getByRole('textbox', { name: 'From' }), { target: { value: '0' } });
+        fireEvent.change(nav.getByRole('textbox', { name: 'To' }), { target: { value: '300' } });
+        fireEvent.change(mainRangeSection().getByRole('textbox', { name: 'From' }), { target: { value: '150' } });
+        fireEvent.change(mainRangeSection().getByRole('textbox', { name: 'To' }), { target: { value: '200' } });
+        fireEvent.click(mainRangeSection().getByRole('button', { name: 'Reset' }));
+        fireEvent.click(screen.getByTestId('editor-apply'));
+        expect(apply.mock.calls[0][0].time.navigatorRangeInput).toEqual({ start: '0', end: '300' });
+    });
+});

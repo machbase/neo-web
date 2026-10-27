@@ -14,7 +14,7 @@ import styles from './PanelEditor.module.scss';
 import { areConfiguredPanelRangesEqual, type PanelInfo } from '../panelModel';
 import { getSeriesListAxisKind } from '../../seriesModel';
 import type { RollupTableMap } from '../../api/rollupMetadata';
-import { type AxisKind, type AxisRange } from '../../rangeExpression/rangeModel';
+import { type AxisKind, type AxisRange, type RangeExpressionInput } from '../../rangeExpression/rangeModel';
 import { isSameRange } from '../../rangeExpression/rangeArithmetic';
 import { formatRangeInputValue } from '../../rangeExpression/expressionFormat';
 
@@ -58,6 +58,7 @@ export default function PanelEditor({
     const [sAppliedEditorConfigKey, setAppliedEditorConfigKey] = useState<string | undefined>(() =>
         pRangeOrigin === 'chart' ? undefined : createEditorChangeKey(pPanelInfo),
     );
+    const [sAutoNavigatorInput, setAutoNavigatorInput] = useState<RangeExpressionInput | undefined>();
     const [sSyncedPanelInfo, setSyncedPanelInfo] = useState(pPanelInfo);
     if (sSyncedPanelInfo !== pPanelInfo) {
         setSyncedPanelInfo(pPanelInfo);
@@ -330,6 +331,8 @@ export default function PanelEditor({
                         pNavigatorRange={pNavigatorRange}
                         pDataValidationMessage={sTabMessages.Data}
                         pOnChangeTimeConfig={updateEditorDraft('time')}
+                        pAutoNavigatorInput={sAutoNavigatorInput}
+                        pOnAutoNavigatorInputChange={setAutoNavigatorInput}
                         pIsActive={sSelectedTab === 'Range'}
                     />
                 </Stack>
