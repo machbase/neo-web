@@ -280,8 +280,26 @@ describe('shortJsonKeyNames', () => {
         expect(shortJsonKeyNames(['a.b', 'a.b'])).toEqual(['a.b', 'a.b']);
     });
 
+    // `[b.c]` (literal key) never collided, so it keeps its short form (issue #1570 F-87)
     it('keeps dotted literal keys distinct from nested keys in the legend', () => {
-        expect(shortJsonKeyNames(['[a.b][c]', '[a][b.c]', '[a][b][c]'])).toEqual(['[a.b][c]', '[a][b.c]', 'b.c']);
+        expect(shortJsonKeyNames(['[a.b][c]', '[a][b.c]', '[a][b][c]'])).toEqual(['[a.b][c]', '[b.c]', 'b.c']);
+    });
+
+    // issue #1570 F-87 — an array element names its array, and a key that joins the set does not
+    // rename series it does not collide with
+    it('starts an array element from its array name', () => {
+        expect(shortJsonKeyNames(['[sensor][temp]', '[values][0]', '[values][1]'])).toEqual(['temp', '[values][0]', '[values][1]']);
+        expect(shortJsonKeyNames(['[m][0][1]'])).toEqual(['[m][0][1]']);
+        expect(shortJsonKeyNames(['[0]'])).toEqual(['[0]']);
+    });
+    it('keeps existing names when another array element is added', () => {
+        const before = shortJsonKeyNames(['[sensor][temp]', '[values][0]', '[values][1]']);
+        const after = shortJsonKeyNames(['[sensor][temp]', '[values][0]', '[values][1]', '[other][0]']);
+        expect(after.slice(0, 3)).toEqual(before);
+        expect(after[3]).toBe('[other][0]');
+    });
+    it('grows only the names that collide', () => {
+        expect(shortJsonKeyNames(['[a][x][0]', '[b][x][0]', '[status]'])).toEqual(['[a][x][0]', '[b][x][0]', 'status']);
     });
 });
 
