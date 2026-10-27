@@ -5,10 +5,10 @@
 import { getTqlChart } from '@/api/repository/machiot';
 import { runShell, shellQuote } from './shell';
 import { stepPkgCopy } from './steps/pkgCopy';
-import { waitForPkgInstalled } from './fsProbe';
+import { waitForPkgPopulated } from './fsProbe';
 
 jest.mock('@/api/repository/machiot', () => ({ getTqlChart: jest.fn() }));
-jest.mock('./fsProbe', () => ({ waitForPkgInstalled: jest.fn() }));
+jest.mock('./fsProbe', () => ({ waitForPkgPopulated: jest.fn() }));
 
 const mockTql = getTqlChart as jest.MockedFunction<typeof getTqlChart>;
 const okResponse = (rows: unknown[]) => ({ data: { success: true, data: { rows } } }) as any;
@@ -16,7 +16,7 @@ const okResponse = (rows: unknown[]) => ({ data: { success: true, data: { rows }
 beforeEach(() => {
     jest.resetAllMocks();
     mockTql.mockResolvedValue(okResponse(['done']));
-    (waitForPkgInstalled as jest.Mock).mockResolvedValue(true);
+    (waitForPkgPopulated as jest.Mock).mockResolvedValue(true);
 });
 
 describe('shellQuote', () => {

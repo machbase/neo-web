@@ -1,5 +1,6 @@
 import { runShell } from '../shell';
-import { waitForPkgInstalled } from '../fsProbe';
+import { waitForPkgPopulated } from '../fsProbe';
+import { deleteFile } from '@/api/repository/fileTree';
 import type { LifecycleContext, StepResult } from '../types';
 
 export async function stepPkgCopy(ctx: LifecycleContext, opts?: { force?: boolean }): Promise<StepResult> {
@@ -18,17 +19,23 @@ export async function stepPkgCopy(ctx: LifecycleContext, opts?: { force?: boolea
     if (!r.ok) return r;
 
     // TQL SHELL can return before /api/files reflects the copy — poll until the
-    // directory shows up so the post-install UI refresh reads the new state.
+    // package's files show up so the post-install UI refresh reads the new state.
+    // A directory alone is not enough: a copy that fetched nothing still answers
+    // success and leaves /public/<name> empty (issue #1570 F-152).
     ctx.onProgress?.('verify copy');
     ctx.logs.push(`== verify /public/${ctx.appName} ==`);
-    const exists = await waitForPkgInstalled(ctx.appName);
-    ctx.logs.push(exists ? '(ok) directory found' : '(fail) directory not found');
+    const populated = await waitForPkgPopulated(ctx.appName);
+    ctx.logs.push(populated ? '(ok) package files found' : '(fail) no package files');
 
-    if (!exists) {
+    if (!populated) {
+        // Plain install only: the empty directory is all the failed copy left,
+        // and keeping it would make the card read "installed". Not recursive, so
+        // it can only ever remove an empty directory.
+        if (!opts?.force) await deleteFile('public', ctx.appName).catch(() => undefined);
         return {
             ok: false,
             log: r.log,
-            reason: `pkg copy reported success but /public/${ctx.appName} is missing`,
+            reason: `pkg copy could not download github.com/${ctx.fullName}${ctx.tag ? '@' + ctx.tag : ''} — /public/${ctx.appName} has no files`,
         };
     }
     return { ok: true, log: r.log };

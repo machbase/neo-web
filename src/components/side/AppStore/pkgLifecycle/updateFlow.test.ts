@@ -148,3 +148,50 @@ describe('runUpdate — fetch step selection', () => {
         expect(mockStart).not.toHaveBeenCalled();
     });
 });
+
+// issue #1570 F-152 — a `pkg copy -f` that fetched nothing answers success and
+// leaves the old files: the update must fail, not toast "updated".
+describe('runUpdate — copy that changed nothing', () => {
+    const withVersions = (pre: string, post: string) => {
+        let call = 0;
+        mockRead.mockImplementation(async (ctx: LifecycleContext) => {
+            ctx.manifest = { version: call++ === 0 ? pre : post };
+            return { ok: true, log: 'manifest loaded' };
+        });
+    };
+
+    beforeEach(() => {
+        jest.resetAllMocks();
+        mockCopy.mockResolvedValue({ ok: true, log: 'copied' });
+        mockExtract.mockResolvedValue({ ok: true, log: 'extracted' });
+    });
+
+    test('asked for 1.0.7, package.json still 1.0.6 → failed', async () => {
+        withVersions('1.0.6', '1.0.6');
+        const r = await runUpdate(makeCtx({ tag: '1.0.7' }));
+        expect(r.ok).toBe(false);
+        expect(r.ok === false && r.reason).toContain('not updated');
+    });
+
+    test('asked for 1.0.7, package.json now 1.0.7 → ok', async () => {
+        withVersions('1.0.6', '1.0.7');
+        await expect(runUpdate(makeCtx({ tag: '1.0.7' }))).resolves.toMatchObject({ ok: true });
+    });
+
+    test('re-installing the same version is not judged', async () => {
+        withVersions('1.0.7', '1.0.7');
+        await expect(runUpdate(makeCtx({ tag: 'v1.0.7' }))).resolves.toMatchObject({ ok: true });
+    });
+
+    test('a version that moved, even off the tag spelling, is not judged', async () => {
+        withVersions('1.0.6', '1.0.7-rc');
+        await expect(runUpdate(makeCtx({ tag: '1.0.7' }))).resolves.toMatchObject({ ok: true });
+    });
+
+    test('no tag or no old version → not judged', async () => {
+        withVersions('1.0.6', '1.0.6');
+        await expect(runUpdate(makeCtx())).resolves.toMatchObject({ ok: true });
+        withVersions('', '');
+        await expect(runUpdate(makeCtx({ tag: '1.0.7' }))).resolves.toMatchObject({ ok: true });
+    });
+});
