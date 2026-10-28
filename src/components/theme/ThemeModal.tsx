@@ -79,6 +79,9 @@ export const ThemeModal = ({ isOpen, onClose }: ThemeModalProps) => {
                 {sThemes?.length === 0 && <p className="theme-modal__note">No theme package is installed. Themes are installed from the App Store.</p>}
                 {sThemes === null && <p className="theme-modal__note">The installed packages could not be read.</p>}
             </Modal.Body>
+            <Modal.Footer>
+                <Modal.Cancel onClick={onClose}>Close</Modal.Cancel>
+            </Modal.Footer>
         </Modal.Root>
     );
 };
