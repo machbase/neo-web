@@ -58,7 +58,8 @@
     padding: 4px 8px;
     border: 1px solid color-mix(in srgb, var(--neo-warning-main, rgb(253, 181, 50)) 45%, transparent);
     border-radius: 4px;
-    background: var(--neo-bg-primary, rgba(22, 22, 22, 0.92));
+    // a raised note over the chart (bg-primary was a theme's solid frame colour)
+    background: var(--neo-bg-elevated, rgba(22, 22, 22, 0.92));
     color: theme.$warning;
     @include text.role(caption);
     white-space: nowrap;
@@ -93,13 +94,13 @@
 
 .panel-main-chart-loading-overlay {
     pointer-events: auto;
-    background: var(--neo-bg-primary, rgba(37, 37, 37, 0.22));
+    background: color-mix(in srgb, var(--neo-bg-secondary, rgb(37, 37, 37)) 22%, transparent);
     color: theme.$text-secondary;
 }
 
 .panel-main-chart-notice-overlay {
     pointer-events: none;
-    background: var(--neo-bg-secondary, rgba(37, 37, 37, 0.58));
+    background: color-mix(in srgb, var(--neo-bg-secondary, rgb(37, 37, 37)) 58%, transparent);
     color: theme.$text-primary;
     font-weight: 600;
 }

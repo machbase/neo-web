@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
+import { useThemeVersion } from '@/design-system/theme';
+import { recolorTagAnalyzerOption, resolveTagAnalyzerChartColors } from './chartThemeColors';
 import type { ECElementEvent, EChartsOption, EChartsType, ElementEvent, SetOptionOpts } from 'echarts';
 import type { EChartsType as NativeEChartsType } from 'echarts/core';
 import type { AxisRange } from '../rangeExpression/rangeModel';
@@ -107,9 +109,12 @@ export function useChartInteraction({
         sAnimateNavigatorDataUpdate,
         visibleSeries,
     ]);
+    // The chart's own colours follow the app theme (chartThemeColors.ts); identity with no theme.
+    const themeVersion = useThemeVersion();
+    const themeColors = useMemo(() => resolveTagAnalyzerChartColors(), [themeVersion]);
     const currentFullOption = useMemo(
-        () => buildChartOption(chartRuntime),
-        [chartRuntime],
+        () => recolorTagAnalyzerOption(buildChartOption(chartRuntime), themeColors),
+        [chartRuntime, themeColors],
     );
     const latestFullOptionRef = useRef(currentFullOption);
     const initialOptionRef = useRef(currentFullOption);
@@ -135,6 +140,14 @@ export function useChartInteraction({
         onOpenCreateAnnotation: markupHandlers.onOpenCreateAnnotation,
     });
     const chartInstanceRef = useRef<EChartsType | undefined>(undefined);
+    // A theme change repaints the chart's own colours; series and data are as they were.
+    const sThemeAppliedRef = useRef(themeColors);
+    useEffect(() => {
+        if (sThemeAppliedRef.current === themeColors) return;
+        sThemeAppliedRef.current = themeColors;
+        const sInstance = chartInstanceRef.current;
+        if (sInstance) setChartOption(sInstance, latestFullOptionRef.current, { lazyUpdate: true });
+    }, [themeColors]);
     const isBrushActive = isSelectionMode || isDragZoomEnabled;
     const syncBrushInteraction = useCallback((instance?: EChartsType): void => {
         const chartInstance = instance ?? chartInstanceRef.current;

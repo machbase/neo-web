@@ -39,3 +39,14 @@ export const resolveCssColor = (aValue: string, aFallback: string): string => {
     sProbe.remove();
     return rgbToHex(sResolved) ?? aFallback;
 };
+
+/**
+ * `resolveCssColor` for ECharts: `#rrggbbaa` comes back as `rgba()`, which every ECharts version
+ * reads (zrender's hex parser is not relied on for alpha).
+ */
+export const resolveEchartsColor = (aValue: string, aFallback: string): string => {
+    const sHex = resolveCssColor(aValue, aFallback);
+    if (!/^#[0-9a-f]{8}$/i.test(sHex)) return sHex;
+    const [r, g, b, a] = [1, 3, 5, 7].map((i) => parseInt(sHex.slice(i, i + 2), 16));
+    return `rgba(${r}, ${g}, ${b}, ${Math.round((a / 255) * 100) / 100})`;
+};

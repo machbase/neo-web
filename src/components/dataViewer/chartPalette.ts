@@ -1,4 +1,4 @@
-import { resolveCssColor } from '@/design-system/theme';
+import { resolveEchartsColor } from '@/design-system/theme';
 import { DATA_VIEWER_CHART_PALETTE, type DataViewerChartPalette } from './dataViewerModel';
 
 /**
@@ -23,14 +23,7 @@ const TOKENS: Record<keyof DataViewerChartPalette, string> = {
     navigatorMoveHandle: 'color-mix(in srgb, var(--neo-bg-elevated, rgb(245, 247, 250)) 32%, transparent)',
 };
 
-/** `#rrggbbaa` as `rgba()`, which every ECharts version reads; `#rrggbb` as it is. */
-const toEchartsColor = (aHex: string) => {
-    if (aHex.length !== 9) return aHex;
-    const [r, g, b, a] = [1, 3, 5, 7].map((i) => parseInt(aHex.slice(i, i + 2), 16));
-    return `rgba(${r}, ${g}, ${b}, ${Math.round((a / 255) * 100) / 100})`;
-};
-
 export const resolveDataViewerChartPalette = (): DataViewerChartPalette =>
     Object.fromEntries(
-        (Object.keys(TOKENS) as Array<keyof DataViewerChartPalette>).map((aKey) => [aKey, toEchartsColor(resolveCssColor(TOKENS[aKey], DATA_VIEWER_CHART_PALETTE[aKey]))]),
+        (Object.keys(TOKENS) as Array<keyof DataViewerChartPalette>).map((aKey) => [aKey, resolveEchartsColor(TOKENS[aKey], DATA_VIEWER_CHART_PALETTE[aKey])]),
     ) as DataViewerChartPalette;
