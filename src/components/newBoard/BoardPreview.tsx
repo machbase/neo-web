@@ -42,7 +42,7 @@ const drawings: Record<string, (aPhase: number, w: number) => JSX.Element> = {
             <Frame x={sRight} y={10} w={sCol} h={40} />
             <Frame x={10} y={58} w={sCol} h={40} />
             <Frame x={sRight} y={58} w={sCol} h={40} />
-            <polyline points={wave(16, 30, sCol - 12, 12, p, 0)} fill="none" stroke="#6d8bff" strokeWidth="1.6" />
+            <polyline points={wave(16, 30, sCol - 12, 12, p, 0)} fill="none" strokeWidth="1.6" style={{ stroke: 'var(--neo-primary-light, #6d8bff)' }} />
             {BARS.map((aHeight, i) => {
                 const sHeight = aHeight * (0.8 + 0.2 * Math.sin(p * 2 + i));
                 return <rect key={i} x={sRight + 8 + i * sBarStep} y={46 - sHeight} width={sBarStep * 0.6} height={sHeight} fill="#8ea4ff" opacity="0.85" />;
@@ -90,11 +90,11 @@ const drawings: Record<string, (aPhase: number, w: number) => JSX.Element> = {
     ),
     taz: (p, w) => (
         <>
-            <polyline points={wave(10, 38, w - 20, 20, p, 3)} fill="none" stroke="#6d8bff" strokeWidth="1.6" />
+            <polyline points={wave(10, 38, w - 20, 20, p, 3)} fill="none" strokeWidth="1.6" style={{ stroke: 'var(--neo-primary-light, #6d8bff)' }} />
             <polyline points={wave(10, 42, w - 20, 13, p + 2, 4)} fill="none" stroke="#fac858" strokeWidth="1.2" opacity="0.8" />
             <rect x="10" y="74" width={w - 20} height="20" rx="3" style={{ fill: 'var(--neo-bg-primary, #202020)', stroke: 'var(--neo-border-color-default, rgba(255,255,255,0.08))' }} />
             <polyline points={wave(10, 84, w - 20, 6, 0, 3)} fill="none" strokeWidth="1" style={{ stroke: 'var(--neo-border-color-medium, #5c5c5c)' }} />
-            <rect x={w / 2 - 40 + Math.sin(p) * 60} y="74" width="70" height="20" fill="rgba(109,139,255,0.22)" stroke="#6d8bff" />
+            <rect x={w / 2 - 40 + Math.sin(p) * 60} y="74" width="70" height="20" style={{ fill: 'color-mix(in srgb, var(--neo-primary-light, rgb(109, 139, 255)) 22%, transparent)', stroke: 'var(--neo-primary-light, #6d8bff)' }} />
         </>
     ),
     wrk: (p, w) => (

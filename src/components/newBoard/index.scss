@@ -18,10 +18,11 @@ $nb-preview-bg: var(--neo-bg-secondary, #282828);
 $nb-line: rgba(255, 255, 255, 0.07);
 $nb-border-strong: var(--neo-border-color-light, rgba(255, 255, 255, 0.18));
 $nb-accent: t.$primary-hover;
-$nb-tone: #6d8bff;
-$nb-tone-hover: #8ea4ff;
-$nb-tone-ink: #0d1020;
-$nb-tone-soft: rgba(109, 139, 255, 0.35);
+// The tone follows the theme's accent (and the ink on it the theme's frame, its inverse there).
+$nb-tone: var(--neo-primary-light, #6d8bff);
+$nb-tone-hover: var(--neo-primary-hover, #8ea4ff);
+$nb-tone-ink: var(--neo-bg-primary, #0d1020);
+$nb-tone-soft: color-mix(in srgb, var(--neo-primary-light, rgb(109, 139, 255)) 35%, transparent);
 $nb-weekend: #9a9aa3;
 $nb-fog-duration: 0.25s;
 
@@ -1804,7 +1805,7 @@ $nb-fog-duration: 0.25s;
         background: $nb-tone;
         color: $nb-tone-ink;
         font-weight: t.$font-weight-bold;
-        box-shadow: 0 0 0 3px rgba(109, 139, 255, 0.2);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--neo-primary-light, rgb(109, 139, 255)) 20%, transparent);
     }
 }
 

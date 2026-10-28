@@ -130,8 +130,8 @@ export const ClockWidget = ({ pSettings, pActive }: { pSettings?: ClockSettings;
                 ))}
                 <line x1="60" y1="64" x2="60" y2="34" stroke="#f1f1f1" strokeWidth="4" strokeLinecap="round" transform={`rotate(${sHourAngle} 60 60)`} />
                 <line x1="60" y1="66" x2="60" y2="20" stroke="#f1f1f1" strokeWidth="2.4" strokeLinecap="round" transform={`rotate(${sMinuteAngle} 60 60)`} />
-                <line x1="60" y1="72" x2="60" y2="16" stroke="#6d8bff" strokeWidth="1.1" strokeLinecap="round" transform={`rotate(${sSecondAngle} 60 60)`} />
-                <circle cx="60" cy="60" r="3.2" fill="#6d8bff" strokeWidth="1.2" style={{ stroke: 'var(--neo-color-black, #171717)' }} />
+                <line x1="60" y1="72" x2="60" y2="16" strokeWidth="1.1" strokeLinecap="round" transform={`rotate(${sSecondAngle} 60 60)`} style={{ stroke: 'var(--neo-primary-light, #6d8bff)' }} />
+                <circle cx="60" cy="60" r="3.2" strokeWidth="1.2" style={{ fill: 'var(--neo-primary-light, #6d8bff)', stroke: 'var(--neo-color-black, #171717)' }} />
             </svg>
             <span className="nb-clock-caption">{sCaption}</span>
             <span className="nb-clock-date">

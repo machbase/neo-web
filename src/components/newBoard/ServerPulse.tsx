@@ -25,14 +25,14 @@ const Sparkline = ({ pPoints, pColor }: { pPoints: MetricPoint[]; pColor: string
         <svg className="pulse-spark" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
             <defs>
                 <linearGradient id={sGradientId} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stopColor={pColor} stopOpacity="0.35" />
-                    <stop offset="1" stopColor={pColor} stopOpacity="0" />
+                    <stop offset="0" stopOpacity="0.35" style={{ stopColor: pColor }} />
+                    <stop offset="1" stopOpacity="0" style={{ stopColor: pColor }} />
                 </linearGradient>
             </defs>
             <line x1="0" x2={W} y1={H / 2} y2={H / 2} vectorEffect="non-scaling-stroke" style={{ stroke: 'var(--neo-border-color-default, rgba(255,255,255,0.06))' }} />
             <polygon points={`${x(sFirst).toFixed(1)},${H} ${sLine} ${x(sLast.time).toFixed(1)},${H}`} fill={`url(#${sGradientId})`} />
-            <polyline points={sLine} fill="none" stroke={pColor} strokeWidth="1.6" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-            <circle cx={x(sLast.time)} cy={y(sLast.value)} r="2.6" fill={pColor} />
+            <polyline points={sLine} fill="none" strokeWidth="1.6" strokeLinejoin="round" vectorEffect="non-scaling-stroke" style={{ stroke: pColor }} />
+            <circle cx={x(sLast.time)} cy={y(sLast.value)} r="2.6" style={{ fill: pColor }} />
         </svg>
     );
 };
