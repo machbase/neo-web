@@ -1,4 +1,5 @@
-import { VscChevronRight } from 'react-icons/vsc';
+import { VscChevronRight, VscWarning } from 'react-icons/vsc';
+import moment from 'moment';
 import styles from './index.module.scss';
 import { SplitPane, Pane } from '../SplitPane';
 import { Children, isValidElement, useState, useMemo, useEffect } from 'react';
@@ -353,6 +354,47 @@ const SideSection = ({ children }: SideSectionProps) => {
     return <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>{children}</div>;
 };
 
+export interface SideLoadErrorProps {
+    'data-testid'?: string;
+    /** Why the read failed — shown on the line, ellipsised, and in full on hover. */
+    pReason: string;
+    /** When the data still on screen was read. Set: "Not refreshed … as of HH:mm:ss"; unset: "Couldn't load". */
+    pLastLoadedAt?: number;
+    /** A read is in flight; Retry stays disabled until it settles. */
+    pRetrying?: boolean;
+    /** The panel's own refresh — the same handler as its Refresh button. */
+    pOnRetry: () => void;
+}
+
+/**
+ * The side panels' one way of saying "this list could not be read" (issue #1570 F-180, F-103).
+ *
+ * - Place it right under the header of the section whose data failed; a panel with no header
+ *   puts it first.
+ * - Keep whatever the panel showed before. Pass `pLastLoadedAt` when there is such data, so the
+ *   line says how old it is; leave it out when nothing was ever read.
+ * - Remove it when the next read succeeds, and do not raise a toast for the same failure: a
+ *   toast fades and leaves a stale list that reads as current.
+ *
+ * One 22px line, the height of a section header, so it costs the list as little as possible.
+ */
+const SideLoadError = ({ 'data-testid': testId = 'side-load-error', pReason, pLastLoadedAt, pRetrying, pOnRetry }: SideLoadErrorProps) => {
+    const sAsOf = pLastLoadedAt !== undefined ? moment(pLastLoadedAt).format('HH:mm:ss') : undefined;
+    return (
+        <div className={styles.sideLoadError} role="alert" data-testid={testId} title={sAsOf ? `${pReason}\nShowing the list read at ${sAsOf}` : pReason}>
+            <VscWarning size={12} className={styles.sideLoadErrorIcon} aria-hidden />
+            <span className={styles.sideLoadErrorText}>
+                {sAsOf ? 'Not refreshed' : "Couldn't load"}
+                <span className={styles.sideLoadErrorReason}>{` · ${pReason}`}</span>
+                {sAsOf && <span className={styles.sideLoadErrorTime}>{` · as of ${sAsOf}`}</span>}
+            </span>
+            <button type="button" className={styles.sideLoadErrorRetry} disabled={pRetrying} onClick={pOnRetry} data-testid={`${testId}-retry`}>
+                Retry
+            </button>
+        </div>
+    );
+};
+
 export const Side = {
     Root: SideWrapper,
     Container: SideContainer,
@@ -361,6 +403,7 @@ export const Side = {
     Box: SideBox,
     List: SideList,
     Section: SideSection,
+    LoadError: SideLoadError,
     Item: SideItem,
     ItemContent: SideItemContent,
     ItemIcon: SideItemIcon,
