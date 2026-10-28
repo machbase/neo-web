@@ -49,7 +49,7 @@
 
 .xterm .composition-view {
     /* TODO: Composition position got messed up somewhere */
-    background: var(--neo-bg-primary, #000);
+    background: var(--neo-bg-secondary, #000);
     color: var(--neo-text-primary, #fff);
     display: none;
     position: absolute;
@@ -63,8 +63,8 @@
 
 .xterm .xterm-viewport {
     /* On OS X this is required in order for the scroll bar to appear fully opaque. The app's
-       surface, as the Default terminal theme's background (appTerminalTheme). */
-    background-color: var(--neo-terminal-bg, var(--neo-bg-primary, #000));
+       editors' surface, as the Default terminal theme's background (appTerminalTheme). */
+    background-color: var(--neo-terminal-bg, var(--neo-bg-secondary, #000));
     overflow-y: scroll;
     cursor: default;
     position: absolute;

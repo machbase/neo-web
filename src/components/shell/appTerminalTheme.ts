@@ -25,15 +25,17 @@ const LIGHT_ANSI: ITheme = {
 };
 
 /**
- * The terminal theme a shell set to "Default" uses: the app theme's surface and text. With no
- * theme loaded that is xterm's own default (black, white text), exactly as before; under a theme
- * it follows the theme's tokens, and a light scheme brings ANSI colours that read on light.
+ * The terminal theme a shell set to "Default" uses: the editors' surface (bg-secondary, as Monaco's
+ * editor background) and the theme's text. bg-primary is not a surface: a theme may paint it as the
+ * frame colour, which turned the whole terminal into the frame. With no theme loaded that is
+ * xterm's own default (black, white text), exactly as before; a light scheme brings ANSI colours
+ * that read on light.
  * Resolved to hex — xterm takes colours, not CSS variables.
  */
 export const appTerminalTheme = (): ITheme => {
     const sForeground = resolveCssColor('var(--neo-text-primary, #ffffff)', '#ffffff');
     return {
-        background: resolveCssColor('var(--neo-bg-primary, #000000)', '#000000'),
+        background: resolveCssColor('var(--neo-bg-secondary, #000000)', '#000000'),
         foreground: sForeground,
         cursor: sForeground,
         ...(currentScheme() === 'light' ? { ...LIGHT_ANSI, selectionBackground: resolveCssColor('var(--neo-bg-active, #add6ff)', '#add6ff') } : {}),
