@@ -13,7 +13,18 @@ type Range = { from?: string | number; to?: string | number; timeUnit?: ArrayTim
 // Conservative safeguard until the target server/browser performance has been measured.
 const CHART_ROW_BUDGET = 20_000;
 const COLUMN_WIDTH = 170;
+const MIN_COLUMN_WIDTH = 96;
 const BASE_WIDTH = 220;
+/**
+ * Element column width for a grid `gridWidth` px wide. The fixed 170px pushed the second of two
+ * elements out of a 461px grid (issue #1570 F-131): the columns now share what is left after the
+ * time column, never wider than before and never narrower than MIN_COLUMN_WIDTH — past that the
+ * grid scrolls as it always did.
+ */
+export const arrayColumnWidth = (gridWidth: number, count: number) => {
+    if (!(gridWidth > 0) || count <= 0) return COLUMN_WIDTH;
+    return Math.max(MIN_COLUMN_WIDTH, Math.min(COLUMN_WIDTH, Math.floor((gridWidth - BASE_WIDTH) / count)));
+};
 const at = (value: unknown, kind: DataViewerBaseKind, timeUnit?: ArrayTimeUnit) => {
     if (kind === 'distance') return parseDataViewerDistanceValue(value);
     if (timeUnit !== 'ns') return toDataViewerDate(value)?.getTime() ?? null;
@@ -53,6 +64,18 @@ export default function ArrayElementDetailModal(props: ArrayElementDetailProps) 
     const [handoffError, setHandoffError] = useState('');
     const [retry, setRetry] = useState(0);
     const [scrollLeft, setScrollLeft] = useState(0);
+    const [gridElement, setGridElement] = useState<HTMLDivElement | null>(null);
+    const [gridWidth, setGridWidth] = useState(0);
+    useEffect(() => {
+        if (!gridElement) return;
+        const measure = () => setGridWidth(gridElement.clientWidth);
+        measure();
+        if (typeof ResizeObserver === 'undefined') return;
+        const observer = new ResizeObserver(measure);
+        observer.observe(gridElement);
+        return () => observer.disconnect();
+    }, [gridElement]);
+    const columnWidth = arrayColumnWidth(gridWidth, indexes.length);
     const query = useMemo(() => ({ dbName, userName, tableName, tagName, tagColumn, timeColumn, valueColumn, baseKind, metadata }), [dbName, userName, tableName, tagName, tagColumn, timeColumn, valueColumn, baseKind, metadata]);
 
     // Match the successful table result to this render's request, including the render
@@ -125,10 +148,10 @@ export default function ArrayElementDetailModal(props: ArrayElementDetailProps) 
     }) })), [shown, chartRows, valueColumn, baseKind]);
     const noValues = series.filter((entry) => !entry.data.some((point) => point[1] !== null)).map((entry) => entry.name);
     const goPage = (next: number) => { if (next < 0 || next === page || tableLoading || (next > page && !table.hasMore)) return; setZoom(undefined); setPage(next); setHandoffError(''); };
-    const firstColumn = Math.max(0, Math.floor(Math.max(0, scrollLeft - BASE_WIDTH) / COLUMN_WIDTH) - 1);
+    const firstColumn = Math.max(0, Math.floor(Math.max(0, scrollLeft - BASE_WIDTH) / columnWidth) - 1);
     const visibleIndexes = indexes.slice(firstColumn, firstColumn + 9);
-    const beforeWidth = firstColumn * COLUMN_WIDTH;
-    const afterWidth = Math.max(0, indexes.length - firstColumn - visibleIndexes.length) * COLUMN_WIDTH;
+    const beforeWidth = firstColumn * columnWidth;
+    const afterWidth = Math.max(0, indexes.length - firstColumn - visibleIndexes.length) * columnWidth;
     const openAnalyzer = () => {
         if (!canOpenAnalyzer) return;
         if (!validHandoff) { setHandoffError('Choose a range whose start is before its end.'); return; }
@@ -147,8 +170,8 @@ export default function ArrayElementDetailModal(props: ArrayElementDetailProps) 
         chart={<div className="array-detail-chart"><TagEChart arrayElements series={series} timeFormat={timeFormat} timeZone={timeZone} baseKind={baseKind} timeRange={singleton ? plotRange : { from, to }} displayRange={plotRange} pending={chartLoading || tableLoading || Boolean(chartError)}
                 onDisplayRangeChange={singleton ? undefined : (range: DataViewerTimeRange) => setZoom({ from: range.from, to: range.to })}
                 onShiftMainRange={(direction) => goPage(page + (direction === 'forward' ? 1 : -1))} /></div>}
-        grid={tableLoading ? <div className="json-key-detail-grid empty-state" role="status">Loading...</div> : <div className="array-detail-grid json-key-detail-grid" onScroll={(event) => setScrollLeft(event.currentTarget.scrollLeft)}>
-                <table style={{ width: BASE_WIDTH + indexes.length * COLUMN_WIDTH }}><colgroup><col style={{ width: BASE_WIDTH }} />{beforeWidth ? <col style={{ width: beforeWidth }} /> : null}{visibleIndexes.map((index) => <col key={index} style={{ width: COLUMN_WIDTH }} />)}{afterWidth ? <col style={{ width: afterWidth }} /> : null}</colgroup>
+        grid={tableLoading ? <div className="json-key-detail-grid empty-state" role="status">Loading...</div> : <div ref={setGridElement} className="array-detail-grid json-key-detail-grid" onScroll={(event) => setScrollLeft(event.currentTarget.scrollLeft)}>
+                <table style={{ width: BASE_WIDTH + indexes.length * columnWidth }}><colgroup><col style={{ width: BASE_WIDTH }} />{beforeWidth ? <col style={{ width: beforeWidth }} /> : null}{visibleIndexes.map((index) => <col key={index} style={{ width: columnWidth }} />)}{afterWidth ? <col style={{ width: afterWidth }} /> : null}</colgroup>
                     <thead><tr><th>{timeColumn}</th>{beforeWidth ? <th aria-hidden /> : null}{visibleIndexes.map((index) => <th className="is-numeric" key={index}>{valueColumn}[{index}]</th>)}{afterWidth ? <th aria-hidden /> : null}</tr></thead>
                     <tbody>{table.rows.map((row, position) => <tr key={position}><td className="mono">{formatBase(row.base)}</td>{beforeWidth ? <td aria-hidden /> : null}{visibleIndexes.map((index, slot) => <td className="mono is-numeric" key={index}>{row.values[firstColumn + slot] === null ? 'NULL' : String(row.values[firstColumn + slot] ?? '')}</td>)}{afterWidth ? <td aria-hidden /> : null}</tr>)}</tbody>
                 </table>{!table.rows.length ? <p>No data in this range.</p> : null}

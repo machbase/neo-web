@@ -374,7 +374,8 @@ describe('JsonKeyDetailModal', () => {
         expect(screen.getByTitle('a.b.c')).toBeInTheDocument();
         const chart = (require('echarts') as typeof import('echarts')).init as jest.Mock;
         const option = (chart.mock.results.at(-1)?.value.setOption as jest.Mock).mock.calls.at(-1)?.[0];
-        expect(option.series.slice(0, 3).map((item: { name: string }) => item.name)).toEqual(['[a.b][c]', '[a][b.c]', 'b.c']);
+        // `[b.c]` never collided, so it keeps its short form (issue #1570 F-87)
+        expect(option.series.slice(0, 3).map((item: { name: string }) => item.name)).toEqual(['[a.b][c]', '[b.c]', 'b.c']);
     });
 
     // A key holding text is real data and belongs in the grid; saying so is what keeps its absence

@@ -289,14 +289,34 @@ export const visibleJsonKeyTree = (nodes: JsonKeyTreeNode[] = [], collapsed: Set
  * Two branches both ending in `value` produce two legend entries called `value`. A colliding name
  * grows one path segment leftwards until the whole set is unique. The source is the bracket path,
  * not a dotted label: a literal `a.b` key and nested `a` → `b` must remain different series.
+ *
+ * issue #1570 F-87: an array element starts from its array's name (`[values][0]`, never a bare
+ * `[0]`), and only the names that collide grow — adding or removing a key leaves the names of the
+ * series that did not collide with it as they were.
  */
 export const shortJsonKeyNames = (paths: string[] = []): string[] => {
     const parts = paths.map((path) => getJsonPathSegments(path));
-    const longest = parts.reduce((max, part) => Math.max(max, part.length), 1);
-    let names = parts.map((part) => displayJsonPathSegments(part.slice(-1)));
+    // trailing index segments are not a name on their own: reach back to the array they index
+    const depths = parts.map((part) => {
+        let depth = 1;
+        while (depth < part.length && /^\d+$/.test(part[part.length - depth])) depth += 1;
+        return depth;
+    });
+    const nameAt = (index: number) => displayJsonPathSegments(parts[index].slice(-depths[index]));
+    let names = parts.map((_, index) => nameAt(index));
 
-    for (let depth = 2; depth <= longest && new Set(names).size !== names.length; depth += 1) {
-        names = parts.map((part) => displayJsonPathSegments(part.slice(-depth)));
+    for (;;) {
+        const counts = new Map<string, number>();
+        names.forEach((name) => counts.set(name, (counts.get(name) ?? 0) + 1));
+        let grew = false;
+        names.forEach((name, index) => {
+            if ((counts.get(name) ?? 0) > 1 && depths[index] < parts[index].length) {
+                depths[index] += 1;
+                grew = true;
+            }
+        });
+        if (!grew) break;
+        names = parts.map((_, index) => nameAt(index));
     }
 
     return names;

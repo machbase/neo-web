@@ -17,6 +17,7 @@ import { buildDatabaseNodeList, buildDropObjectQuery, buildQualifiedTableName, C
 import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { fetchQuery } from '@/api/repository/database';
 import { Toast, ErrorBoundary } from '@/design-system/components';
+import { getFileRequestFailure } from '@/utils/fileRequestResult';
 import { useExperiment } from '@/hooks/useExperiment';
 import { Button, Side, Checkbox } from '@/design-system/components';
 import { ExplorerSearchBar } from './ExplorerSearchBar';
@@ -36,6 +37,10 @@ export const DBExplorer = () => {
     const sPanelRef = useRef<HTMLDivElement | null>(null);
     const [sCollapseTree, setCollapseTree] = useState(true);
     const [sRefresh, setRefresh] = useState<number>(0);
+    // a failed table-list read and when the tree on screen was last read (issue #1570 F-180)
+    const [sLoadError, setLoadError] = useState<string | undefined>(undefined);
+    const [sLoadedAt, setLoadedAt] = useState<number | undefined>(undefined);
+    const [sLoading, setLoading] = useState<boolean>(false);
     const [mountModalOpen, setMountModalOpen] = useState<boolean>(false);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const [sBackupList, setBackupList] = useRecoilState<any[]>(gBackupList);
@@ -98,6 +103,16 @@ export const DBExplorer = () => {
         // same refresh already sends; and this path is user-initiated, never polled.
         await refreshDatabases();
         const [sData, sConnectable] = await Promise.all([getTableList(), getConnectableDatabases()]);
+        // the request layer resolves a network failure or an HTTP error instead of rejecting; either
+        // used to rebuild the tree from nothing, so it read as an empty database. Keep the tree the
+        // user had and say under the header why it was not refreshed (Side.LoadError, issue #1570 F-180).
+        const sFailure = getFileRequestFailure(sData, 'Failed to load the table list.');
+        if (sFailure || !sData?.data) {
+            setLoadError(sFailure?.reason ?? 'Failed to load the table list.');
+            return;
+        }
+        setLoadError(undefined);
+        setLoadedAt(Date.now());
         if (sData && sData.data) {
             // neo's own `_NEO_*` tables leave the catalogue here and never reach the tree. Every
             // read below works off this array — the database nodes, the user nodes and the per-user
@@ -142,7 +157,7 @@ export const DBExplorer = () => {
                 });
             });
             setDBList(DB_LIST);
-        } else setDBList([]);
+        }
     };
     /** Get backup database list */
     const getBackupDatabaseList = async () => {
@@ -158,9 +173,9 @@ export const DBExplorer = () => {
         setMountModalOpen(true);
     };
     const init = (aEvent?: any) => {
-        setDBList([]);
         if (aEvent) aEvent.stopPropagation();
-        getDatabaseList();
+        setLoading(true);
+        getDatabaseList().finally(() => setLoading(false));
         getBackupDatabaseList();
     };
     /** handle backup page */
@@ -231,8 +246,16 @@ export const DBExplorer = () => {
             return;
         }
         const { svrState, svrReason } = await fetchQuery(sQuery);
-        if (svrState) init();
-        else Toast.error(svrReason);
+        const sLabel = sDropTableInfo?.label;
+        if (svrState) {
+            Toast.success(`'${sLabel}' dropped`, { id: 'db-explorer-drop', testId: 'db-explorer-drop-toast' });
+            init();
+        } else if (/ERR-2025\b|does not exist/i.test(String(svrReason))) {
+            // already gone (dropped elsewhere since the tree was read): say so in plain words and
+            // re-read the tree so the stale node goes away (issue #1570 F-123)
+            Toast.error(`'${sLabel}' no longer exists. The tree has been refreshed.`, { id: 'db-explorer-drop', testId: 'db-explorer-drop-toast' });
+            init();
+        } else Toast.error(svrReason, { id: 'db-explorer-drop', testId: 'db-explorer-drop-toast' });
         /** Initial */
         setDropTableInfo({ label: '', table: [], cascade: false });
         setIsDrop(false);
@@ -373,6 +396,7 @@ export const DBExplorer = () => {
                             />
                         </Button.Group>
                     </Side.Collapse>
+                    {sLoadError && <Side.LoadError data-testid="db-explorer-load-error" pReason={sLoadError} pLastLoadedAt={sLoadedAt} pRetrying={sLoading} pOnRetry={init} />}
                     <Side.List>
                         {/* DB LIST — a search that matches nothing takes the database rows with
                             it. Leaving them as a row of `0/14` chevrons over an empty tree looks

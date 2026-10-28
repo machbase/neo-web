@@ -31,6 +31,8 @@ const RESPONSE_CAUTION = 'certificate · privateKey · zip are in this response 
 export const CreateKey = ({ pInitialName }: { pInitialName?: string }) => {
     const [sGenKeyInfo, setGenKeyInfo] = useState<GenKeyResType | undefined>(undefined);
     const [sResErrMessage, setResErrMessage] = useState<string | undefined>(undefined);
+    const sGeneratingRef = useRef<boolean>(false);
+    const [sIsGenerating, setIsGenerating] = useState<boolean>(false);
     const setCertList = useSetRecoilState<KeyItemType[] | undefined>(gKeyList);
     const setBoardList = useSetRecoilState<any[]>(gBoardList);
     const sBodyRef: any = useRef(null);
@@ -77,27 +79,36 @@ export const CreateKey = ({ pInitialName }: { pInitialName?: string }) => {
 
     /** create certificate — `key.generate(name, typ, notBefore, notAfter, store)` */
     const createKey = async () => {
-        if (!sCanSubmit) return;
-        const sRes = await genKey({
-            name: sName,
-            type: sCreatePayload.type,
-            notBefore: sNotBefore,
-            notAfter: sNotAfter,
-            store: sCreatePayload.store,
-        });
-        if (sRes.success) {
-            // the server lowercases the name; keep its value rather than the raw form input
-            setGenKeyInfo(sRes);
-            const sList = await getKeyList();
-            setCertList(sList.success ? sList.data : undefined);
-            handleSavedCode(true);
-            setResErrMessage(undefined);
-            // name only — the private key / zip must never ride in a toast
-            Toast.success(`Certificate '${sRes.name ?? sName}' issued`, { id: 'cert-create' });
-        } else {
-            setGenKeyInfo(undefined);
-            // failure stays inline next to the name and validity fields it refers to
-            setResErrMessage(resMessage(sRes, 'Failed to issue certificate'));
+        // one request at a time: a double click generated two certificates, and the first one's
+        // private key was gone for good (issue #1570 F-149)
+        if (!sCanSubmit || sGeneratingRef.current) return;
+        sGeneratingRef.current = true;
+        setIsGenerating(true);
+        try {
+            const sRes = await genKey({
+                name: sName,
+                type: sCreatePayload.type,
+                notBefore: sNotBefore,
+                notAfter: sNotAfter,
+                store: sCreatePayload.store,
+            });
+            if (sRes.success) {
+                // the server lowercases the name; keep its value rather than the raw form input
+                setGenKeyInfo(sRes);
+                const sList = await getKeyList();
+                setCertList(sList.success ? sList.data : undefined);
+                handleSavedCode(true);
+                setResErrMessage(undefined);
+                // name only — the private key / zip must never ride in a toast
+                Toast.success(`Certificate '${sRes.name ?? sName}' issued`, { id: 'cert-create' });
+            } else {
+                setGenKeyInfo(undefined);
+                // failure stays inline next to the name and validity fields it refers to
+                setResErrMessage(resMessage(sRes, 'Failed to issue certificate'));
+            }
+        } finally {
+            sGeneratingRef.current = false;
+            setIsGenerating(false);
         }
     };
     const handlePayload = (aTarget: string, aValue: string | boolean) => {
@@ -210,7 +221,7 @@ export const CreateKey = ({ pInitialName }: { pInitialName?: string }) => {
                         </Page.ContentBlock>
 
                         <Page.ContentBlock>
-                            <Page.TextButton data-testid="certificate-create-submit" pText="Generate certificate" pWidth="150px" pType="CREATE" pIsDisable={!sCanSubmit} pCallback={createKey} />
+                            <Page.TextButton data-testid="certificate-create-submit" pText="Generate certificate" pWidth="150px" pType="CREATE" pIsDisable={!sCanSubmit || sIsGenerating} pLoad={sIsGenerating} pCallback={createKey} />
                         </Page.ContentBlock>
 
                         <Page.ContentBlock>

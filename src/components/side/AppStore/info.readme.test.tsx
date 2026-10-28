@@ -116,3 +116,39 @@ test('the local README is rendered verbatim — no raw.githubusercontent rewriti
     await waitFor(() => expect(screen.getByTestId('readme')).toHaveTextContent('![shot](./docs/shot.png)'));
     expect(screen.getByTestId('readme').textContent).not.toContain('raw.githubusercontent.com');
 });
+
+// issue #1570 F-26 — catalog homepage/license values are opened only as http(s),
+// detached from this tab.
+describe('catalog links', () => {
+    let open: jest.SpyInstance;
+    beforeEach(() => {
+        mockGetPkgMarkdown.mockResolvedValue('# from hub');
+        open = jest.spyOn(window, 'open').mockImplementation(() => null);
+    });
+    afterEach(() => open.mockRestore());
+
+    test('a script homepage or license url is not opened', async () => {
+        renderInfo({
+            name: 'neo-pkg-demo',
+            installed_frontend: false,
+            github: { ...GITHUB, homepage: "javascript:opener.document.title='x'", license: { name: 'MIT', url: 'javascript:alert(1)' } },
+        });
+        await waitFor(() => expect(screen.getByTestId('readme')).toBeInTheDocument());
+        screen.getByText("javascript:opener.document.title='x'").click();
+        screen.getByText('MIT').click();
+        expect(open).not.toHaveBeenCalled();
+    });
+
+    test('an https homepage or license url opens with noopener', async () => {
+        renderInfo({
+            name: 'neo-pkg-demo',
+            installed_frontend: false,
+            github: { ...GITHUB, homepage: 'https://example.com', license: { name: 'MIT', url: 'https://example.com/LICENSE' } },
+        });
+        await waitFor(() => expect(screen.getByTestId('readme')).toBeInTheDocument());
+        screen.getByText('https://example.com').click();
+        screen.getByText('MIT').click();
+        expect(open).toHaveBeenNthCalledWith(1, 'https://example.com', '_blank', 'noopener,noreferrer');
+        expect(open).toHaveBeenNthCalledWith(2, 'https://example.com/LICENSE', '_blank', 'noopener,noreferrer');
+    });
+});

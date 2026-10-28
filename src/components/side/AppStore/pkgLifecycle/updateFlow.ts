@@ -19,10 +19,20 @@ import type { LifecycleContext, StepResult } from './types';
 // Any failure aborts the remaining steps and returns the first failure.
 // No auto-rollback: partial state (stopped, new files, no start) is left
 // intact so the admin can inspect and retry rather than risk deeper damage.
+const bareVersion = (v: string) => v.trim().replace(/^v/i, '');
+
+/** The requested version differs from the old one, yet the manifest did not move. */
+export function notUpdated(tag: string | undefined, preVersion: string | undefined, postVersion: string | undefined): boolean {
+    if (!tag || typeof preVersion !== 'string' || !preVersion) return false;
+    if (bareVersion(tag) === bareVersion(preVersion)) return false;
+    return postVersion === preVersion;
+}
+
 export async function runUpdate(ctx: LifecycleContext): Promise<StepResult> {
     // ── Phase 1: pre-update manifest ──────────────────────────────────────
     const preRead = await stepReadManifest(ctx);
     if (!preRead.ok) return { ...preRead, log: ctx.logs.join('\n') };
+    const preVersion = ctx.manifest?.version;
     const hadStop = hasScript(ctx.manifest, 'stop');
 
     if (hadStop) {
@@ -53,6 +63,16 @@ export async function runUpdate(ctx: LifecycleContext): Promise<StepResult> {
     ctx.manifest = undefined;
     const postRead = await stepReadManifest(ctx);
     if (!postRead.ok) return { ...postRead, log: ctx.logs.join('\n') };
+    // issue #1570 F-152 — a `pkg copy -f` that fetched nothing still answers
+    // success and leaves the old files in place. Asked for another version and
+    // the manifest still names the old one: nothing was updated.
+    // (cast: TS still narrows ctx.manifest to the `undefined` assigned above)
+    const postVersion = (ctx.manifest as LifecycleContext['manifest'])?.version;
+    if (notUpdated(ctx.tag, preVersion, postVersion)) {
+        const reason = `package files were not updated — /public/${ctx.appName}/package.json is still ${preVersion}`;
+        ctx.logs.push(`(fail) ${reason}`);
+        return { ok: false, log: ctx.logs.join('\n'), reason };
+    }
     const hasInstallNow = hasScript(ctx.manifest, 'install');
 
     if (hasInstallNow) {

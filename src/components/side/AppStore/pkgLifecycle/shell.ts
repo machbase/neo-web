@@ -5,10 +5,33 @@
 import { getTqlChart } from '@/api/repository/machiot';
 import type { StepResult } from './types';
 
-export async function runShell(cmd: string): Promise<StepResult> {
-    const tql = `FAKE(once(1))\nSHELL(\`${cmd}\`)\nJSON(rowsFlatten(true))`;
+/**
+ * Quote one argument for the JSH shell. MEASURED on machbase-neo v8.7.2: the
+ * shell honours '…' and "…", has no backslash escapes, joins adjacent quoted
+ * pieces into one word, splits commands at `;` and does not expand `$()`.
+ * So a single-quoted word, with each `'` written as `'"'"'`, reaches the
+ * command as exactly one argument whatever it contains.
+ */
+export const shellQuote = (value: string): string => `'${value.replace(/'/g, `'"'"'`)}'`;
+
+/**
+ * Run `cmd` through TQL SHELL.
+ *
+ * `args` are for values that did not come from the catalog (e.g. a version the
+ * user typed). They never enter the TQL source: each `{name}` in `cmd` reads its
+ * value back with `param("name")`, and the value is shell-quoted so it stays a
+ * single argument. A backtick in it can no longer end the SHELL(`…`) literal.
+ */
+export async function runShell(cmd: string, args?: Record<string, string>): Promise<StepResult> {
+    let expr = `\`${cmd}\``;
+    let params: Record<string, string> | undefined;
+    for (const [name, value] of Object.entries(args ?? {})) {
+        expr = expr.split(`{${name}}`).join(`\` + param("${name}") + \``);
+        params = { ...params, [name]: shellQuote(value) };
+    }
+    const tql = `FAKE(once(1))\nSHELL(${expr})\nJSON(rowsFlatten(true))`;
     try {
-        const res: any = await getTqlChart(tql, 'pkg');
+        const res: any = await getTqlChart(tql, 'pkg', undefined, params);
         const data = res?.data;
 
         if (data && typeof data === 'object' && data.success) {

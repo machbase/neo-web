@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ApiTokenItemType, GenApiTokenResType, genApiToken, getApiTokens } from '@/api/repository/token';
 import { resMessage } from '@/utils/resMessage';
 import { gBoardList, gTokenList } from '@/recoil/recoil';
@@ -23,6 +23,8 @@ const RESPONSE_CAUTION = 'The plaintext token appears in this response only — 
 export const CreateToken = ({ pInitialName }: { pInitialName?: string }) => {
     const [sGenInfo, setGenInfo] = useState<GenApiTokenResType | undefined>(undefined);
     const [sResErrMessage, setResErrMessage] = useState<string | undefined>(undefined);
+    const sIssuingRef = useRef<boolean>(false);
+    const [sIsIssuing, setIsIssuing] = useState<boolean>(false);
     const setTokenList = useSetRecoilState<ApiTokenItemType[] | undefined>(gTokenList);
     const setBoardList = useSetRecoilState<any[]>(gBoardList);
     const [sGroupWidth, setGroupWidth] = useState<number[]>([50, 50]);
@@ -56,20 +58,29 @@ export const CreateToken = ({ pInitialName }: { pInitialName?: string }) => {
 
     /** issue token — `token.generate(name, notAfter)` */
     const issueToken = async () => {
-        if (!sCanSubmit) return;
-        const sRes = await genApiToken(sName, notAfterUnix());
-        if (sRes.success && sRes.data) {
-            setGenInfo(sRes.data);
-            const sList = await getApiTokens();
-            setTokenList(sList.success ? sList.data : undefined);
-            handleSavedCode(true);
-            setResErrMessage(undefined);
-            // name only — the plaintext token stays in the panel below, never in a toast
-            Toast.success(`Token '${sRes.data.name || sName.trim()}' issued`, { id: 'token-create' });
-        } else {
-            setGenInfo(undefined);
-            // failure stays inline next to the name / expiry fields
-            setResErrMessage(resMessage(sRes, 'Failed to issue token'));
+        // one request at a time: a double click issued two tokens, and the first one's plaintext
+        // was gone for good (issue #1570 F-149)
+        if (!sCanSubmit || sIssuingRef.current) return;
+        sIssuingRef.current = true;
+        setIsIssuing(true);
+        try {
+            const sRes = await genApiToken(sName, notAfterUnix());
+            if (sRes.success && sRes.data) {
+                setGenInfo(sRes.data);
+                const sList = await getApiTokens();
+                setTokenList(sList.success ? sList.data : undefined);
+                handleSavedCode(true);
+                setResErrMessage(undefined);
+                // name only — the plaintext token stays in the panel below, never in a toast
+                Toast.success(`Token '${sRes.data.name || sName.trim()}' issued`, { id: 'token-create' });
+            } else {
+                setGenInfo(undefined);
+                // failure stays inline next to the name / expiry fields
+                setResErrMessage(resMessage(sRes, 'Failed to issue token'));
+            }
+        } finally {
+            sIssuingRef.current = false;
+            setIsIssuing(false);
         }
     };
 
@@ -142,7 +153,7 @@ export const CreateToken = ({ pInitialName }: { pInitialName?: string }) => {
                         </Page.ContentBlock>
 
                         <Page.ContentBlock>
-                            <Page.TextButton data-testid="token-create-submit" pText="Issue token" pWidth="110px" pType="CREATE" pIsDisable={!sCanSubmit} pCallback={issueToken} />
+                            <Page.TextButton data-testid="token-create-submit" pText="Issue token" pWidth="110px" pType="CREATE" pIsDisable={!sCanSubmit || sIsIssuing} pLoad={sIsIssuing} pCallback={issueToken} />
                         </Page.ContentBlock>
 
                         <Page.ContentBlock>

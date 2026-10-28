@@ -15,6 +15,7 @@ import { usePkgCommand } from './pkgLifecycle/usePkgCommand';
 import { ConfirmCommandModal, type ConfirmableCommand } from './ConfirmCommandModal';
 import { PkgIcon } from './PkgIcon';
 import { readLocalReadme } from '@/api/repository/onpremCatalog';
+import { openExternalUrl } from '@/utils/externalUrl';
 
 /**
  * Shown for an INSTALLED package whose tree ships no README.md.
@@ -254,12 +255,11 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                                                     <VscBook style={{ marginRight: '4px', minWidth: '14px', minHeight: '14px', flexShrink: 0 }} />
                                                     <a
                                                         onClick={() =>
-                                                            window.open(
+                                                            openExternalUrl(
                                                                 pCode.app.docs.replace(
                                                                     /^https:\/\/raw\.githubusercontent\.com\/([^/]+)\/([^/]+)\/(.+)$/,
                                                                     'https://github.com/$1/$2/blob/$3'
-                                                                ),
-                                                                '_blank'
+                                                                )
                                                             )
                                                         }
                                                         style={{ fontSize: '13px', cursor: 'pointer' }}
@@ -283,7 +283,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                                         <div style={{ display: 'flex', alignItems: 'center', marginRight: '8px', overflow: 'hidden', minWidth: 0, flex: 1 }}>
                                             <VscHome style={{ marginRight: '4px', minWidth: '14px', minHeight: '14px', flexShrink: 0 }} />
                                             <a
-                                                onClick={() => window.open(pCode.app.github.homepage, '_blank')}
+                                                onClick={() => openExternalUrl(pCode.app.github.homepage)}
                                                 style={{
                                                     fontSize: '13px',
                                                     overflow: 'hidden',
@@ -304,7 +304,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                                         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', minWidth: 0 }}>
                                             <BiLink style={{ marginRight: '4px', minWidth: '14px', minHeight: '14px', flexShrink: 0 }} />
                                             <a
-                                                onClick={() => window.open('https://github.com/' + pCode?.app?.github?.full_name, '_blank')}
+                                                onClick={() => openExternalUrl('https://github.com/' + pCode?.app?.github?.full_name)}
                                                 style={{
                                                     fontSize: '13px',
                                                     overflow: 'hidden',
@@ -322,7 +322,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                                         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', minWidth: 0 }}>
                                             <LuScale style={{ marginRight: '4px', minWidth: '14px', minHeight: '14px', flexShrink: 0 }} />
                                             <a
-                                                onClick={() => window.open(pCode?.app?.github?.license?.url, '_blank')}
+                                                onClick={() => openExternalUrl(pCode?.app?.github?.license?.url)}
                                                 style={{
                                                     fontSize: '13px',
                                                     overflow: 'hidden',

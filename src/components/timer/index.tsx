@@ -5,7 +5,7 @@ import { SplitPane, Pane } from '@/design-system/components';
 import { SashContent } from 'split-pane-react';
 import { EditTimer } from './editTimer';
 import { TimerItemType, delTimer, getTimer, getTimerItem, modTimer } from '@/api/repository/timer';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { AUTO_START_DESC } from './content';
 import { SelectFileBtn } from '../buttons/SelectFileBtn';
 import { OpenFileBtn } from '../buttons/OpenFileBtn';
@@ -25,6 +25,7 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
     const [sResOpenFile, setResOpenFile] = useState<string | undefined>(undefined);
     const [sIsCommandLoading, setIsCommandLoading] = useState<boolean>(false);
     const { toggleTimerState } = useTimerStateAction();
+    const sKeepMessageRef = useRef<boolean>(false);
 
     /** delete timer */
     const deleteTimer = async () => {
@@ -118,7 +119,29 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
             // failure stays inline under the Save button — the schedule/path that has to change is
             // right there
             setResMessage(resMessage(sResult, 'Failed to save timer'));
+            await showServerStateAfterFailedSave();
         }
+    };
+    /**
+     * `timer.update` can fail AFTER it stored the new definition (a task path that does not exist
+     * answers "not found" with the new task/schedule saved and the timer FAILED), so a failed Save
+     * says nothing about what the server now holds. Read it back (issue #1570 F-145): the side list
+     * always gets the real entry; the form switches to it only when the server actually moved, so
+     * a rejected value the server never stored (an invalid schedule) stays in the form to fix.
+     */
+    const showServerStateAfterFailedSave = async () => {
+        const sTimerInfo: any = await getTimerItem(sPayload.id);
+        if (!sTimerInfo.success) return;
+        const sServer: TimerItemType = sTimerInfo.data;
+        setResTimerList((aList) => aList && aList.map((aTimerInfo: any) => (aTimerInfo.id === sServer.id ? sServer : aTimerInfo)));
+        const sBefore: any = sBoardList.find((aBoard: any) => aBoard.type === 'timer')?.savedCode;
+        const sMoved = !sBefore || (['schedule', 'task', 'state', 'autoStart'] as const).some((aKey) => sServer[aKey] !== sBefore[aKey]);
+        if (!sMoved) return;
+        // the board update re-runs the pCode effect below, which would clear the message just set
+        sKeepMessageRef.current = true;
+        setBoardList((aBoardList: any) =>
+            aBoardList.map((aBoard: any) => (aBoard.type === 'timer' ? { ...aBoard, name: `TIMER: ${sServer.name}`, code: sServer, savedCode: sServer } : aBoard))
+        );
     };
     const handleCommand = async () => {
         if (!sPayload || sIsCommandLoading) return;
@@ -161,7 +184,8 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
     };
 
     useEffect(() => {
-        setResMessage(undefined);
+        if (sKeepMessageRef.current) sKeepMessageRef.current = false;
+        else setResMessage(undefined);
         pCode &&
             setPayload({
                 id: pCode.id,

@@ -113,7 +113,11 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                 }
             }
             handleSavedCode(true);
-        } else setBridge([]);
+        } else {
+            // keep the tree it already shows — blanking it reads as "every bridge was deleted" — and
+            // say why it is not refreshed (same as the side panel's Refresh)
+            Toast.error(resMessage(sResBridge, 'Failed to load bridges'), { id: 'bridge-list', testId: 'bridge-list-error-toast' });
+        }
     };
     /** switch this tab to the created item's detail page (same board shape the side tree's openSubrInfo builds) */
     const openCreatedSubrDetail = (aBridge: any, aSubr: any) => {

@@ -159,6 +159,10 @@ export const genTimer = async (aData: CreatePayloadType, aTimerName: string): Pr
  *
  * IMPORTANT: the backend REPLACES the definition rather than merging it — a field left out of the
  * payload is reset (omitting `autoStart` turns it off). Always send the full set below.
+ *
+ * Unlike `timer.add`, a `command` whose tql file does not exist is checked AFTER the definition is
+ * stored: the call fails with "not found" while the server already holds the new task/schedule and
+ * the timer is FAILED. A failed update is therefore no proof that nothing changed — re-read it.
  */
 export const modTimer = async (aData: EditPayloadType, aTimerId: number): Promise<GenTimerResType> => {
     try {

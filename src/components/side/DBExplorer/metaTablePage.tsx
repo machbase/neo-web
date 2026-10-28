@@ -206,7 +206,20 @@ export const MetaTablePage = ({
         if (idIndex === -1) return aRow;
         return aRow.filter((_, index) => index !== idIndex);
     };
-    const ModMeta = async (aCommand: META_MOD_TYPE, aTagNm: string, aValues?: STR_NUM_ARR_TYPE) => {
+    /**
+     * The row as the database now holds it, by `_ID` — the name is not a safe key (issue #1570
+     * F-139: for a name ending in `\` the engine answers "a row updated." and changes nothing).
+     * undefined when it cannot be read.
+     */
+    const readMetaRow = async (aId: string | number | undefined): Promise<STR_NUM_ARR_TYPE | undefined> => {
+        const sId = Number(aId);
+        if (aId === undefined || aId === null || !Number.isFinite(sId)) return undefined;
+        const sMetaTable = sqlIdentifierPath(mTableInfo[E_TABLE_INFO.DB_NM], mTableInfo[E_TABLE_INFO.USER_NM], `_${mTableInfo[E_TABLE_INFO.TB_NM]}_META`);
+        // same reader as the page itself, so the row comes back formatted like its neighbours
+        const { svrState, svrData } = await fetchTqlQuery(`select * from ${sMetaTable} where _id = ${sId}`, 0, 1);
+        return svrState ? svrData?.rows?.[0] : undefined;
+    };
+    const ModMeta = async (aCommand: META_MOD_TYPE, aTagNm: string, aValues?: STR_NUM_ARR_TYPE, aId?: string | number) => {
         const sTable = sqlIdentifierPath(mTableInfo[E_TABLE_INFO.DB_NM], mTableInfo[E_TABLE_INFO.USER_NM], mTableInfo[E_TABLE_INFO.TB_NM]);
         // IN, not `=`: for a tag name holding a backslash `sqlString` is an expression, and the engine's
         // METADATA UPDATE matches no row for `name = <expression>` while it does for `name IN (<expression>)`.
@@ -235,17 +248,20 @@ export const MetaTablePage = ({
                 setMetaTableInfo(undefined);
                 FetchMetaTable({ page: 0, filter: sFilter });
             }
-            if (aCommand === 'UPDATE')
+            if (aCommand === 'UPDATE') {
+                // show what was stored, not what was typed: a success reply is no proof the row changed
+                const sStored = await readMetaRow(aId);
                 setMetaTableInfo((prevInfo: any) => {
                     return {
                         ...prevInfo,
                         rows: prevInfo?.rows?.map((row: STR_NUM_ARR_TYPE) => {
                             if (row?.[sMetaTableInfo?.columns?.indexOf(pMColInfo?.rows?.[0]?.[0]) as number] === aTagNm)
-                                return [row?.[sMetaTableInfo?.columns?.indexOf('_ID') as number]]?.concat(aValues as STR_NUM_ARR_TYPE);
+                                return sStored ?? [row?.[sMetaTableInfo?.columns?.indexOf('_ID') as number]]?.concat(aValues as STR_NUM_ARR_TYPE);
                             else return row;
                         }),
                     };
                 });
+            }
 
             if (aCommand === 'INSERT' || aCommand === 'DELETE') {
                 Toast.success(svrReason, { testId: 'db-meta-toast' });
@@ -267,7 +283,13 @@ export const MetaTablePage = ({
     const handleUpdateMeta = useCallback(
         (aUpdateInfo: any) => {
             const rowWithoutId = removeIdFromRow(aUpdateInfo.modAfterInfo.row);
-            ModMeta('UPDATE', aUpdateInfo.modBeforeInfo.row[mMetaColumnList?.indexOf(pMColInfo?.rows?.[0]?.[0]) as number], rowWithoutId);
+            const sIdIdx = mMetaColumnList?.indexOf('_ID') ?? -1;
+            ModMeta(
+                'UPDATE',
+                aUpdateInfo.modBeforeInfo.row[mMetaColumnList?.indexOf(pMColInfo?.rows?.[0]?.[0]) as number],
+                rowWithoutId,
+                sIdIdx === -1 ? undefined : aUpdateInfo.modBeforeInfo.row[sIdIdx]
+            );
         },
         [mMetaColumnList]
     );

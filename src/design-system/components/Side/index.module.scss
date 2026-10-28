@@ -461,3 +461,67 @@ $version-accent: #4199ff;
         @include m.chevron-icon-open;
     }
 }
+
+// Side.LoadError — the side panels' "this list could not be read" line (issue #1570 F-180, F-103).
+// One row the height of a section header, so the list under it loses as little as possible.
+// The row itself stays the header's colour and only the glyph is red: these panels mark state on
+// the glyph (see the App Store's catalog icon), not with a coloured band.
+.sideLoadError {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    height: 22px;
+    min-width: 0;
+    padding: 0 11px 0 8px;
+    background-color: c.$bg-header;
+    border-bottom: 0.5px solid c.$border-color-default;
+    color: c.$text-secondary;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.sideLoadErrorIcon {
+    flex-shrink: 0;
+    color: c.$error-main;
+}
+
+.sideLoadErrorText {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+// what the server said, set as the server's text
+.sideLoadErrorReason {
+    font-family: 'D2Coding', monospace;
+    font-size: 11px;
+    color: c.$text-tertiary;
+}
+
+.sideLoadErrorTime {
+    color: c.$text-tertiary;
+}
+
+// A <button>, so the global `button { border-radius: 8px }` in src/index.css reaches it —
+// restated here along with every other box property the browser would add.
+.sideLoadErrorRetry {
+    flex-shrink: 0;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    color: $version-accent;
+    font: inherit;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+        text-decoration: underline;
+    }
+
+    &:disabled {
+        color: c.$text-disabled;
+        cursor: default;
+    }
+}

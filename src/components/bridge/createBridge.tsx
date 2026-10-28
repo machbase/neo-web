@@ -4,7 +4,7 @@ import { SplitPane, Pane, Page, Alert, Button, Toast } from '@/design-system/com
 import { SashContent } from 'split-pane-react';
 import { gBoardList, gBridgeList } from '@/recoil/recoil';
 import { LuFlipVertical } from 'react-icons/lu';
-import { BridgeItemType, CreatePayloadType, genBridge } from '@/api/repository/bridge';
+import { BridgeItemType, CreatePayloadType, bridgeServerName, genBridge } from '@/api/repository/bridge';
 import { SELECTE_TYPE } from './content';
 import { resMessage } from '@/utils/resMessage';
 
@@ -27,10 +27,11 @@ export const CreateBridge = () => {
         const sRes = await genBridge(sCreatePayload);
 
         if (sRes.success) {
-            setBridgeList([...sBridgeList, { ...sCreatePayload, type: sCreatePayload.type.toLowerCase() }] as any);
+            const sName = bridgeServerName(sCreatePayload.name);
+            setBridgeList([...sBridgeList, { ...sCreatePayload, name: sName, type: sCreatePayload.type.toLowerCase() }] as any);
             handleSavedCode(true);
             setResErrMessage(undefined);
-            Toast.success(`Bridge '${sCreatePayload.name}' created`, { id: 'bridge-create' });
+            Toast.success(`Bridge '${sName}' created`, { id: 'bridge-create' });
         } else {
             // failure stays inline: the fix is in the form right next to it, and a 3s toast would be
             // gone before the user finished reading the reason

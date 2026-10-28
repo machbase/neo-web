@@ -34,10 +34,12 @@ export const SSHKey = () => {
     };
     /** Gen ssh key */
     const genSSHKey = async () => {
-        if (sAddSSHKeyInfo.replace(/ +/g, '').length <= 0) return;
+        if (sAddSSHKeyInfo.trim().length <= 0) return;
         if (sAlias.length <= 0) return;
         setAddState(undefined);
-        const sSplitKeyInfo = sAddSSHKeyInfo.replace(/ +/g, ' ').split(' ');
+        // a pasted key may carry leading blanks or tabs between its fields — split on any
+        // whitespace, as addSSHKey does, so the alias replaces the key's own comment (issue #1570 F-151)
+        const sSplitKeyInfo = sAddSSHKeyInfo.trim().split(/\s+/);
         const sParsedKeyInfo: string = `${sSplitKeyInfo[0]} ${sSplitKeyInfo[1]} ${sAlias}`;
         const sRes: any = await addSSHKey(sParsedKeyInfo);
         if (sRes?.success) {

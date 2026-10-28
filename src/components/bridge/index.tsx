@@ -185,7 +185,9 @@ export const Bridge = ({ pCode }: { pCode: BridgeItemType }) => {
     return (
         <>
             {/* Show info */}
-            {sPayload && sActiveName !== '' && (
+            {/* pCode and the active name both go empty when the last bridge is deleted; sPayload lags one
+                render behind pCode, so it alone cannot gate the detail (issue #1570 F-142) */}
+            {pCode && sPayload && sActiveName && (
                 <Page pRef={sBodyRef} data-testid="bridge-detail">
                     <SplitPane sashRender={() => Resizer()} split={isVertical ? 'vertical' : 'horizontal'} sizes={sGroupWidth} onChange={setGroupWidth}>
                         <Pane minSize={400}>

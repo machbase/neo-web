@@ -14,6 +14,20 @@ export async function isPkgInstalled(appName: string): Promise<boolean> {
     }
 }
 
+// issue #1570 F-152 — `pkg copy` that could not fetch the package (missing tag,
+// network, GitHub rate limit) still answers success and leaves an EMPTY
+// /public/<name>. A directory is therefore not proof of an install; a directory
+// with something in it is.
+export async function isPkgPopulated(appName: string): Promise<boolean> {
+    try {
+        const res: any = await getFiles(`/public/${appName}/`);
+        const children: any[] = res?.data?.children ?? res?.children ?? [];
+        return children.length > 0;
+    } catch {
+        return false;
+    }
+}
+
 // TQL SHELL can return before the command's filesystem side effects are
 // observable via /api/files — so a single probe right after `pkg copy` or
 // `rm -rf` may read stale state. Poll until the expected state is reached
@@ -47,6 +61,12 @@ export function waitForPkgInstalled(appName: string, opts: { attempts?: number; 
     const attempts = opts.attempts ?? DEFAULT_ATTEMPTS;
     const delayMs = opts.delayMs ?? DEFAULT_DELAY_MS;
     return pollUntil(() => isPkgInstalled(appName), attempts, delayMs);
+}
+
+export function waitForPkgPopulated(appName: string, opts: { attempts?: number; delayMs?: number } = {}): Promise<boolean> {
+    const attempts = opts.attempts ?? DEFAULT_ATTEMPTS;
+    const delayMs = opts.delayMs ?? DEFAULT_DELAY_MS;
+    return pollUntil(() => isPkgPopulated(appName), attempts, delayMs);
 }
 
 export function waitForPkgRemoved(appName: string, opts: { attempts?: number; delayMs?: number } = {}): Promise<boolean> {

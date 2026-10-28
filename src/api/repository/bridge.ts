@@ -9,6 +9,7 @@
 // now addressed by numeric `id` instead of name — a name string answers `-32602`.
 // The external signatures and return envelopes ({ data, success, reason, elapse }) are kept as-is so
 // the bridge components render unchanged; only the internals are swapped to RPC + adapters.
+import { resMessage } from '@/utils/resMessage';
 import { rpcCall, RpcMethod, JsonRpcResponse } from './rpc';
 
 export type BridgeType = 'SQLite' | 'PostgreSQL' | 'MySQL' | 'MSSQL' | 'MQTT' | 'NATS';
@@ -99,6 +100,10 @@ export const getBridge = async (): Promise<BridgeListResType> => {
         const res = await rpcCall<any[]>(RpcMethod.bridge.list, []);
         const err = rpcErrMessage(res);
         if (err) return { success: false, reason: err, elapse: '', data: [] };
+        // the api core RESOLVES with the axios error (network failure) or the error response (HTTP
+        // error) instead of rejecting, so a body that is not JSON-RPC is a failed read, not an empty
+        // list (issue #1570 F-29)
+        if ((res as any)?.jsonrpc !== '2.0') return { success: false, reason: resMessage(res, (res as any)?.message || 'Failed to load bridges'), elapse: '', data: [] };
         const rows = (res?.result ?? []) as any[];
         const data: BridgeItemType[] = rows.map((it) => ({
             name: it?.name ?? it?.Name ?? '',
@@ -112,6 +117,13 @@ export const getBridge = async (): Promise<BridgeListResType> => {
 };
 
 /**
+ * The name a new bridge is stored under. The server matches names case-sensitively, so the
+ * screen must show this same spelling or Test/Delete go out with a name that does not exist
+ * until the list is reloaded (issue #1570 F-31).
+ */
+export const bridgeServerName = (aName: string) => aName.toLowerCase();
+
+/**
  * Gen bridge — `bridge.add(name, type, path)` (params order: [name, type, path]).
  * Returns the GenKeyResType-compatible envelope the call site checks (`success` / `data.reason` / `statusText`).
  *
@@ -123,7 +135,7 @@ export const getBridge = async (): Promise<BridgeListResType> => {
  */
 export const genBridge = async (aData: CreatePayloadType): Promise<GenKeyResType> => {
     try {
-        const res = await rpcCall(RpcMethod.bridge.add, [aData.name.toLowerCase(), aData.type.toLowerCase(), aData.path]);
+        const res = await rpcCall(RpcMethod.bridge.add, [bridgeServerName(aData.name), aData.type.toLowerCase(), aData.path]);
         const err = rpcErrMessage(res);
         return err ? errEnvelope(err) : ({ success: true, reason: 'success', elapse: '' } as GenKeyResType);
     } catch (e) {

@@ -1,3 +1,4 @@
+import { getFileRequestFailure } from '@/utils/fileRequestResult';
 import { getReferenceList, postFileList } from '@/api/repository/api';
 import { gSelectedExtension } from '@/recoil/recoil';
 import { gFileTree } from '@/recoil/fileTree';
@@ -44,6 +45,10 @@ export const quickInstallFolder = (aItem: REFERENCE_ITEM): NameFromUrl => nameFr
 /** The server's lists, with Education added to REFERENCES (the server does not list it). */
 export const fetchReferences = async (): Promise<REFERENCE_GROUP[]> => {
     const sData: any = await getReferenceList();
+    // the request layer resolves a network failure or an HTTP error instead of rejecting; neither is
+    // an empty list (issue #1570 F-103)
+    const sFailure = getFileRequestFailure(sData, 'Failed to load the reference list.');
+    if (sFailure) throw new Error(sFailure.reason);
     const sRefs: REFERENCE_GROUP[] = sData?.data?.refs ?? [];
     sRefs.forEach((aRef) => {
         if (aRef?.label?.toUpperCase() === 'REFERENCES' && !aRef.items?.some((aItem) => aItem?.address === EDUCATION.address)) aRef.items?.push({ ...EDUCATION });
@@ -103,6 +108,10 @@ export const useQuickInstall = () => {
                 await quickInstallQueueRef.current;
                 setSelectedExtension('EXPLORER');
                 Toast.success(`Creating in ${sTarget} folder`);
+            } else {
+                // the server answers a failed clone (no such repository, auth, network) with
+                // success:false and its reason — say so instead of nothing (issue #1570 F-103)
+                Toast.error(`Quick install failed: ${getFileRequestFailure(sResult, 'clone failed')?.reason ?? 'clone failed'}`);
             }
         } catch (error) {
             Toast.error(`Quick install failed: ${error}`);
