@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { rpcMarkdownRender } from '@/api/repository/markdown';
 import setMermaid, { redrawMermaid } from '@/plugin/mermaid';
-import { useThemeVersion } from '@/design-system/theme';
+import { currentScheme, useThemeVersion } from '@/design-system/theme';
 import setChartext, { disposeChartext, resizeChartext } from '@/plugin/chartext';
 import setGeomap, { disposeGeomap, resizeGeomap } from '@/plugin/geomap';
 import { useRecoilState, useRecoilValue } from 'recoil';
@@ -124,10 +124,15 @@ export const Markdown = (props: MarkdownProps) => {
         }
     }, [sSelectedTab]);
 
-    // A theme change re-initialised mermaid with the new scheme's palette: draw the diagrams again.
+    // The server draws pikchr (and the rest of the HTML) for one scheme: a theme of the other
+    // scheme renders the markdown again. Within a scheme only mermaid, re-initialised with the
+    // theme's palette, draws its diagrams again.
     const sThemeVersion = useThemeVersion();
+    const sRenderedSchemeRef = useRef(currentScheme());
     useEffect(() => {
-        if (sThemeVersion > 0) redrawMermaid(sShadowRootRef.current);
+        if (sThemeVersion === 0) return;
+        if (currentScheme() !== sRenderedSchemeRef.current) init();
+        else redrawMermaid(sShadowRootRef.current);
     }, [sThemeVersion]);
 
     useEffect(() => {
@@ -178,7 +183,8 @@ export const Markdown = (props: MarkdownProps) => {
     };
 
     const fetchMrk = async (aContents: string, aReperer: string) => {
-        const sData = await rpcMarkdownRender(aContents, true, aReperer);
+        sRenderedSchemeRef.current = currentScheme();
+        const sData = await rpcMarkdownRender(aContents, sRenderedSchemeRef.current !== 'light', aReperer);
         setMdxText(`<article>${sData}</article>`);
     };
 
