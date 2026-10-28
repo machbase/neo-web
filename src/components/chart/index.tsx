@@ -6,6 +6,7 @@ import { Play } from '@/assets/icons/Icon';
 import './index.scss';
 import { loadChartAssets } from '@/plugin/echartsRuntime';
 import { Button, Dropdown } from '@/design-system/components';
+import { appChartTheme, useThemeVersion } from '@/design-system/theme';
 
 const CHART = ({
     pQueryList,
@@ -50,7 +51,9 @@ const CHART = ({
                 // change the chip while looking at a chart and the next draw follows it. Precedence
                 // is the same function the run path uses, so a `-- env: use=` in the statement still
                 // wins over the chip.
-                applyTargetDatabase([pQueryList[0]], pTargetDb)[0]?.env
+                applyTargetDatabase([pQueryList[0]], pTargetDb)[0]?.env,
+                // The server draws the chart: it gets the app theme's look as colours.
+                appChartTheme()
             )
         );
         setResult(sTmpResult.data);
@@ -59,9 +62,11 @@ const CHART = ({
 
     // `chartRef.current` is only set while the tab is showing, so a chip change on another tab
     // costs nothing — the chart redraws when it is next looked at.
+    // A theme change redraws it in the new look.
+    const sThemeVersion = useThemeVersion();
     useEffect(() => {
         if (chartRef && chartRef.current && !!pSqlQueryTxt() && pQueryList.length > 0) getChartData();
-    }, [pDisplay, pTargetDb]);
+    }, [pDisplay, pTargetDb, sThemeVersion]);
 
     useEffect(() => {
         if (pChartAixsList?.length > 0) {
