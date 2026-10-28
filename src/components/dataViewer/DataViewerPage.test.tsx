@@ -3164,7 +3164,8 @@ describe('DataViewerPage split tag chip legibility', () => {
     test('the active chip lifts the tag name out of the accent colour', () => {
         const body = ruleFor('.neo-data-viewer .data-viewer-chart-tag-chip.is-split .truncate');
         expect(body).not.toBeNull();
-        expect(body).toMatch(/color:\s*var\(--color-white\)/);
+        // The page's text colour: white on the dark screen, a theme's ink on a light one.
+        expect(body).toMatch(/color:\s*var\(--neo-text-primary,\s*#ffffff\)/);
         // The emphasis itself is untouched — this lifted the name out of the accent, it did not
         // remove the accent.
         const chip = ruleFor('.neo-data-viewer .data-viewer-chart-tag-chip.is-split');

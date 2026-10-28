@@ -6,13 +6,18 @@
 
 const toHex = (aChannel: number) => Math.max(0, Math.min(255, Math.round(aChannel))).toString(16).padStart(2, '0');
 
-/** `rgb(1, 2, 3)` / `rgba(1, 2, 3, 0.5)` / `rgb(1 2 3 / 50%)` → `#010203[80]`; anything else → undefined. */
+/**
+ * `rgb(1, 2, 3)` / `rgba(1, 2, 3, 0.5)` / `rgb(1 2 3 / 50%)` → `#010203[80]`; also
+ * `color(srgb 0.1 0.2 0.3 / 0.5)`, which is how browsers compute a `color-mix()`. Anything else →
+ * undefined.
+ */
 export const rgbToHex = (aRgb: string): string | undefined => {
-    const sMatch = /^rgba?\(([^)]*)\)$/i.exec(aRgb.trim());
+    const sSrgb = /^color\(srgb\s+([^)]*)\)$/i.exec(aRgb.trim());
+    const sMatch = sSrgb ?? /^rgba?\(([^)]*)\)$/i.exec(aRgb.trim());
     if (!sMatch) return undefined;
     const sParts = sMatch[1].split(/[\s,/]+/).filter(Boolean);
     if (sParts.length < 3) return undefined;
-    const sRgb = sParts.slice(0, 3).map(Number);
+    const sRgb = sParts.slice(0, 3).map((aPart) => Number(aPart) * (sSrgb ? 255 : 1));
     if (sRgb.some(Number.isNaN)) return undefined;
     const sAlphaText = sParts[3];
     const sAlpha = sAlphaText === undefined ? 1 : sAlphaText.endsWith('%') ? parseFloat(sAlphaText) / 100 : parseFloat(sAlphaText);

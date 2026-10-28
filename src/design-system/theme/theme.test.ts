@@ -110,12 +110,15 @@ describe('rgbToHex', () => {
         ['rgba(255, 255, 255, 0.5)', '#ffffff80'],
         ['rgb(0 108 210 / 50%)', '#006cd280'],
         ['rgba(1, 2, 3, 1)', '#010203'],
+        // a computed color-mix()
+        ['color(srgb 1 0 0)', '#ff0000'],
+        ['color(srgb 0.407843 0.466667 0.541176 / 0.28)', '#68778a47'],
     ])('%s → %s', (aIn, aOut) => {
         expect(rgbToHex(aIn)).toBe(aOut);
     });
 
     test('not rgb → undefined', () => {
-        expect(rgbToHex('color(srgb 1 0 0)')).toBeUndefined();
+        expect(rgbToHex('color(display-p3 1 0 0)')).toBeUndefined();
         expect(rgbToHex('red')).toBeUndefined();
     });
 });

@@ -2,6 +2,7 @@ import {
     buildDataViewerChartGroups,
     buildDataViewerChartXAxis,
     buildDataViewerEChartOption,
+    DATA_VIEWER_CHART_PALETTE,
     buildDataViewerGlobalTimeUpdate,
     buildDataViewerTagAnalyzerRange,
     buildDataViewerJsonKeyTagAnalyzerRange,
@@ -2281,5 +2282,23 @@ describe('ARRAY chart rendering', () => {
         const existing = buildDataViewerEChartOption({ baseKind: 'distance', series: [{ name: 'scalar', data }] });
         expect(existing.series).toHaveLength(2);
         expect(existing.series[0]).toMatchObject({ showSymbol: false, sampling: 'lttb' });
+    });
+});
+
+describe('chart palette', () => {
+    test('the chart colours come from the palette, the dark panel\'s by default', () => {
+        const dark = buildDataViewerEChartOption({ series: [] }) as any;
+        expect(dark.backgroundColor).toBe('#252525');
+        expect(dark.xAxis[0].axisLabel.color).toBe('#f8f8f8');
+        expect(dark.dataZoom[1].fillerColor).toBe('rgba(104, 119, 138, 0.28)');
+
+        const palette = { ...DATA_VIEWER_CHART_PALETTE, background: '#f0f2fb', axisLabel: '#1f2147', axisLine: '#c7cdec', navigatorFiller: 'rgba(160, 33, 55, 0.28)', tooltipText: '#123456' };
+        const light = buildDataViewerEChartOption({ series: [], palette }) as any;
+        expect(light.backgroundColor).toBe('#f0f2fb');
+        expect(light.xAxis[0].axisLabel.color).toBe('#1f2147');
+        expect(light.xAxis[0].splitLine.lineStyle.color).toBe('#c7cdec');
+        expect(light.yAxis[0].axisLine.lineStyle.color).toBe('#c7cdec');
+        expect(light.dataZoom[1].fillerColor).toBe('rgba(160, 33, 55, 0.28)');
+        expect(light.tooltip.textStyle.color).toBe('#123456');
     });
 });

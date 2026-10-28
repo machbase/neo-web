@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ECharts } from 'echarts';
 import { useEcharts } from '@/plugin/echartsRuntime';
+import { useThemeVersion } from '@/design-system/theme';
+import { resolveDataViewerChartPalette } from './chartPalette';
+import GlyphImage from '@/components/common/GlyphImage';
 import { VscChevronLeft, VscChevronRight } from 'react-icons/vsc';
 import ZoomInTwo from '@/assets/image/btn_zoom in x2@3x.png';
 import ZoomInFour from '@/assets/image/btn_zoom in x4@3x.png';
@@ -128,9 +131,12 @@ export function TagEChart({
     const [dragPreview, setDragPreview] = useState<{ mode: 'zoom-in' | 'zoom-out'; left: number; width: number; top: number; height: number } | null>(null);
     const allPoints = useMemo(() => series.flatMap((item) => item.data), [series]);
     const hasChartData = allPoints.length > 0;
+    // The chart's own colours follow the theme: resolved from its tokens, again when it changes.
+    const themeVersion = useThemeVersion();
+    const palette = useMemo(() => resolveDataViewerChartPalette(), [themeVersion]);
     const options = useMemo(
-        () => buildDataViewerEChartOption({ series, timeFormat, timeZone, timeRange, displayRange, baseKind, seriesColors, panelHeight, arrayElements }),
-        [arrayElements, baseKind, displayRange, panelHeight, series, seriesColors, timeFormat, timeRange, timeZone],
+        () => buildDataViewerEChartOption({ series, timeFormat, timeZone, timeRange, displayRange, baseKind, seriesColors, panelHeight, arrayElements, palette }),
+        [arrayElements, baseKind, displayRange, palette, panelHeight, series, seriesColors, timeFormat, timeRange, timeZone],
     );
     const currentRange = useMemo(() => getDataViewerChartRangeMs(allPoints, displayRange || timeRange, baseKind), [allPoints, baseKind, displayRange, timeRange]);
     const navigatorRange = useMemo(() => getDataViewerChartRangeMs(allPoints, timeRange, baseKind), [allPoints, baseKind, timeRange]);
@@ -486,7 +492,7 @@ export function TagEChart({
                                 disabled={zoomControlsDisabled}
                                 onClick={() => applyZoomControl(String(action), zoom as number | undefined)}
                             >
-                                {image ? <img src={image as string} alt="" className="data-viewer-chart-toolbar-image" /> : <MaterialIcon name="center_focus_strong" className="data-viewer-chart-toolbar-icon" />}
+                                {image ? <GlyphImage src={image as string} className="data-viewer-chart-toolbar-image" /> : <MaterialIcon name="center_focus_strong" className="data-viewer-chart-toolbar-icon" />}
                             </button>
                         ))}
                     </div>
