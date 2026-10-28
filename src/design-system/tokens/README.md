@@ -535,6 +535,12 @@ falls back to Dark; the Theme dialog then forgets it.
 - Where colours are data, not CSS (Monaco's editor theme): `resolveCssColor()` reads the value the
   current theme gives, and `useThemeVersion()` changes when the theme does.
 - Chart options, canvas drawing and saved defaults are left as written: `var()` there breaks them.
+- CSS that depends on the scheme rather than on a colour: the loader sets `data-neo-scheme`
+  (`light`/`dark`) on `<html>` next to `data-neo-theme`, e.g. `:root[data-neo-scheme='light']
+  .neo-type-icon` deepens the file-type icons. With no theme there is no attribute.
+- Charts the app draws itself through TQL (SQL result, FFT): `appChartTheme()` gives ECharts'
+  `white` or `dark` and the surface colour, as values. The data viewer's ECharts options take a
+  palette resolved from the tokens (`resolveDataViewerChartPalette()`).
 - Library-drawn parts: tooltips (react-tooltip's `--rt-color-*`) take the `tooltip-*` tokens
   (global.scss); the terminal's "Default" theme takes `bg-primary`/`text-primary` (and light ANSI
   colours under a light scheme); mermaid diagrams take mermaid's light palette under a light scheme.
