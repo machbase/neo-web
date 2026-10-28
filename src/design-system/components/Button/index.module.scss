@@ -58,9 +58,11 @@
         color: var(--neo-text-primary, #ffffff);
         border: 1px solid var(--neo-border-color-focus, rgb(0, 108, 210));
 
+        // The hover fill is the accent (a theme's rest fill, bg-active-hover, is a light tint).
         &:hover:not(:disabled) {
             background-color: var(--neo-primary-base, rgb(0, 90, 180));
             border-color: var(--neo-border-color-active, rgb(0, 90, 180));
+            color: var(--neo-text-on-accent, #ffffff);
         }
 
         &:focus,
