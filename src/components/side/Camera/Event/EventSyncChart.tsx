@@ -7,6 +7,7 @@ import {
 } from 'react';
 import { getTqlChart } from '@/api/repository/machiot';
 import { getEcharts } from '@/plugin/echartsRuntime';
+import { appChartTheme } from '@/design-system/theme';
 import { DetermineTqlResultType, E_TQL_SCR, TqlResType } from '@/utils/TQL/TqlResParser';
 import { ShowVisualization } from '@/components/tql/ShowVisualization';
 import type { CameraInfo } from '@/api/repository/mediaSvr';
@@ -114,15 +115,17 @@ export const EventSyncChart = ({
                         : {}),
                 }));
 
+                // The server draws the chart: the app theme's chart look, as colours.
+                const chartLook = appChartTheme();
                 const chartOption = {
                     title: {
                         text: 'Detection Count',
-                        textStyle: { color: '#fff', fontSize: 14 },
+                        textStyle: { color: chartLook.text, fontSize: 14 },
                         left: 'left',
                         top: 0,
                     },
                     animation: false,
-                    backgroundColor: '#252525',
+                    backgroundColor: chartLook.background,
                     // No containLabel, so v6's default outerBoundsMode ('auto') would pull the grid inward
                     // whenever a label overflows; 'none' keeps it where these margins put it, as in v5.
                     grid: { left: 50, right: 20, top: 50, bottom: 50, outerBoundsMode: 'none' },
@@ -148,7 +151,7 @@ export const EventSyncChart = ({
                         borderColor: 'rgba(255,255,255,0.1)',
                         textStyle: { color: '#fff', fontSize: 11 },
                     },
-                    legend: { show: true, textStyle: { color: 'rgba(255,255,255,0.7)', fontSize: 10 }, bottom: 0 },
+                    legend: { show: true, textStyle: { color: chartLook.theme === 'dark' ? 'rgba(255,255,255,0.7)' : chartLook.text, fontSize: 10 }, bottom: 0 },
                     series,
                 };
 
@@ -194,7 +197,7 @@ export const EventSyncChart = ({
                 const tql = `FAKE(linspace(0,0,0))
 CHART(
     chartID('${chartId}'),
-    theme('dark'),
+    theme('${chartLook.theme}'),
     size('${width}px','${height}px'),
     chartOption(${JSON.stringify(chartOption)}),
     chartJSCode(${chartJsCode})
