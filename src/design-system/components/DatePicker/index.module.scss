@@ -82,7 +82,7 @@
 
             &:global(.Mui-selected) {
                 background-color: t.$btn-create;
-                color: t.$text-primary;
+                color: t.$text-on-accent;
 
                 &:hover {
                     background-color: t.$primary-hover;

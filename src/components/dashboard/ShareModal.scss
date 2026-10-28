@@ -40,12 +40,12 @@
 
         &.facebook {
             background: var(--neo-primary-hover, #1877f2);
-            color: white;
+            color: var(--neo-text-on-accent, white);
         }
 
         &.email {
             background: var(--neo-btn-delete, #ea4335);
-            color: white;
+            color: var(--neo-text-on-accent, white);
         }
 
         &.whatsapp {

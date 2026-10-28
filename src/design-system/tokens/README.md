@@ -183,6 +183,7 @@ SCSS design tokens extracted from ExtensionTab components.
 #### Text
 
 -   `$text-primary` - Primary text (#f1f1f1)
+-   `$text-on-accent` - Text and icons on an accent fill: primary, create, delete, error, warning (#f1f1f1)
 -   `$text-secondary` - Secondary text (#c4c4c4)
 -   `$text-disabled` - Disabled text (#818181)
 -   `$text-hint` - Hint text (#aaaaaa)
@@ -523,6 +524,8 @@ falls back to Dark; the Theme dialog then forgets it.
 ### In the code
 
 - A token: `color: t.$text-primary;` — follows the theme.
+- Text on an accent fill (a selected chip, a primary or delete button) takes `t.$text-on-accent`,
+  not `t.$text-primary`: a light theme's text-primary is dark and sinks into a saturated fill.
 - A colour that is not a token yet: `color: t.themed(text-secondary, #c3c3c3);` — stays `#c3c3c3`
   on the dark screen and follows `--neo-text-secondary` under a theme. In plain CSS and in
   `style={{ }}` objects the same is written `var(--neo-text-secondary, #c3c3c3)`.
@@ -564,6 +567,7 @@ falls back to Dark; the Theme dialog then forgets it.
 | `--neo-text-hint` | `#aaaaaa` |
 | `--neo-text-row-number` | `#3b3b3b` |
 | `--neo-text-active` | `rgb(243, 243, 243)` |
+| `--neo-text-on-accent` | `#f1f1f1` |
 | `--neo-border-color-default` | `rgba(255, 255, 255, 0.13)` |
 | `--neo-border-color-light` | `#f1f1f125` |
 | `--neo-border-color-medium` | `#626263` |

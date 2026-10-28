@@ -173,7 +173,7 @@
     // Distinct from the green "default" target, since a row can be both.
     &--local {
         background-color: color-mix(in srgb, var(--neo-primary-hover, rgb(45, 156, 219)) 18%, transparent);
-        color: #7cc4f0;
+        color: var(--neo-primary-light, #7cc4f0);
     }
     // ...and its opposite: hub-only version, hub unreachable → nothing to install from.
     &--offline {

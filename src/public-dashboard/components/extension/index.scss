@@ -76,12 +76,12 @@
         }
 
         .two-item-active {
-            color: var(--neo-text-primary, #f1f1f1);
+            color: var(--neo-text-on-accent, #f1f1f1);
             background-color: var(--neo-primary-base, #005fb8);
             border-radius: 4px;
 
             &:hover {
-                color: var(--neo-text-primary, #f1f1f1);
+                color: var(--neo-text-on-accent, #f1f1f1);
                 background-color: var(--neo-primary-hover, #0075e2);
                 border-radius: 4px;
             }

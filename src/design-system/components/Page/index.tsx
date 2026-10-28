@@ -444,7 +444,7 @@ const DateTimePicker = ({ pSetApply, pTime }: { pSetApply: (e: any) => void; pTi
                                             },
                                             '&.Mui-selected': {
                                                 backgroundColor: 'var(--neo-primary-base, #005fb8)',
-                                                color: 'var(--neo-text-primary, #f3f3f3)',
+                                                color: 'var(--neo-text-on-accent, #f3f3f3)',
                                                 '&:hover': {
                                                     backgroundColor: 'var(--neo-primary-hover, #0075e2)',
                                                 },
@@ -489,7 +489,7 @@ const DateTimePicker = ({ pSetApply, pTime }: { pSetApply: (e: any) => void; pTi
                                                 '&.Mui-selected': {
                                                     borderRadius: '3px',
                                                     backgroundColor: 'var(--neo-primary-base, #005fb8)',
-                                                    color: 'var(--neo-text-primary, #f3f3f3)',
+                                                    color: 'var(--neo-text-on-accent, #f3f3f3)',
                                                     '&:hover': {
                                                         backgroundColor: 'var(--neo-primary-hover, #0075e2)',
                                                     },
@@ -582,7 +582,7 @@ const DatePicker = ({ pSetApply, pTime, pPlaceholder }: { pSetApply: (e: any) =>
                                         },
                                         '&.Mui-selected': {
                                             backgroundColor: 'var(--neo-primary-base, #005fb8)',
-                                            color: 'var(--neo-text-primary, #f3f3f3)',
+                                            color: 'var(--neo-text-on-accent, #f3f3f3)',
                                             '&:hover': {
                                                 backgroundColor: 'var(--neo-primary-hover, #0075e2)',
                                             },

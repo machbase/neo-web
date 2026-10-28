@@ -153,10 +153,12 @@
 
     &--delete {
         background-color: t.$btn-delete;
+        color: t.$text-on-accent;
     }
 
     &--create {
         background-color: t.$btn-create;
+        color: t.$text-on-accent;
     }
 
     &--copy {
@@ -165,6 +167,7 @@
 
     &--status {
         background-color: t.$btn-status;
+        color: t.$text-on-accent;
     }
 
     &--disabled {
@@ -197,12 +200,12 @@
     }
 
     .two-item-active {
-        color: t.$text-primary;
+        color: t.$text-on-accent;
         background-color: t.$primary-base;
         border-radius: 4px;
 
         &:hover {
-            color: t.$text-primary;
+            color: t.$text-on-accent;
             background-color: t.$primary-hover;
             border-radius: 4px;
         }

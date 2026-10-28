@@ -1052,7 +1052,7 @@ $nb-fog-duration: 0.25s;
 
 .nb-remove:hover {
     background: var(--neo-btn-delete, #c43c3c);
-    color: var(--neo-text-primary, #fff);
+    color: var(--neo-text-on-accent, #fff);
 }
 
 .nb-sizes {
@@ -1076,7 +1076,7 @@ $nb-fog-duration: 0.25s;
 
         &[aria-pressed='true'] {
             background: t.$primary-base;
-            color: var(--neo-text-primary, #fff);
+            color: var(--neo-text-on-accent, #fff);
         }
     }
 }
@@ -2784,7 +2784,7 @@ $nb-fog-duration: 0.25s;
 
         &[aria-checked='true'] {
             background: t.$primary-base;
-            color: var(--neo-text-primary, #fff);
+            color: var(--neo-text-on-accent, #fff);
         }
     }
 }

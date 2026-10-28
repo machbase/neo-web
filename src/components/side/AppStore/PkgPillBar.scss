@@ -140,12 +140,12 @@
     &--active {
         border-color: t.$primary-base;
         background-color: t.$primary-base;
-        color: var(--neo-text-primary, #fff);
+        color: var(--neo-text-on-accent, #fff);
     }
 
     &--active:hover {
         background-color: t.$primary-hover;
-        color: var(--neo-text-primary, #fff);
+        color: var(--neo-text-on-accent, #fff);
     }
 }
 

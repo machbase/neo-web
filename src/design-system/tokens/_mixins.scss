@@ -259,7 +259,7 @@
  */
 @mixin button-primary {
     background-color: c.$btn-create;
-    color: c.$text-primary;
+    color: c.$text-on-accent;
 
     &:hover {
         background-color: c.$primary-hover;
@@ -271,7 +271,7 @@
  */
 @mixin button-danger {
     background-color: c.$btn-delete;
-    color: c.$text-primary;
+    color: c.$text-on-accent;
 
     &:hover {
         background-color: c.$error-main;

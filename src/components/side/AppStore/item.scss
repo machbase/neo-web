@@ -139,7 +139,7 @@
             }
 
             .app-store-item-verified {
-                color: var(--neo-primary-hover, #1d9bf0);
+                color: var(--neo-primary-light, #1d9bf0);
                 flex-shrink: 0;
             }
         }
@@ -198,12 +198,14 @@
             color: var(--neo-text-primary, #ffffff);
             white-space: nowrap;
         }
+        // Text on an accent fill takes text-on-accent, not text-primary: a light theme's text-primary is dark.
         span.install {
             background-color: var(--neo-primary-base, #005fb8);
+            color: var(--neo-text-on-accent, #ffffff);
         }
         span.update {
             background-color: var(--neo-warning-main, #bf7b00);
-            color: var(--neo-text-primary, #fff);
+            color: var(--neo-text-on-accent, #fff);
         }
         // the default button's target version is backed by the server's local
         // package archive (issue #1452) — informational, so a neutral blue that
@@ -212,7 +214,7 @@
         // what keeps it aligned with the neighbouring chips.
         span.local {
             background-color: color-mix(in srgb, var(--neo-primary-hover, rgb(45, 156, 219)) 18%, transparent);
-            color: #7cc4f0;
+            color: var(--neo-primary-light, #7cc4f0);
             gap: 3px;
             cursor: help;
 

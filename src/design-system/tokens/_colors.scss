@@ -37,6 +37,9 @@ $text-muted: themed(text-muted, #727272);
 $text-hint: themed(text-hint, #aaaaaa);
 $text-row-number: themed(text-row-number, #3b3b3b);
 $text-active: themed(text-active, rgb(243, 243, 243));
+// Text and icons drawn ON an accent fill (primary/create/delete/error/warning backgrounds). Kept apart
+// from text-primary because a light theme's text-primary is dark and sinks into a saturated fill.
+$text-on-accent: themed(text-on-accent, #f1f1f1);
 
 // ============================================
 // Border Colors

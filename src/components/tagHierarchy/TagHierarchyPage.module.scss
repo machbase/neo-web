@@ -666,7 +666,7 @@
     padding: 0;
     border-radius: t.$border-radius-circle;
     background: t.$primary-base;
-    color: t.$color-white;
+    color: t.themed(text-on-accent, #ffffff);
     font-size: t.$font-size-xs;
     line-height: 1;
 }
@@ -1156,7 +1156,7 @@
     padding: t.$spacing-4 t.$spacing-10;
     border-radius: t.$border-radius-base;
     background: t.$primary-base;
-    color: t.$color-white;
+    color: t.themed(text-on-accent, #ffffff);
     font-size: t.$font-size-sm;
     font-weight: 600;
     white-space: nowrap;
