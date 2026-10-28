@@ -42,10 +42,10 @@ describe('ReferenceSide', () => {
         await act(async () => {
             render(<ReferenceSide />);
         });
-        expect(screen.getByTestId('reference-load-error')).toHaveTextContent('refs unavailable');
+        expect(screen.getByTestId('reference-load-error')).toHaveTextContent("Couldn't load · refs unavailable");
 
         await act(async () => {
-            fireEvent.click(screen.getByTestId('reference-load-retry'));
+            fireEvent.click(screen.getByTestId('reference-load-error-retry'));
         });
         expect(screen.queryByTestId('reference-load-error')).not.toBeInTheDocument();
         expect(screen.getAllByTestId('ref-group')).toHaveLength(2);
