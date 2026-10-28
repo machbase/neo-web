@@ -537,7 +537,7 @@ export const GitIcon = ({ aFile, aRefreshCallback }: { aFile: FileTreeType; aRef
 
         :hover {
             cursor: pointer;
-            background-color: #4c4c4c;
+            background-color: var(--neo-bg-hover-light, #4c4c4c);
             border-radius: 4px;
         }
     `;
@@ -786,6 +786,9 @@ const FileDiv = ({
     );
 };
 
+const DND_BG = 'var(--neo-bg-active, #3e3e3e)';
+const ROW_ACTIVE_BG = 'var(--neo-bg-hover-block, rgba(255, 255, 255, 0.13))';
+
 const Div = styled.div<{
     depth: number;
     isSelected: boolean;
@@ -798,14 +801,15 @@ const Div = styled.div<{
     display: flex;
     justify-content: space-between;
     padding-left: ${(props) => props.depth * 16}px;
-    background-color: ${(props) =>
-        props.isDropzone ? '#3e3e3e' : props.isDndItem ? '#3e3e3e' : props.isDndSection ? '#3e3e3e' : props.isSelected ? 'rgba(255, 255, 255, 0.13)' : 'transparent'};
+    // Drag-and-drop marks (the drop zone, the rows being dragged, the folder under the pointer) take
+    // bg-active so a theme shows them in its selection colour; a selected or hovered row takes bg-hover-block.
+    background-color: ${(props) => (props.isDropzone || props.isDndItem || props.isDndSection ? DND_BG : props.isSelected ? ROW_ACTIVE_BG : 'transparent')};
     word-break: break-all;
     :hover {
         cursor: pointer;
-        background-color: ${(props) => (props.isDropzone ? '#3e3e3e' : props.isDndItem ? '#3e3e3e' : props.isDndSection ? '#3e3e3e' : 'rgba(255, 255, 255, 0.13)')};
+        background-color: ${(props) => (props.isDropzone || props.isDndItem || props.isDndSection ? DND_BG : ROW_ACTIVE_BG)};
     }
-    border: ${(props) => (props.isBorder ? 'solid 1px #c9d1d9' : 'solid 1px transparent')};
+    border: ${(props) => (props.isBorder ? 'solid 1px var(--neo-border-color-focus, #c9d1d9)' : 'solid 1px transparent')};
 `;
 
 const DirDiv = ({
