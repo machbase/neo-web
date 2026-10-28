@@ -689,16 +689,17 @@
         &:hover {
             border: 1px solid t.$bg-input;
             background-color: t.$primary-base;
-            color: t.$text-on-accent;
+            // the dark screen's inherited rgba(255, 255, 255, 0.87) as the fallback: unchanged there
+            color: var(--neo-text-on-accent, rgba(255, 255, 255, 0.87));
         }
     }
     .page-icon-button-active {
         border: 1px solid t.$bg-input;
         background-color: t.$primary-base;
-        color: t.$text-on-accent;
+        color: var(--neo-text-on-accent, rgba(255, 255, 255, 0.87));
 
         svg {
-            color: t.$text-on-accent;
+            color: var(--neo-text-on-accent, rgba(255, 255, 255, 0.87));
         }
     }
     .page-date-time-picker-wrapper {
