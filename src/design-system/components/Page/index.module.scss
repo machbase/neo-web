@@ -689,11 +689,17 @@
         &:hover {
             border: 1px solid t.$bg-input;
             background-color: t.$primary-base;
+            color: t.$text-on-accent;
         }
     }
     .page-icon-button-active {
         border: 1px solid t.$bg-input;
         background-color: t.$primary-base;
+        color: t.$text-on-accent;
+
+        svg {
+            color: t.$text-on-accent;
+        }
     }
     .page-date-time-picker-wrapper {
         display: flex;
