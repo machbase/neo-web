@@ -383,22 +383,26 @@
             cursor: not-allowed;
         }
 
+        // A neutral filled button on a card: bg-hover-light reads as a fill on a theme's card (the
+        // menu-hover token it had was a near-white tint there, and Uninstall looked like plain text).
         &--default {
-            background-color: var(--neo-dropdown-option-hover-bg, #3a3a3a);
+            background-color: var(--neo-bg-hover-light, #3a3a3a);
             &:hover:not(:disabled) {
-                background-color: var(--neo-bg-hover-light, #4a4a4a);
+                background-color: var(--neo-bg-active, #4a4a4a);
             }
         }
         &--primary {
             background-color: var(--neo-bg-active, #0e639c);
             &:hover:not(:disabled) {
                 background-color: var(--neo-primary-base, #1177bb);
+                color: var(--neo-text-on-accent, #ffffff);
             }
         }
         &--danger {
-            background-color: #a1260d;
+            background-color: var(--neo-btn-delete, #a1260d);
+            color: var(--neo-text-on-accent, #ffffff);
             &:hover:not(:disabled) {
-                background-color: #c42b1c;
+                background-color: var(--neo-error-main, #c42b1c);
             }
         }
     }
