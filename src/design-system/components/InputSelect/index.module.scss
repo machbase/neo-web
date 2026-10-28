@@ -298,7 +298,7 @@
 // The table-type colours are drawn for a dark page; on a light scheme the text (and with it the
 // border) is the same hue, deepened.
 :global(:root[data-neo-scheme='light']) .input-select-option-badge {
-    color: color-mix(in srgb, var(--badge-color) 55%, #000000);
+    color: color-mix(in srgb, var(--badge-color) 55%, var(--neo-color-black, #000000));
 }
 
 .input-select-list {

@@ -151,7 +151,7 @@ export const EventSyncChart = ({
                         borderColor: 'rgba(255,255,255,0.1)',
                         textStyle: { color: '#fff', fontSize: 11 },
                     },
-                    legend: { show: true, textStyle: { color: chartLook.theme === 'dark' ? 'rgba(255,255,255,0.7)' : chartLook.text, fontSize: 10 }, bottom: 0 },
+                    legend: { show: true, textStyle: { color: 'rgba(255,255,255,0.7)', fontSize: 10 }, bottom: 0 },
                     series,
                 };
 
@@ -189,6 +189,9 @@ export const EventSyncChart = ({
         getData(aData.query, idx);
     });
 }`;
+
+                // on a light chart the legend takes the theme's text instead of the dark panel's white
+                if (chartLook.theme !== 'dark') chartOption.legend.textStyle.color = chartLook.text;
 
                 const width = containerRef.current?.clientWidth || 600;
                 const height = containerRef.current?.clientHeight || 360;
