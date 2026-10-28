@@ -22,6 +22,7 @@ import ZoomInTwo from '@/assets/image/btn_zoom in x2@3x.png';
 import ZoomInFour from '@/assets/image/btn_zoom in x4@3x.png';
 import ZoomOutTwo from '@/assets/image/btn_zoom out x2@3x.png';
 import ZoomOutFour from '@/assets/image/btn_zoom out x4@3x.png';
+import GlyphImage from '@/components/common/GlyphImage';
 import { Modal } from '@/design-system/components';
 import type { ReactNode } from 'react';
 import { Inline, Stack, Text } from '../ui/Presentation';
@@ -205,8 +206,8 @@ const HELP_SECTIONS = [
                 title: 'Zoom in',
                 description: 'Narrows the visible main chart range around its center.',
                 icon: iconPair(
-                    <img alt="" src={ZoomInFour} className="taz-help-modal__zoom-icon" />,
-                    <img alt="" src={ZoomInTwo} className="taz-help-modal__zoom-icon" />,
+                    <GlyphImage src={ZoomInFour} className="taz-help-modal__zoom-icon" />,
+                    <GlyphImage src={ZoomInTwo} className="taz-help-modal__zoom-icon" />,
                 ),
             },
             {
@@ -218,8 +219,8 @@ const HELP_SECTIONS = [
                 title: 'Zoom out',
                 description: 'Widens the visible main chart range around its center.',
                 icon: iconPair(
-                    <img alt="" src={ZoomOutTwo} className="taz-help-modal__zoom-icon" />,
-                    <img alt="" src={ZoomOutFour} className="taz-help-modal__zoom-icon" />,
+                    <GlyphImage src={ZoomOutTwo} className="taz-help-modal__zoom-icon" />,
+                    <GlyphImage src={ZoomOutFour} className="taz-help-modal__zoom-icon" />,
                 ),
             },
             {
