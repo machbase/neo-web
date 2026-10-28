@@ -16,7 +16,7 @@
 }
 
 .toast-custom-style {
-    color: t.$color-white;
+    color: t.themed(text-primary, #ffffff);
     display: flex;
     border-radius: t.$border-radius-md;
     max-width: 350px;

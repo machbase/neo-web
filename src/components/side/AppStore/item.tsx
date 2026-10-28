@@ -158,7 +158,9 @@ export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
     // failures just disable the toggle so the user gets a clear "BE not
     // responding" affordance rather than an empty slot.
     const isUnmanaged = pItem?.installed_packageService?.managed === false;
-    const showRunSwitch = sIsAdmin && isInstalled && !isUnmanaged;
+    // A theme package has no service to start or stop: chosen per browser in Settings → Theme.
+    const isTheme = !!pItem?.installed_theme;
+    const showRunSwitch = sIsAdmin && isInstalled && !isUnmanaged && !isTheme;
     const showInstall = sIsAdmin && !isInstalled;
     const showUpdate = sIsAdmin && hasUpdate;
     const showUninstall = sIsAdmin && isInstalled;

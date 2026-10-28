@@ -119,3 +119,38 @@ describe('rgbToHex', () => {
         expect(rgbToHex('red')).toBeUndefined();
     });
 });
+
+describe('the remembered stylesheet copy', () => {
+    const HREF = '/public/neo-pkg-theme-light/theme.css';
+
+    test('paints at once on the next load, before the package stylesheet answers', () => {
+        localStorage.setItem('neo.theme.css', JSON.stringify({ href: HREF, css: ':root { --neo-bg-primary: #fff; }' }));
+        applyTheme(LIGHT);
+        expect(document.getElementById('neo-theme-cached')?.textContent).toContain('--neo-bg-primary');
+        // The package's own stylesheet comes after it, so a newer copy wins.
+        const sHead = [...document.head.children].map((e) => e.id);
+        expect(sHead.indexOf('neo-theme-cached')).toBeLessThan(sHead.indexOf(THEME_LINK_ID));
+    });
+
+    test('a stylesheet that fails to load drops the copy: no stale theme keeps painting', () => {
+        localStorage.setItem('neo.theme.css', JSON.stringify({ href: HREF, css: ':root { --neo-bg-primary: #fff; }' }));
+        applyTheme(LIGHT);
+        link()?.dispatchEvent(new Event('error'));
+        expect(document.getElementById('neo-theme-cached')).toBeNull();
+        expect(localStorage.getItem('neo.theme.css')).toBeNull();
+    });
+
+    test('a copy of another stylesheet is not used', () => {
+        localStorage.setItem('neo.theme.css', JSON.stringify({ href: '/public/other/theme.css', css: ':root{}' }));
+        applyTheme(LIGHT);
+        expect(document.getElementById('neo-theme-cached')).toBeNull();
+    });
+
+    test('Dark forgets the copy too', () => {
+        localStorage.setItem('neo.theme.css', JSON.stringify({ href: HREF, css: ':root{}' }));
+        setTheme(LIGHT);
+        setTheme(null);
+        expect(localStorage.getItem('neo.theme.css')).toBeNull();
+        expect(document.getElementById('neo-theme-cached')).toBeNull();
+    });
+});

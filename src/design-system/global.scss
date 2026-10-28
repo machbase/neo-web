@@ -48,3 +48,15 @@ select {
 .MuiPickersDay-root.MuiPickersDay-today:not(.Mui-selected) {
     border: 1px solid t.$primary-base;
 }
+
+// react-tooltip paints with variables of its own, declared on :root by the stylesheet it injects
+// at runtime (after this one): point them at the tooltip tokens. :root:root outranks its :root.
+// The border is a ring (box-shadow), so the transparent default changes no tooltip's size.
+:root:root {
+    --rt-color-dark: #{t.$tooltip-bg};
+    --rt-color-white: #{t.$tooltip-text};
+}
+
+.react-tooltip {
+    box-shadow: 0 0 0 1px t.$tooltip-border;
+}

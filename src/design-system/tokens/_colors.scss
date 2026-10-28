@@ -173,6 +173,13 @@ $menu-item-icon: themed(menu-item-icon, #b0b0b0);
 // ============================================
 $modal-border: themed(modal-border, $border-color-default);
 
+// ============================================
+// Tooltip Colors (react-tooltip's --rt-color-dark / --rt-color-white, global.scss)
+// ============================================
+$tooltip-bg: themed(tooltip-bg, #222222);
+$tooltip-text: themed(tooltip-text, #ffffff);
+$tooltip-border: themed(tooltip-border, transparent);
+
 // Table color
 $tag-table: themed(tag-table, $info-main);
 $log-table: themed(log-table, $btn-delete);

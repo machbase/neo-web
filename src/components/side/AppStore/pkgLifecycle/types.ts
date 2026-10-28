@@ -57,6 +57,8 @@ export interface PkgManifest {
         managed: boolean;
         reason?: string;
     };
+    /** A theme package's declaration (design-system/theme `parseThemeManifest`). */
+    neoTheme?: unknown;
 }
 
 export interface LifecycleContext {

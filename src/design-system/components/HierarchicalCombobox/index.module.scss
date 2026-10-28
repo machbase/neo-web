@@ -232,12 +232,12 @@
 
         &:hover:not(&--selected) {
             background-color: t.$dropdown-option-hover-bg;
-            color: t.$color-white;
+            color: t.themed(text-primary, #ffffff);
         }
 
         &--selected {
             background-color: t.$dropdown-option-selected-bg;
-            color: t.$color-white;
+            color: t.themed(text-primary, #ffffff);
             border-radius: 0;
 
             &:hover {

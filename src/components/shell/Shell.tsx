@@ -8,12 +8,16 @@ import { WebglAddon } from '@xterm/addon-webgl';
 import { postTerminalSize } from '../../api/repository/machiot';
 import { getLogin } from '@/api/repository/login';
 import Theme from '@/assets/ts/xtermTheme';
+import { useThemeVersion } from '@/design-system/theme';
+import { appTerminalTheme } from './appTerminalTheme';
 import { Button, Dropdown, Page } from '@/design-system/components';
 import { GoDotFill } from '@/assets/icons/Icon';
 
-type ThemeKey = keyof typeof Theme;
+/** `default`: the app theme's colours (appTerminalTheme); the others are fixed palettes. */
+type ThemeKey = keyof typeof Theme | 'default';
 
 const THEME_OPTIONS: { label: string; value: ThemeKey }[] = [
+    { label: 'Default', value: 'default' },
     { label: 'Dark', value: 'dark' },
     { label: 'Indigo', value: 'indigo' },
     { label: 'Gray', value: 'gray' },
@@ -60,8 +64,8 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
     const [sTermFitter, setTermFitter] = useState<any>(undefined);
     const [sFontSize, setFontSize] = useState<number>(DEFAULT_FONT_SIZE);
     const [sCurrentTheme, setCurrentTheme] = useState<ThemeKey>(() => {
-        if (pInfo.shell.theme && pInfo.shell.theme !== 'default') return pInfo.shell.theme;
-        return 'dark';
+        if (pInfo.shell.theme && pInfo.shell.theme !== 'default' && pInfo.shell.theme in Theme) return pInfo.shell.theme;
+        return 'default';
     });
     const [sWsStatus, setWsStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
     // Keep latest pSelectedTab in ref for ResizeObserver closure
@@ -76,7 +80,14 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
     let sFitter: any = null;
     // temr id
     let sTermId: any = null;
-    let sTheme: any = Theme[sCurrentTheme] || Theme['dark'];
+    const terminalTheme = (aKey: ThemeKey) => (aKey === 'default' ? appTerminalTheme() : Theme[aKey] || {});
+    let sTheme: any = terminalTheme(sCurrentTheme);
+    // The terminal's padding and the rows the fit leaves over show its container: give them the
+    // terminal theme's background (xterm's own default is black), not the page's.
+    const paintTerminal = (aTerm: any, aTheme: any) => {
+        if (aTerm) aTerm.options.theme = aTheme;
+        document.getElementById('term_view' + pId)?.style.setProperty('--neo-terminal-bg', aTheme?.background ?? '#000000');
+    };
 
     const onSendReSizeInfo = async (aSize: { cols: number; rows: number }) => {
         if (aSize.cols > 0 && aSize.rows > 0 && sTermUIDRef.current != null && sWebSocRef.current?.readyState === WebSocket.OPEN) {
@@ -103,6 +114,7 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
                 sWebSoc = new WebSocket(`wss://${window.location.host}/web/api/term/${sTermId}/data?token=${localStorage.getItem('accessToken')}${'&shell=' + pInfo.shell.id}`);
             }
 
+            paintTerminal(undefined, sTheme);
             const sTerm = new Terminal({
                 theme: sTheme,
                 fontFamily: '"D2Coding", "Monaco", "Lucida Console", "Courier New","D2Coding", sans-serif, monospace',
@@ -286,11 +298,17 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
             const themeKey = value as ThemeKey;
             setCurrentTheme(themeKey);
             if (sTermView) {
-                sTermView.options.theme = Theme[themeKey] || {};
+                paintTerminal(sTermView, terminalTheme(themeKey));
             }
         },
         [sTermView]
     );
+
+    // "Default" follows the app theme: resolve its colours again when the theme changes.
+    const sAppThemeVersion = useThemeVersion();
+    useEffect(() => {
+        if (sTermView && sCurrentTheme === 'default') paintTerminal(sTermView, appTerminalTheme());
+    }, [sTermView, sCurrentTheme, sAppThemeVersion]);
 
     const handleFontSizeChange = useCallback(
         (delta: number) => {

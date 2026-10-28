@@ -394,10 +394,10 @@ export const FileTree = (props: FileTreeProps) => {
                 place="top"
                 positionStrategy="absolute"
                 delayShow={500}
-                border="1px solid #454545"
+                border="1px solid var(--neo-tooltip-border, #454545)"
                 style={{
-                    backgroundColor: 'var(--neo-dropdown-bg, #2d2d30)',
-                    color: 'var(--neo-text-secondary, #cccccc)',
+                    backgroundColor: 'var(--neo-tooltip-bg, #2d2d30)',
+                    color: 'var(--neo-tooltip-text, #cccccc)',
                     borderRadius: '4px',
                     fontSize: '12px',
                     maxWidth: '300px',

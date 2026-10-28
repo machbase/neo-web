@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { rpcMarkdownRender } from '@/api/repository/markdown';
-import setMermaid from '@/plugin/mermaid';
+import setMermaid, { redrawMermaid } from '@/plugin/mermaid';
+import { useThemeVersion } from '@/design-system/theme';
 import setChartext, { disposeChartext, resizeChartext } from '@/plugin/chartext';
 import setGeomap, { disposeGeomap, resizeGeomap } from '@/plugin/geomap';
 import { useRecoilState, useRecoilValue } from 'recoil';
@@ -122,6 +123,12 @@ export const Markdown = (props: MarkdownProps) => {
             resizeGeomap(sShadowRootRef.current);
         }
     }, [sSelectedTab]);
+
+    // A theme change re-initialised mermaid with the new scheme's palette: draw the diagrams again.
+    const sThemeVersion = useThemeVersion();
+    useEffect(() => {
+        if (sThemeVersion > 0) redrawMermaid(sShadowRootRef.current);
+    }, [sThemeVersion]);
 
     useEffect(() => {
         return () => {
