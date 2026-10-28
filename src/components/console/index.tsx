@@ -1,4 +1,5 @@
 import './index.scss';
+import { logLevelColor } from './logLevelColor';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRecoilState } from 'recoil';
 import { gShellList } from '@/recoil/recoil';
@@ -23,20 +24,7 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
     const [sShellList] = useRecoilState<any>(gShellList);
     const [sNewLog, setNewLog] = useState(false);
 
-    const setColor = (aItem: string) => {
-        switch (aItem) {
-            case 'TRACE':
-                return '#C4C4C4';
-            case 'DEBUG':
-                return '#F8F8F8';
-            case 'INFO':
-                return '#339900';
-            case 'ERROR':
-                return '#CC3300';
-            case 'WARN':
-                return '#FFCC00';
-        }
-    };
+    const setColor = logLevelColor;
 
     useEffect(() => {
         setNewLog(true);

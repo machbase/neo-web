@@ -6,8 +6,8 @@ export const LOG = ({ pDisplay, pLogList, onClearLog }: { pDisplay: string; pLog
     const logRef = useRef<any>(null);
 
     const setColor = (aText: string) => {
-        if (aText.includes('false')) return '#e41212';
-        return 'rgb(245, 245, 245)';
+        if (aText.includes('false')) return 'var(--neo-error-main, #e41212)';
+        return 'var(--neo-text-primary, rgb(245, 245, 245))';
     };
 
     useEffect(() => {
