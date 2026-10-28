@@ -583,8 +583,11 @@ const TableDiv = (props: TableDivPropsType): JSX.Element => {
             // MACHBASEDB was safe only while that was the sole database.
             `${props.pTable[E_TABLE_INFO.DB_NM] ? props.pTable[E_TABLE_INFO.DB_NM] + '.' : ''}${props.pTable[E_TABLE_INFO.USER_NM].toString()}`
         );
-        if (res.success && res.data?.rows?.[0]?.[0]) setRecordCount(res.data.rows[0][0]);
-        else setRecordCount(0);
+        // a read that failed says nothing about the table: keep the count already shown instead of
+        // writing 0 over it, which made every table look emptied when a Refresh lost the
+        // connection (issue #1570 F-180)
+        if (!res?.success) return;
+        setRecordCount(res.data?.rows?.[0]?.[0] || 0);
     };
 
     const handleContextMenu = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {

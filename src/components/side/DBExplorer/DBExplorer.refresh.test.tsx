@@ -1,5 +1,6 @@
 // issue #1570 F-180 — a failed Refresh (network failure or HTTP 500) emptied the tree and said
-// nothing, so it read as an empty database. The tree the user had must stay, with a message.
+// nothing, so it read as an empty database. The tree the user had must stay, with a line under the
+// header that says it was not refreshed (Side.LoadError) — not a toast that fades.
 
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { RecoilRoot } from 'recoil';
@@ -53,9 +54,9 @@ const mount = async () => {
 beforeEach(() => jest.clearAllMocks());
 
 test.each([
-    ['network failure', Object.assign(new Error('Network Error'), { isAxiosError: true, name: 'AxiosError' })],
-    ['HTTP 500', { status: 500, statusText: 'Internal Server Error', headers: {}, data: { success: false, reason: 'server busy' } }],
-])('%s keeps the previous tree and tells the user', async (_label, aFailure) => {
+    ['network failure', Object.assign(new Error('Network Error'), { isAxiosError: true, name: 'AxiosError' }), 'Network Error'],
+    ['HTTP 500', { status: 500, statusText: 'Internal Server Error', headers: {}, data: { success: false, reason: 'server busy' } }, 'server busy'],
+])('%s keeps the previous tree and tells the user', async (_label, aFailure, aReason) => {
     (getTableList as jest.Mock).mockResolvedValueOnce(OK).mockResolvedValueOnce(aFailure);
     await mount();
     expect(screen.getByTestId('db-node')).toHaveTextContent('MACHBASEDB:1');
@@ -63,7 +64,27 @@ test.each([
     await refresh();
 
     expect(screen.getByTestId('db-node')).toHaveTextContent('MACHBASEDB:1');
-    expect(Toast.error).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('db-explorer-load-error')).toHaveTextContent(`Not refreshed · ${aReason} · as of`);
+    expect(Toast.error).not.toHaveBeenCalled();
+});
+
+test('a first read that fails says it could not load', async () => {
+    (getTableList as jest.Mock).mockResolvedValueOnce({ status: 500, statusText: 'x', headers: {}, data: { reason: 'server busy' } });
+    await mount();
+
+    expect(screen.queryByTestId('db-node')).not.toBeInTheDocument();
+    expect(screen.getByTestId('db-explorer-load-error')).toHaveTextContent("Couldn't load · server busy");
+});
+
+test('Retry on the line reads the list again', async () => {
+    (getTableList as jest.Mock).mockResolvedValueOnce({ status: 500, statusText: 'x', headers: {}, data: { reason: 'server busy' } }).mockResolvedValueOnce(OK);
+    await mount();
+    await act(async () => {
+        fireEvent.click(screen.getByTestId('db-explorer-load-error-retry'));
+    });
+
+    expect(screen.getByTestId('db-node')).toHaveTextContent('MACHBASEDB:1');
+    expect(screen.queryByTestId('db-explorer-load-error')).not.toBeInTheDocument();
 });
 
 test('a refresh that succeeds after a failure shows the new tree', async () => {
@@ -76,4 +97,5 @@ test('a refresh that succeeds after a failure shows the new tree', async () => {
     await refresh();
 
     expect(screen.getByTestId('db-node')).toHaveTextContent('MACHBASEDB:2');
+    expect(screen.queryByTestId('db-explorer-load-error')).not.toBeInTheDocument();
 });

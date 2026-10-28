@@ -37,6 +37,10 @@ export const DBExplorer = () => {
     const sPanelRef = useRef<HTMLDivElement | null>(null);
     const [sCollapseTree, setCollapseTree] = useState(true);
     const [sRefresh, setRefresh] = useState<number>(0);
+    // a failed table-list read and when the tree on screen was last read (issue #1570 F-180)
+    const [sLoadError, setLoadError] = useState<string | undefined>(undefined);
+    const [sLoadedAt, setLoadedAt] = useState<number | undefined>(undefined);
+    const [sLoading, setLoading] = useState<boolean>(false);
     const [mountModalOpen, setMountModalOpen] = useState<boolean>(false);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
     const [sBackupList, setBackupList] = useRecoilState<any[]>(gBackupList);
@@ -101,12 +105,14 @@ export const DBExplorer = () => {
         const [sData, sConnectable] = await Promise.all([getTableList(), getConnectableDatabases()]);
         // the request layer resolves a network failure or an HTTP error instead of rejecting; either
         // used to rebuild the tree from nothing, so it read as an empty database. Keep the tree the
-        // user had and say why it was not refreshed, as the file explorer does (issue #1570 F-180).
+        // user had and say under the header why it was not refreshed (Side.LoadError, issue #1570 F-180).
         const sFailure = getFileRequestFailure(sData, 'Failed to load the table list.');
         if (sFailure || !sData?.data) {
-            Toast.error(sFailure?.reason ?? 'Failed to load the table list.', { id: 'db-explorer-refresh', testId: 'db-explorer-error-toast' });
+            setLoadError(sFailure?.reason ?? 'Failed to load the table list.');
             return;
         }
+        setLoadError(undefined);
+        setLoadedAt(Date.now());
         if (sData && sData.data) {
             // neo's own `_NEO_*` tables leave the catalogue here and never reach the tree. Every
             // read below works off this array — the database nodes, the user nodes and the per-user
@@ -168,7 +174,8 @@ export const DBExplorer = () => {
     };
     const init = (aEvent?: any) => {
         if (aEvent) aEvent.stopPropagation();
-        getDatabaseList();
+        setLoading(true);
+        getDatabaseList().finally(() => setLoading(false));
         getBackupDatabaseList();
     };
     /** handle backup page */
@@ -389,6 +396,7 @@ export const DBExplorer = () => {
                             />
                         </Button.Group>
                     </Side.Collapse>
+                    {sLoadError && <Side.LoadError data-testid="db-explorer-load-error" pReason={sLoadError} pLastLoadedAt={sLoadedAt} pRetrying={sLoading} pOnRetry={init} />}
                     <Side.List>
                         {/* DB LIST — a search that matches nothing takes the database rows with
                             it. Leaving them as a row of `0/14` chevrons over an empty tree looks
