@@ -31,9 +31,12 @@
 }
 
 .theme-modal__radio {
+    // border-box: the selected ring's 4px border stays inside the 14px circle, so choosing an
+    // option does not grow its row (it was 33px vs 38px and the list jumped).
+    box-sizing: border-box;
     flex-shrink: 0;
-    width: 12px;
-    height: 12px;
+    width: 14px;
+    height: 14px;
     border: 1px solid t.$text-tertiary;
     border-radius: 50%;
 
