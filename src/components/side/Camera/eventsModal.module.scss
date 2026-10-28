@@ -90,7 +90,8 @@
     border-radius: 4px;
     font-size: 13px;
     font-weight: 500;
-    color: t.$color-white;
+    // on the chip's colour fill
+    color: var(--neo-text-on-accent, #ffffff);
     cursor: pointer;
     transition: t.$transition-default;
     user-select: none;
@@ -156,6 +157,8 @@
 
     &--indigo {
         background-color: var(--neo-bg-active, #283593);
+        // bg-active is a light tint on a light theme: its ink is text-primary
+        color: var(--neo-text-primary, #ffffff);
     }
 }
 

@@ -51,7 +51,7 @@
             width: t.$icon-size-lg;
             height: t.$icon-size-lg;
             stroke-width: 1px;
-            color: t.$color-white;
+            color: var(--neo-text-on-accent, #ffffff);
         }
     }
     // SUCCESS
@@ -70,7 +70,7 @@
             width: t.$icon-size-lg;
             height: t.$icon-size-lg;
             stroke-width: 1px;
-            color: t.$color-white;
+            color: var(--neo-text-on-accent, #ffffff);
         }
     }
 }

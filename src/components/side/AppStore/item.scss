@@ -283,7 +283,7 @@
     .app-store-item-stray-dir {
         font-family: monospace;
         font-size: 11px;
-        color: #d0a06a;
+        color: var(--neo-warning-main, #d0a06a);
         overflow: hidden;
         white-space: nowrap;
         text-overflow: ellipsis;

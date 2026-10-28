@@ -632,7 +632,8 @@
 
     &:hover:not(&--selected) {
         background-color: c.$dropdown-option-hover-bg-light;
-        color: c.$color-white;
+        // text-primary (white on the dark screen): color-white stayed white on a light theme's menu
+        color: var(--neo-text-primary, #ffffff);
     }
 }
 
@@ -641,7 +642,7 @@
  */
 @mixin hierarchical-combobox-category-selected {
     background-color: c.$dropdown-option-selected-bg;
-    color: c.$color-white;
+    color: var(--neo-text-primary, #ffffff);
     border-left-color: c.$primary-light;
     border-radius: 0;
 

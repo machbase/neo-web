@@ -59,7 +59,8 @@
         width: t.$icon-size-sm;
         height: t.$icon-size-sm;
         stroke-width: 2px;
-        color: t.$color-white;
+        // on the success/error/info/warning circle
+        color: var(--neo-text-on-accent, #ffffff);
     }
 
     &:hover {
