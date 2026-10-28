@@ -482,7 +482,9 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
                 />
             ) : null}
             {sTqlResultType !== TqlResType.VISUAL && sTqlData ? (
-                <div key={sSinkRenderKey} className="dashboard-tql-panel-sink-wrap" style={{ color: ChartThemeTextColor[pPanelInfo.theme as keyof typeof ChartThemeTextColor] }}>
+                // A text/CSV/markdown result sits on the app's surface, not the chart theme's: its ink is the
+                // app text, with the chart theme's colour as the dark screen's fallback.
+                <div key={sSinkRenderKey} className="dashboard-tql-panel-sink-wrap" style={{ color: `var(--neo-text-primary, ${ChartThemeTextColor[pPanelInfo.theme as keyof typeof ChartThemeTextColor]})` }}>
                     {sTqlResultType === TqlResType.CSV ? <CommonTable data={{ columns: [], rows: sTqlData, types: sTqlCsvTypes }} showRowNumber showCopyButton /> : null}
                     {sTqlResultType === TqlResType.MRK ? <Markdown pIdx={1} pContents={sTqlData} pType="mrk" /> : null}
                     {sTqlResultType === TqlResType.XHTML ? <Markdown pIdx={1} pContents={sTqlData} /> : null}

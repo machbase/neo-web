@@ -229,14 +229,16 @@
         display: inline-block;
         width: 28px;
         height: 13px;
-        background: t.$bg-input;
-        border: 1px solid t.$bg-input;
+        // the switch tokens (their dark defaults are the values this had): a theme styles switches
+        // as switches, not as inputs and copy buttons
+        background: t.$switch-bg;
+        border: 1px solid t.$switch-border;
         border-radius: 20px;
         transition: 0.2s;
 
         &:hover {
-            background: var(--neo-bg-hover, rgba(255, 255, 255, 0.1));
-            border: 1px solid t.$bg-input;
+            background: t.$switch-bg-hover;
+            border: 1px solid t.$switch-border;
             border-radius: 20px;
         }
     }
@@ -248,24 +250,24 @@
         width: 10px;
         height: 10px;
         border-radius: 20px;
-        background: var(--neo-btn-copy, rgba(255, 255, 255, 0.3));
+        background: t.$switch-thumb;
         transition: 0.2s;
         cursor: inherit !important;
     }
     .page-switch-input:checked + .page-switch-label {
-        background: t.$primary-base;
-        border: 1px solid t.$bg-input;
+        background: t.$switch-bg-active;
+        border: 1px solid t.$switch-border;
     }
 
     .page-switch-input:checked + .page-switch-label:hover {
-        background: t.$primary-hover;
-        border: 1px solid t.$primary-hover;
+        background: t.$switch-bg-active-hover;
+        border: 1px solid t.$switch-bg-active-hover;
     }
 
     /* move */
     .page-switch-input:checked + .page-switch-label .page-switch-label-btn {
         left: 15px;
-        background: t.$text-primary;
+        background: t.$switch-thumb-active;
         box-shadow: 1px 2px 3px #00000020;
     }
 }

@@ -124,8 +124,8 @@ $readme-accent: #0075e2;
     margin-right: auto;
     padding: 1px 6px;
     border-radius: 3px;
-    background-color: $readme-accent;
-    color: var(--neo-text-primary, #fff);
+    background-color: var(--neo-primary-base, #{$readme-accent});
+    color: var(--neo-text-on-accent, #fff);
     font-size: 10px;
     font-weight: 600;
 }
@@ -192,13 +192,14 @@ $readme-accent: #0075e2;
     // drag edge are one family, and all three belong to the README rather than to
     // the app chrome around them.
     &--on {
-        border-color: $readme-accent;
-        background-color: $readme-accent;
-        color: var(--neo-text-primary, #fff);
+        // the theme's accent and the ink on it (the literal blue is the dark screen's fallback)
+        border-color: var(--neo-primary-base, #{$readme-accent});
+        background-color: var(--neo-primary-base, #{$readme-accent});
+        color: var(--neo-text-on-accent, #fff);
 
         &:hover {
-            background-color: color.adjust($readme-accent, $lightness: 6%);
-            color: var(--neo-text-primary, #fff);
+            background-color: var(--neo-primary-hover, #{color.adjust($readme-accent, $lightness: 6%)});
+            color: var(--neo-text-on-accent, #fff);
         }
     }
 }

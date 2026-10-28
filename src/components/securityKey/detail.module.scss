@@ -119,7 +119,8 @@
     position: relative;
     height: 6px;
     border-radius: 3px;
-    background-color: t.$bg-elevated;
+    // a groove (bg-input) rather than a raised strip, which a light theme draws white on white
+    background-color: var(--neo-bg-input, #2c2c2c);
     overflow: hidden;
 }
 

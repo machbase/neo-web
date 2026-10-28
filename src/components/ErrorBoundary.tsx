@@ -70,10 +70,11 @@ class ErrorBoundary extends Component<Props, State> {
                                 marginBottom: '24px',
                                 padding: '12px 16px',
                                 maxWidth: '500px',
-                                backgroundColor: '#3a2d00',
+                                // a raised surface with the warning border; dark keeps its amber box
+                                backgroundColor: 'var(--neo-bg-elevated, #3a2d00)',
                                 border: '1px solid var(--neo-warning-main, #ff9800)',
                                 borderRadius: '4px',
-                                color: 'var(--neo-event-match-main, #ffcc80)',
+                                color: 'var(--neo-text-primary, #ffcc80)',
                                 fontSize: '13px',
                                 lineHeight: 1.5,
                                 textAlign: 'left',
