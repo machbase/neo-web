@@ -15,7 +15,8 @@ $nb-mono: D2Coding, ui-monospace, SFMono-Regular, Menlo, monospace;
 // editing keeps the app's blue ($nb-accent). Item icons keep the explorer's colours.
 $nb-surface: t.$bg-elevated;
 $nb-preview-bg: var(--neo-bg-secondary, #282828);
-$nb-line: rgba(255, 255, 255, 0.07);
+// the page's ink at 7%: white on the dark screen (exactly the old rgba), a theme's ink on a light one
+$nb-line: color-mix(in srgb, var(--neo-text-primary, rgb(255, 255, 255)) 7%, transparent);
 $nb-border-strong: var(--neo-border-color-light, rgba(255, 255, 255, 0.18));
 $nb-accent: t.$primary-hover;
 // The tone follows the theme's accent, and the ink on it is the theme's text-on-accent (bg-primary
@@ -24,7 +25,7 @@ $nb-tone: var(--neo-primary-light, #6d8bff);
 $nb-tone-hover: var(--neo-primary-hover, #8ea4ff);
 $nb-tone-ink: var(--neo-text-on-accent, #0d1020);
 $nb-tone-soft: color-mix(in srgb, var(--neo-primary-light, rgb(109, 139, 255)) 35%, transparent);
-$nb-weekend: #9a9aa3;
+$nb-weekend: var(--neo-text-tertiary, #9a9aa3);
 $nb-fog-duration: 0.25s;
 
 @mixin nb-reset-button {
@@ -564,7 +565,8 @@ $nb-fog-duration: 0.25s;
     align-items: flex-start;
     text-align: center;
     pointer-events: none;
-    background: rgba(0, 40, 80, 0.72);
+    // a veil of the raised surface (the dark screen's deep blue as the fallback) under the dashed accent
+    background: color-mix(in srgb, var(--neo-bg-elevated, rgb(0, 40, 80)) 72%, transparent);
 
     // The page scrolls, so the overlay can be far taller than the window; keep its label in view.
     > div {
@@ -2616,7 +2618,7 @@ $nb-fog-duration: 0.25s;
     place-items: center;
     font-size: 11px;
     font-weight: t.$font-weight-bold;
-    color: #1e1e1e;
+    color: var(--neo-text-on-accent, #1e1e1e);
     background: var(--neo-event-match-main, #ffdc72);
     border-radius: 50%;
 }

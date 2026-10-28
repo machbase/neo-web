@@ -57,6 +57,10 @@ interface MarkdownProps {
     pExtraCss?: string;
 }
 
+// md.css forces `color-scheme: dark` on .markdown-body; under a light-scheme theme the form controls
+// in markdown (inputs, radios) are drawn light. Inside the shadow root, so it rides in the styles.
+const LIGHT_SCHEME_CSS = '.markdown-body{color-scheme:light}';
+
 export const Markdown = (props: MarkdownProps) => {
     const { pContents, pType, pData, pExtraCss } = props;
     const [sMdxText, setMdxText] = useState<string>('');
@@ -220,7 +224,7 @@ export const Markdown = (props: MarkdownProps) => {
         <Page.ContentBlock style={{ padding: 0, margin: 0, whiteSpace: 'normal' }} pHoverNone>
             <ShadowContent
                 html={sMdxText}
-                styles={`${mdCss}${CP_BUTTON_CSS}${pExtraCss ?? ''}`}
+                styles={`${mdCss}${CP_BUTTON_CSS}${currentScheme() === 'light' ? LIGHT_SCHEME_CSS : ''}${pExtraCss ?? ''}`}
                 className={`mrk-form markdown-body markdown-body-dark mrk${sMarkdownId}`}
                 onShadowRootCreated={(shadowRoot) => {
                     sBodyRef.current = shadowRoot.host;
