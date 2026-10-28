@@ -324,7 +324,8 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
         [sTermView, sTermFitter]
     );
 
-    const wsStatusColor = sWsStatus === 'connected' ? '#5ea702' : sWsStatus === 'connecting' ? '#cfae00' : '#d81e00';
+    // the theme's signal colours; the dark terminal's own greens and ambers as fallbacks
+    const wsStatusColor = sWsStatus === 'connected' ? 'var(--neo-success-main, #5ea702)' : sWsStatus === 'connecting' ? 'var(--neo-warning-main, #cfae00)' : 'var(--neo-error-main, #d81e00)';
     const wsStatusLabel = sWsStatus === 'connected' ? 'Connected' : sWsStatus === 'connecting' ? 'Connecting' : 'Disconnected';
 
     useEffect(() => {
