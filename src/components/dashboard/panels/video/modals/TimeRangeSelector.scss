@@ -256,8 +256,8 @@
         top: calc(100% - 20px);
         transform: translateX(-50%);
         background: $d-modal-bg;
-        border: 1px solid $color-blue;
-        color: $color-blue;
+        border: 1px solid var(--neo-primary-light, #{$color-blue});
+        color: var(--neo-primary-light, #{$color-blue});
         font-size: 11px;
         font-family: 'JetBrains Mono', monospace;
         padding: 6px 10px;
@@ -272,7 +272,7 @@
             left: 50%;
             transform: translateX(-50%);
             border: 6px solid transparent;
-            border-bottom-color: $color-blue;
+            border-bottom-color: var(--neo-primary-light, #{$color-blue});
         }
     }
 
@@ -295,7 +295,7 @@
             color: $text-b;
 
             .range-value {
-                color: $color-blue;
+                color: var(--neo-primary-light, #{$color-blue});
                 font-family: 'JetBrains Mono', monospace;
             }
         }
@@ -350,9 +350,9 @@
             position: absolute;
             top: 0;
             height: 100%;
-            background: rgba($color-blue, 0.15);
-            border-left: 2px solid $color-blue;
-            border-right: 2px solid $color-blue;
+            background: color-mix(in srgb, var(--neo-primary-light, rgb(65, 153, 255)) 15%, transparent);
+            border-left: 2px solid var(--neo-primary-light, #{$color-blue});
+            border-right: 2px solid var(--neo-primary-light, #{$color-blue});
             cursor: grab;
             z-index: 10;
             box-sizing: border-box;
@@ -376,7 +376,7 @@
                     content: '';
                     width: 4px;
                     height: 32px;
-                    background: $color-blue;
+                    background: var(--neo-primary-light, #{$color-blue});
                     border-radius: 2px;
                     transition: all 0.15s;
                 }
@@ -384,7 +384,7 @@
                 &:hover::after {
                     width: 6px;
                     height: 40px;
-                    background: lighten($color-blue, 10%);
+                    background: var(--neo-primary-hover, #{lighten($color-blue, 10%)});
                 }
 
                 &.left {

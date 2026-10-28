@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import React, { forwardRef, useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Tooltip } from 'react-tooltip';
@@ -132,7 +133,8 @@ const renderBadge = (aBadge?: InputSelectOptionBadge) => {
     return (
         <span
             className={styles['input-select-option-badge']}
-            style={{ color: aBadge.color, borderColor: aBadge.color, backgroundColor: `color-mix(in srgb, ${aBadge.color} 16%, transparent)` }}
+            // the colour as a variable: the stylesheet tints with it, and deepens it under a light scheme
+            style={{ '--badge-color': aBadge.color } as CSSProperties}
         >
             {aBadge.label}
         </span>

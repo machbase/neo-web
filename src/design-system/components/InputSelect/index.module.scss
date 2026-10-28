@@ -284,6 +284,8 @@
 .input-select-option-badge {
     flex-shrink: 0;
     padding: 0 t.$spacing-4;
+    color: var(--badge-color);
+    background-color: color-mix(in srgb, var(--badge-color) 16%, transparent);
     border: 1px solid currentColor;
     border-radius: t.$border-radius-sm;
     font-size: t.$font-size-xs;
@@ -291,6 +293,12 @@
     letter-spacing: 0.02em;
     text-transform: uppercase;
     white-space: nowrap;
+}
+
+// The table-type colours are drawn for a dark page; on a light scheme the text (and with it the
+// border) is the same hue, deepened.
+:global(:root[data-neo-scheme='light']) .input-select-option-badge {
+    color: color-mix(in srgb, var(--badge-color) 55%, #000000);
 }
 
 .input-select-list {

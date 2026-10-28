@@ -15,7 +15,7 @@
     padding: t.$spacing-8 t.$spacing-16;
 
     background-color: t.$warning-main;
-    color: t.$color-black;
+    color: var(--neo-text-on-accent, #000000);
 
     font-family: t.$font-family-default;
     font-size: t.$font-size-sm;
@@ -42,7 +42,7 @@
         border: none;
         border-radius: t.$border-radius-sm;
 
-        color: t.$color-black;
+        color: var(--neo-text-on-accent, #000000);
         font-size: 18px;
         line-height: 1;
         cursor: pointer;
@@ -54,7 +54,7 @@
         }
 
         &:focus-visible {
-            outline: 2px solid t.$color-black;
+            outline: 2px solid var(--neo-text-on-accent, #000000);
             outline-offset: 1px;
         }
     }
@@ -74,7 +74,7 @@
     height: 32px;
 
     background-color: t.$warning-main;
-    color: t.$color-black;
+    color: var(--neo-text-on-accent, #000000);
     border: none;
     border-radius: 50%;
 
@@ -94,7 +94,7 @@
     }
 
     &:focus-visible {
-        outline: 2px solid t.$color-black;
+        outline: 2px solid var(--neo-text-on-accent, #000000);
         outline-offset: 2px;
     }
 }
