@@ -553,7 +553,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--neo-bg-primary, rgba(0, 0, 0, 0.45));
+    background: var(--neo-bg-backdrop, rgba(0, 0, 0, 0.45));
 }
 
 .neo-data-viewer-modal {
@@ -1948,7 +1948,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: var(--neo-bg-primary, rgba(0, 0, 0, 0.5));
+    background-color: var(--neo-bg-backdrop, rgba(0, 0, 0, 0.5));
 }
 
 .neo-data-viewer .modal {
@@ -2021,7 +2021,7 @@
 }
 
 .neo-data-viewer .data-viewer-time-overlay {
-    background-color: var(--neo-color-black, rgba(0, 0, 0, 0.7));
+    background-color: var(--neo-bg-backdrop, rgba(0, 0, 0, 0.7));
 }
 
 .neo-data-viewer .data-viewer-time-modal.modal {

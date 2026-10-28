@@ -137,6 +137,9 @@ $selector-selected: themed(selector-selected, #005fb8);
 // Overlay/Shadow Colors
 // ============================================
 $overlay-shadow: themed(overlay-shadow, #00000020);
+// The dimming layer behind a modal or drawer. Its own token: mapped onto bg-primary or color-black,
+// a theme's solid colour turned it into a wall that hid the page.
+$bg-backdrop: themed(bg-backdrop, rgba(0, 0, 0, 0.5));
 
 // ============================================
 // Common

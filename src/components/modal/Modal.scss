@@ -2,7 +2,7 @@
 .modal-overlay {
     width: 100vw;
     height: 100vh;
-    background-color: var(--neo-bg-primary, rgba(0, 0, 0, 0.5));
+    background-color: var(--neo-bg-backdrop, rgba(0, 0, 0, 0.5));
     position: fixed;
     top: 0;
     left: 0;

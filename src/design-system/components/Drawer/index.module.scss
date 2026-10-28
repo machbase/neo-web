@@ -14,7 +14,7 @@
     transition: background-color 0.3s ease-in-out;
 
     &--dark {
-        background-color: var(--neo-bg-primary, rgba(0, 0, 0, 0.5));
+        background-color: var(--neo-bg-backdrop, rgba(0, 0, 0, 0.5));
     }
 
     &--none {

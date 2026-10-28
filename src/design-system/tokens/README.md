@@ -568,6 +568,7 @@ falls back to Dark; the Theme dialog then forgets it.
 | `--neo-text-row-number` | `#3b3b3b` |
 | `--neo-text-active` | `rgb(243, 243, 243)` |
 | `--neo-text-on-accent` | `#f1f1f1` |
+| `--neo-bg-backdrop` | `rgba(0, 0, 0, 0.5)` (the layer behind a modal; sites keep their own alpha) |
 | `--neo-border-color-default` | `rgba(255, 255, 255, 0.13)` |
 | `--neo-border-color-light` | `#f1f1f125` |
 | `--neo-border-color-medium` | `#626263` |
