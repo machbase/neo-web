@@ -387,6 +387,9 @@
         // menu-hover token it had was a near-white tint there, and Uninstall looked like plain text).
         &--default {
             background-color: var(--neo-bg-hover-light, #3a3a3a);
+            // A theme's selected or hovered card is tinted like this fill: the ring keeps the button's
+            // shape (transparent on the dark screen, which draws none).
+            box-shadow: inset 0 0 0 1px var(--neo-border-color-medium, transparent);
             &:hover:not(:disabled) {
                 background-color: var(--neo-bg-active, #4a4a4a);
             }
