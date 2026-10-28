@@ -166,7 +166,7 @@ export const EditTimer = () => {
                             </Page.DpRow>
                             <Page.ContentDesc>
                                 Specifies when this task runs.
-                                <span style={{ marginLeft: '8px', color: 'dodgerblue', fontSize: '12px' }}>Check the example on the right</span>
+                                <span style={{ marginLeft: '8px', color: 'var(--neo-primary-light, dodgerblue)', fontSize: '12px' }}>Check the example on the right</span>
                             </Page.ContentDesc>
                             <Page.Input
                                 data-testid="timer-schedule" pValue={sCreatePayload.schedule}

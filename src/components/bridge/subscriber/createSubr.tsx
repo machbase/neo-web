@@ -317,7 +317,7 @@ export const CreateSubr = ({ pInit }: { pInit: any }) => {
                                 <span
                                     style={{
                                         marginLeft: '8px',
-                                        color: 'dodgerblue',
+                                        color: 'var(--neo-primary-light, dodgerblue)',
                                         fontSize: '12px',
                                     }}
                                 >

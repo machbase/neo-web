@@ -22,7 +22,7 @@
     color: var(--neo-text-tertiary, #9a9a9a);
 
     strong {
-        color: #4aa3e0; // current server version → blue
+        color: var(--neo-primary-light, #4aa3e0); // current server version → blue
         font-weight: 600;
     }
 }
@@ -160,7 +160,7 @@
     }
     &--current {
         background-color: rgba(74, 163, 224, 0.18);
-        color: #4aa3e0;
+        color: var(--neo-primary-light, #4aa3e0);
     }
     &--ineligible {
         background-color: color-mix(in srgb, var(--neo-warning-main, rgb(209, 134, 22)) 18%, transparent);

@@ -443,14 +443,18 @@
             box-shadow: inset 1px 0 0 rgba(0, 0, 0, 0.32);
         }
 
+        // On bg-active (a theme's light tint) the text stays text-primary; on the accent hover fill
+        // and on the warning fill it is text-on-accent.
         &--primary button {
             background-color: var(--neo-bg-active, #0e639c);
             &:hover:not(:disabled) {
                 background-color: var(--neo-primary-base, #1177bb);
+                color: var(--neo-text-on-accent, #ffffff);
             }
         }
         &--update button {
             background-color: var(--neo-warning-main, #bf7b00);
+            color: var(--neo-text-on-accent, #ffffff);
             &:hover:not(:disabled) {
                 background-color: var(--neo-warning-main, #d68b00);
             }
