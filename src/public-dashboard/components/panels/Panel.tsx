@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import LineChart from './chart/LineChart';
 import VideoPanel from '@/components/dashboard/panels/video/VideoPanel';
 import PanelHeader from './PanelHeader';
-import { ChartThemeBackgroundColor, ChartThemeTextColor } from '../../utils/constants';
+import { ChartThemeBackgroundColor, DARK_CHART_THEMES, ChartThemeTextColor } from '../../utils/constants';
 import { ChartTheme } from '../../type/eChart';
 import AutoRefreshControl from '@/components/dashboard/AutoRefreshControl';
 
@@ -20,7 +20,7 @@ const Panel = ({ pLoopMode, pChartVariableId, pBoardInfo, pPanelInfo, pParentWid
         if (!sIsTql) setResolvedTheme(pPanelInfo.theme);
     }, [pPanelInfo.theme, sIsTql]);
     return (
-        <div className="panel-wrap" style={{ backgroundColor: sResolvedTheme ? ChartThemeBackgroundColor[sResolvedTheme as ChartTheme] : 'transparent' }}>
+        <div className={`panel-wrap${sResolvedTheme && DARK_CHART_THEMES.has(sResolvedTheme) ? ' neo-dark-island' : ''}`} style={{ backgroundColor: sResolvedTheme ? ChartThemeBackgroundColor[sResolvedTheme as ChartTheme] : 'transparent' }}>
             {/* The panel's own refresh interval, in the same countdown ring the board header uses, and
                 only on panels that are actually refreshing. It sits in an overlay rather than in
                 PanelHeader because this view renders panels with the header off (`pIsHeader={false}`),

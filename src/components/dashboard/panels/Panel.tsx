@@ -3,7 +3,7 @@ import VideoPanel from './video/VideoPanel';
 import PanelHeader from './PanelHeader';
 import './Panel.scss';
 import { useState, useRef, useEffect } from 'react';
-import { ChartThemeBackgroundColor } from '@/utils/constants';
+import { ChartThemeBackgroundColor, DARK_CHART_THEMES } from '@/utils/constants';
 import { ChartTheme } from '@/type/eChart';
 
 const Panel = ({
@@ -48,7 +48,7 @@ const Panel = ({
     };
 
     return (
-        <div className="panel-wrap" data-testid="wrap" style={{ backgroundColor: sResolvedTheme ? ChartThemeBackgroundColor[sResolvedTheme as ChartTheme] : 'transparent' }}>
+        <div className={`panel-wrap${sResolvedTheme && DARK_CHART_THEMES.has(sResolvedTheme) ? ' neo-dark-island' : ''}`} data-testid="wrap" style={{ backgroundColor: sResolvedTheme ? ChartThemeBackgroundColor[sResolvedTheme as ChartTheme] : 'transparent' }}>
             <PanelHeader
                 pRefreshCycleId={sRefreshCycleId}
                 pRefreshCount={sRefreshCount}

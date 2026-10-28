@@ -67,3 +67,8 @@ select {
 :root[data-neo-scheme='light'] .neo-type-icon {
     filter: brightness(0.55) saturate(1.3);
 }
+
+// Content drawn dark on its own keeps the dark palette for the controls on it (see _darkIsland.scss).
+.neo-dark-island {
+    @include t.dark-island;
+}
