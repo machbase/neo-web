@@ -2,15 +2,37 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import svgr from 'vite-plugin-svgr';
+import fs from 'fs';
+import type { Plugin } from 'vite';
+import { THEME_TOKENS_FILE, parseThemeTokens } from './src/design-system/theme/themeTokens';
 // 192.168.0.104
 // 192.168.1.89
 const TestTarget = '127.0.0.1';
 const TestPort = '5654';
 const TestSecurity = '';
 
+/** `/web/ui/theme-tokens.json`: every theme variable and its dark default, from the token sources (theme builder). */
+const themeTokens = (): Plugin => {
+    const sSources = ['src/design-system/tokens/_colors.scss', 'src/design-system/tokens/_shadows.scss'].map((f) => path.resolve(__dirname, f));
+    const sJson = () => JSON.stringify(parseThemeTokens(sSources.map((f) => fs.readFileSync(f, 'utf8'))), null, 1);
+    return {
+        name: 'neo-theme-tokens',
+        configureServer(server) {
+            server.middlewares.use(`/web/ui/${THEME_TOKENS_FILE}`, (_req, res) => {
+                res.setHeader('Content-Type', 'application/json');
+                res.end(sJson());
+            });
+        },
+        generateBundle() {
+            this.emitFile({ type: 'asset', fileName: THEME_TOKENS_FILE, source: sJson() });
+        },
+    };
+};
+
 export default defineConfig({
     plugins: [
         react(),
+        themeTokens(),
         svgr({
             svgrOptions: {
                 exportType: 'named',

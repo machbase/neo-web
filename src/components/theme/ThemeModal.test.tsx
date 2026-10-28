@@ -1,20 +1,48 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render as rtlRender, screen, waitFor } from '@testing-library/react';
+import { RecoilRoot, useRecoilValue } from 'recoil';
+import type { ReactElement } from 'react';
 import { ThemeModal } from './ThemeModal';
 import { THEME_LINK_ID, THEME_STORAGE_KEY, applyTheme } from '@/design-system/theme';
+import { gBoardList } from '@/recoil/recoil';
 
 const mockGetFileList = jest.fn();
 jest.mock('@/api/repository/api', () => ({ getFileList: (...a: unknown[]) => mockGetFileList(...a) }));
+const mockHasHtml = jest.fn();
+jest.mock('@/components/side/AppStore/appTabs', () => ({
+    ...jest.requireActual('@/components/side/AppStore/appTabs'),
+    checkHtmlExists: (...a: unknown[]) => mockHasHtml(...a),
+}));
+
+let sBoards: any[] = [];
+const BoardSpy = () => {
+    sBoards = useRecoilValue(gBoardList);
+    return null;
+};
+const render = (aUi: ReactElement) =>
+    rtlRender(
+        <RecoilRoot>
+            {aUi}
+            <BoardSpy />
+        </RecoilRoot>
+    );
 
 const MANIFESTS: Record<string, unknown> = {
     'neo-pkg-theme-light': { name: 'neo-pkg-theme-light', version: '1.0.0', neoTheme: { label: 'Light', stylesheet: 'theme.css', scheme: 'light' } },
     'neo-pkg-dbus': { name: 'neo-pkg-dbus', version: '1.0.0' },
+    'neo-pkg-theme-builder': { name: 'neo-pkg-theme-builder', version: '1.0.0', neoTheme: { label: 'Theme Builder', index: ['themes.json', 'user/themes.json'] } },
 };
+let sFiles: Record<string, unknown> = {};
+let sDirs: string[] = [];
 
 beforeEach(() => {
+    sDirs = ['neo-pkg-dbus', 'neo-pkg-theme-light'];
+    sFiles = {};
+    mockHasHtml.mockResolvedValue(false);
     mockGetFileList.mockImplementation(async (_f: string, aDir: string, aName: string) => {
-        if (aDir === '/public/' && !aName) return { data: { children: [{ name: 'neo-pkg-dbus', isDir: true }, { name: 'neo-pkg-theme-light', isDir: true }, { name: 'neo-pkg-theme-light.zip', isDir: false }] } };
+        if (aDir === '/public/' && !aName) return { data: { children: [...sDirs.map((name) => ({ name, isDir: true })), { name: 'neo-pkg-theme-light.zip', isDir: false }] } };
         const sPkg = aDir.replace(/^\/public\//, '').replace(/\/$/, '');
-        if (aName === 'package.json' && MANIFESTS[sPkg]) return { data: MANIFESTS[sPkg] };
+        if (aName === 'package.json' && MANIFESTS[sPkg] && sDirs.includes(sPkg)) return { data: MANIFESTS[sPkg] };
+        if (sFiles[`${sPkg}/${aName}`] !== undefined) return { data: sFiles[`${sPkg}/${aName}`] };
         throw new Error('404');
     });
 });
@@ -68,4 +96,73 @@ test('the package list cannot be read: the remembered theme is kept, not forgott
     render(<ThemeModal isOpen onClose={() => {}} />);
     expect(await screen.findByText(/could not be read/)).toBeInTheDocument();
     expect(JSON.parse(localStorage.getItem(THEME_STORAGE_KEY) ?? '{}').pkg).toBe('neo-pkg-theme-light');
+});
+
+describe('a package holding several themes (the theme builder)', () => {
+    const PRESETS = [
+        { id: 'light', label: 'Light', stylesheet: 'presets/light.css', scheme: 'light', note: 'Preset', swatch: ['#cdd3f0', '#f0f2fb', 'url(x)'] },
+        { id: 'cyberpunk', label: 'Cyberpunk', stylesheet: 'presets/cyberpunk.css', scheme: 'dark', note: 'Preset' },
+    ];
+    const USER = [{ id: 'night', label: 'Night shift', stylesheet: 'user/night.css', scheme: 'dark', note: 'Saved' }];
+    const KEY_LIGHT = 'neo-pkg-theme-builder/presets/light.css';
+
+    beforeEach(() => {
+        sDirs = ['neo-pkg-theme-builder', 'neo-pkg-theme-light'];
+        sFiles = { 'neo-pkg-theme-builder/themes.json': PRESETS, 'neo-pkg-theme-builder/user/themes.json': USER };
+        mockHasHtml.mockResolvedValue(true);
+    });
+
+    test('every theme of the package under its label, with the colours and note the index gives', async () => {
+        render(<ThemeModal isOpen onClose={() => {}} />);
+        const sGroup = await screen.findByRole('group', { name: 'Theme Builder' });
+        expect(sGroup).toHaveTextContent('neo-pkg-theme-builder');
+        const sLight = screen.getByTestId(`theme-option-${KEY_LIGHT}`);
+        expect(sLight).toHaveTextContent('Light');
+        expect(sLight).toHaveTextContent('Preset');
+        // a value that is not a colour is not drawn
+        expect(sLight.querySelectorAll('.theme-modal__swatch i')).toHaveLength(2);
+        expect(screen.getByTestId('theme-option-neo-pkg-theme-builder/user/night.css')).toHaveTextContent('Night shift');
+        // a single-theme package keeps its row and test id
+        expect(screen.getByTestId('theme-option-neo-pkg-theme-light')).toHaveTextContent('Light');
+    });
+
+    test('two themes of one package: choosing one selects only that one', async () => {
+        render(<ThemeModal isOpen onClose={() => {}} />);
+        fireEvent.click(await screen.findByTestId(`theme-option-${KEY_LIGHT}`));
+        expect(document.getElementById(THEME_LINK_ID)?.getAttribute('href')).toBe('/public/neo-pkg-theme-builder/presets/light.css');
+        expect(JSON.parse(localStorage.getItem(THEME_STORAGE_KEY) ?? '{}')).toEqual({ pkg: 'neo-pkg-theme-builder', stylesheet: 'presets/light.css', label: 'Light', scheme: 'light' });
+        expect(screen.getByTestId(`theme-option-${KEY_LIGHT}`)).toHaveAttribute('aria-checked', 'true');
+        expect(screen.getByTestId('theme-option-neo-pkg-theme-builder/presets/cyberpunk.css')).toHaveAttribute('aria-checked', 'false');
+    });
+
+    test('nothing saved yet (no user index): the presets are still listed', async () => {
+        delete sFiles['neo-pkg-theme-builder/user/themes.json'];
+        render(<ThemeModal isOpen onClose={() => {}} />);
+        expect(await screen.findByTestId(`theme-option-${KEY_LIGHT}`)).toBeInTheDocument();
+        expect(screen.queryByText('Night shift')).toBeNull();
+    });
+
+    test('a remembered theme deleted in the builder is forgotten; its package stays listed', async () => {
+        localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify({ pkg: 'neo-pkg-theme-builder', stylesheet: 'user/gone.css', label: 'Gone', scheme: 'dark' }));
+        render(<ThemeModal isOpen onClose={() => {}} />);
+        await screen.findByTestId(`theme-option-${KEY_LIGHT}`);
+        expect(screen.getByTestId('theme-option-default')).toHaveAttribute('aria-checked', 'true');
+        expect(localStorage.getItem(THEME_STORAGE_KEY)).toBeNull();
+    });
+
+    test('the package has an app: the dialog opens it in a tab and closes', async () => {
+        const sClose = jest.fn();
+        render(<ThemeModal isOpen onClose={sClose} />);
+        fireEvent.click(await screen.findByTestId('theme-open-app-neo-pkg-theme-builder'));
+        expect(screen.getByTestId('theme-open-app-neo-pkg-theme-builder')).toHaveTextContent('Open Theme Builder');
+        expect(sBoards.some((b) => b.type === 'appView' && b.code?.appName === 'neo-pkg-theme-builder')).toBe(true);
+        expect(sClose).toHaveBeenCalled();
+    });
+
+    test('no app (no main.html): no button', async () => {
+        mockHasHtml.mockResolvedValue(false);
+        render(<ThemeModal isOpen onClose={() => {}} />);
+        await screen.findByTestId(`theme-option-${KEY_LIGHT}`);
+        expect(screen.queryByTestId('theme-open-app-neo-pkg-theme-builder')).toBeNull();
+    });
 });

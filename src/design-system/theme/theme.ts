@@ -10,6 +10,11 @@
 // and whose stylesheet sets the variables it changes on `:root`. Choosing it adds one
 // `<link>` to that stylesheet; choosing the default removes it.
 //
+// A package can hold several themes instead: `"neoTheme": { "index": ["themes.json", …] }`
+// names JSON files listing `{ id, label, stylesheet, scheme }` entries (the theme builder
+// package keeps its presets in one and the themes it saves in another). A theme is then told
+// apart by package AND stylesheet (`themeKey`), not by package alone.
+//
 // The choice is remembered per browser (localStorage) WITH the stylesheet path, and so is the
 // stylesheet's text once it has loaded: the next load paints the theme from that copy before
 // the first render, with no request between the page and its colours, then links the package's
@@ -37,15 +42,15 @@ export const THEME_CHANGE_EVENT = 'neo-theme-change';
 
 /** A package name as it appears in `/public/<name>/`: one path segment, nothing that escapes it. */
 const SAFE_PKG = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
-/** A stylesheet inside the package: relative segments, no `..`, no scheme, ending in .css. */
-const SAFE_STYLESHEET = /^(?!.*(^|\/)\.\.?(\/|$))[A-Za-z0-9._-]+(\/[A-Za-z0-9._-]+)*\.css$/;
+/** A file inside the package: relative segments, no `..`, no scheme, ending in `.<ext>`. */
+const safeFile = (aExt: string) => new RegExp(`^(?!.*(^|\\/)\\.\\.?(\\/|$))[A-Za-z0-9._-]+(\\/[A-Za-z0-9._-]+)*\\.${aExt}$`);
+const SAFE_STYLESHEET = safeFile('css');
+const SAFE_INDEX = safeFile('json');
 
-/** The `neoTheme` field of a package.json, or null when it is missing or unusable. */
-export const parseThemeManifest = (aPkg: string, aManifest: unknown): ThemeChoice | null => {
-    if (!SAFE_PKG.test(aPkg) || !aManifest || typeof aManifest !== 'object') return null;
-    const sTheme = (aManifest as { neoTheme?: unknown }).neoTheme;
-    if (!sTheme || typeof sTheme !== 'object') return null;
-    const { label, stylesheet, scheme } = sTheme as Record<string, unknown>;
+/** One theme: `{ label, stylesheet, scheme }` from a manifest's `neoTheme` or an index entry. */
+export const parseThemeEntry = (aPkg: string, aEntry: unknown): ThemeChoice | null => {
+    if (!SAFE_PKG.test(aPkg) || !aEntry || typeof aEntry !== 'object') return null;
+    const { label, stylesheet, scheme } = aEntry as Record<string, unknown>;
     if (typeof stylesheet !== 'string' || !SAFE_STYLESHEET.test(stylesheet)) return null;
     return {
         pkg: aPkg,
@@ -55,6 +60,34 @@ export const parseThemeManifest = (aPkg: string, aManifest: unknown): ThemeChoic
     };
 };
 
+const neoThemeOf = (aManifest: unknown): Record<string, unknown> | null => {
+    const sTheme = aManifest && typeof aManifest === 'object' ? (aManifest as { neoTheme?: unknown }).neoTheme : null;
+    return sTheme && typeof sTheme === 'object' ? (sTheme as Record<string, unknown>) : null;
+};
+
+/** The single theme a package.json's `neoTheme` declares, or null when it declares none (or only an index). */
+export const parseThemeManifest = (aPkg: string, aManifest: unknown): ThemeChoice | null => parseThemeEntry(aPkg, neoThemeOf(aManifest));
+
+/** The index files (`neoTheme.index`, a path or a list) a package.json names; unusable paths are dropped. */
+export const themeIndexFiles = (aManifest: unknown): string[] => {
+    const sIndex = neoThemeOf(aManifest)?.index;
+    const sList = Array.isArray(sIndex) ? sIndex : [sIndex];
+    return sList.filter((f): f is string => typeof f === 'string' && SAFE_INDEX.test(f));
+};
+
+/** Does this package.json declare a theme — one stylesheet or an index of them? (A theme package has no service.) */
+export const declaresTheme = (aPkg: string, aManifest: unknown): boolean => parseThemeManifest(aPkg, aManifest) !== null || (SAFE_PKG.test(aPkg) && themeIndexFiles(aManifest).length > 0);
+
+/** The themes an index file lists: a JSON array of entries (or `{ themes: [...] }`); unusable entries are dropped. */
+export const parseThemeIndex = (aPkg: string, aIndex: unknown): ThemeChoice[] => {
+    const sList = Array.isArray(aIndex) ? aIndex : aIndex && typeof aIndex === 'object' ? (aIndex as { themes?: unknown }).themes : null;
+    if (!Array.isArray(sList)) return [];
+    return sList.map((e) => parseThemeEntry(aPkg, e)).filter((t): t is ThemeChoice => t !== null);
+};
+
+/** What tells two themes apart: one package can hold several. */
+export const themeKey = (aChoice: Pick<ThemeChoice, 'pkg' | 'stylesheet'>) => `${aChoice.pkg}/${aChoice.stylesheet}`;
+
 export const themeStylesheetUrl = (aChoice: ThemeChoice) => `/public/${encodeURIComponent(aChoice.pkg)}/${aChoice.stylesheet.split('/').map(encodeURIComponent).join('/')}`;
 
 /** The remembered choice, validated again (localStorage is anyone's to edit). */
@@ -63,7 +96,7 @@ export const readStoredTheme = (): ThemeChoice | null => {
         const sRaw = localStorage.getItem(THEME_STORAGE_KEY);
         if (!sRaw) return null;
         const sValue = JSON.parse(sRaw) as Partial<ThemeChoice>;
-        return parseThemeManifest(String(sValue.pkg ?? ''), { neoTheme: sValue });
+        return parseThemeEntry(String(sValue.pkg ?? ''), sValue);
     } catch {
         return null;
     }
@@ -116,10 +149,14 @@ const setCachedStyle = (aCss: string | null) => {
  * paints at once; the package's own is linked after it (later in <head>, so it wins), and the
  * change event fires once that has loaded (or failed), so listeners that read resolved colours —
  * the editor, which takes hex values, not variables — read the final ones.
+ *
+ * `reload`: the stylesheet itself changed (the theme builder saved over it). The remembered copy
+ * is stale and so may the browser's be: link it again with a cache-busting query.
  */
-export const applyTheme = (aChoice: ThemeChoice | null) => {
+export const applyTheme = (aChoice: ThemeChoice | null, aOptions?: { reload?: boolean }) => {
     const sRoot = document.documentElement;
     const sOld = document.getElementById(THEME_LINK_ID);
+    clearThemePreview();
     if (!aChoice) {
         sOld?.remove();
         setCachedStyle(null);
@@ -134,15 +171,18 @@ export const applyTheme = (aChoice: ThemeChoice | null) => {
     // for CSS that depends on the scheme, not on a colour (see .neo-type-icon in global.scss)
     sRoot.dataset.neoScheme = aChoice.scheme;
     sRoot.style.setProperty('color-scheme', aChoice.scheme);
-    if (sOld instanceof HTMLLinkElement && sOld.getAttribute('href') === sHref) {
+    const sReload = aOptions?.reload === true;
+    if (!sReload && sOld instanceof HTMLLinkElement && (sOld.dataset.href ?? sOld.getAttribute('href')) === sHref) {
         notify(aChoice);
         return;
     }
+    if (sReload) writeCachedCss(sHref, null);
     setCachedStyle(readCachedCss(sHref));
     const sLink = document.createElement('link');
     sLink.id = THEME_LINK_ID;
     sLink.rel = 'stylesheet';
-    sLink.href = sHref;
+    sLink.dataset.href = sHref;
+    sLink.href = sReload ? `${sHref}?v=${Date.now()}` : sHref;
     const sDone = (aLoaded: boolean) => () => {
         // The old sheet stays until the new one is in, so the switch shows no dark frame.
         if (sOld && sOld !== sLink) sOld.remove();
@@ -164,7 +204,7 @@ export const applyTheme = (aChoice: ThemeChoice | null) => {
 };
 
 /** Chooses a theme for this browser (null: the dark default). */
-export const setTheme = (aChoice: ThemeChoice | null) => {
+export const setTheme = (aChoice: ThemeChoice | null, aOptions?: { reload?: boolean }) => {
     try {
         if (aChoice) localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(aChoice));
         else {
@@ -174,7 +214,7 @@ export const setTheme = (aChoice: ThemeChoice | null) => {
     } catch {
         // Private mode / quota: the theme still applies for this page.
     }
-    applyTheme(aChoice);
+    applyTheme(aChoice, aOptions);
 };
 
 /** Applies the remembered theme. Called once before the first render. */
@@ -182,3 +222,88 @@ export const applyStoredTheme = () => applyTheme(readStoredTheme());
 
 /** The scheme in force: what a component that cannot read CSS variables needs to know. */
 export const currentScheme = (): ThemeScheme => (document.documentElement.style.getPropertyValue('color-scheme') === 'light' ? 'light' : 'dark');
+
+// -----------------------------------------------------------------------------
+// PREVIEW — colours shown on the whole app without choosing (the theme builder's "try it on")
+// -----------------------------------------------------------------------------
+// A `<style>` after everything else sets the previewed variables on :root; clearing it (or
+// choosing any theme) gives the chosen theme back. Nothing is remembered.
+
+export const THEME_PREVIEW_STYLE_ID = 'neo-theme-preview';
+/** A token name as the variables use it (`bg-primary` → `--neo-bg-primary`). */
+const SAFE_TOKEN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+/** A colour or shadow value: nothing that could close the declaration or the rule. */
+const SAFE_VALUE = /^[^;{}<>\\]{1,200}$/;
+
+let sPreviewBase: { scheme: string | undefined; colorScheme: string } | null = null;
+
+export const previewTheme = (aVars: Record<string, unknown>, aScheme?: ThemeScheme) => {
+    const sRoot = document.documentElement;
+    const sDecls = Object.entries(aVars)
+        .filter((e): e is [string, string] => SAFE_TOKEN.test(e[0]) && typeof e[1] === 'string' && SAFE_VALUE.test(e[1].trim()))
+        .map(([k, v]) => `--neo-${k}: ${v.trim()};`);
+    if (!sPreviewBase) sPreviewBase = { scheme: sRoot.dataset.neoScheme, colorScheme: sRoot.style.getPropertyValue('color-scheme') };
+    const sOld = document.getElementById(THEME_PREVIEW_STYLE_ID);
+    const sStyle = sOld instanceof HTMLStyleElement ? sOld : document.createElement('style');
+    sStyle.id = THEME_PREVIEW_STYLE_ID;
+    sStyle.textContent = `:root { ${sDecls.join(' ')} }`;
+    // Last in <head>: over the chosen theme's stylesheet.
+    document.head.appendChild(sStyle);
+    if (aScheme) {
+        sRoot.dataset.neoScheme = aScheme;
+        sRoot.style.setProperty('color-scheme', aScheme);
+    }
+    notify(readStoredTheme());
+};
+
+export const clearThemePreview = () => {
+    const sStyle = document.getElementById(THEME_PREVIEW_STYLE_ID);
+    if (!sStyle && !sPreviewBase) return;
+    sStyle?.remove();
+    const sRoot = document.documentElement;
+    if (sPreviewBase) {
+        if (sPreviewBase.scheme === undefined) delete sRoot.dataset.neoScheme;
+        else sRoot.dataset.neoScheme = sPreviewBase.scheme;
+        if (sPreviewBase.colorScheme) sRoot.style.setProperty('color-scheme', sPreviewBase.colorScheme);
+        else sRoot.style.removeProperty('color-scheme');
+        sPreviewBase = null;
+    }
+    notify(readStoredTheme());
+};
+
+// -----------------------------------------------------------------------------
+// REQUESTS FROM A PACKAGE'S APP — the theme builder runs in an app tab (same-origin iframe)
+// -----------------------------------------------------------------------------
+//   { type: 'neo-theme', action: 'preview', vars: { 'bg-primary': '#fff', … } | null, scheme? }
+//   { type: 'neo-theme', action: 'apply', choice: { pkg, stylesheet, label, scheme } | null, reload? }
+// Only from a frame of this page on this origin; the choice is validated like a manifest.
+
+export const THEME_MESSAGE_TYPE = 'neo-theme';
+
+const fromOwnFrame = (aEvent: MessageEvent) =>
+    aEvent.origin === window.location.origin &&
+    aEvent.source !== window &&
+    Array.from(document.querySelectorAll('iframe')).some((f) => f.contentWindow !== null && f.contentWindow === aEvent.source);
+
+export const handleThemeRequest = (aEvent: MessageEvent) => {
+    const sData = aEvent.data as { type?: unknown; action?: unknown; vars?: unknown; scheme?: unknown; choice?: unknown; reload?: unknown } | null;
+    if (!sData || typeof sData !== 'object' || sData.type !== THEME_MESSAGE_TYPE || !fromOwnFrame(aEvent)) return;
+    const sScheme = sData.scheme === 'light' || sData.scheme === 'dark' ? sData.scheme : undefined;
+    if (sData.action === 'preview') {
+        if (sData.vars && typeof sData.vars === 'object') previewTheme(sData.vars as Record<string, unknown>, sScheme);
+        else clearThemePreview();
+    } else if (sData.action === 'apply') {
+        if (sData.choice === null) {
+            setTheme(null);
+            return;
+        }
+        const sChoice = sData.choice && typeof sData.choice === 'object' ? parseThemeEntry(String((sData.choice as { pkg?: unknown }).pkg ?? ''), sData.choice) : null;
+        if (sChoice) setTheme(sChoice, { reload: sData.reload === true });
+    }
+};
+
+/** Listens for the requests above. Called once at startup; returns the unsubscribe. */
+export const listenForThemeRequests = () => {
+    window.addEventListener('message', handleThemeRequest);
+    return () => window.removeEventListener('message', handleThemeRequest);
+};

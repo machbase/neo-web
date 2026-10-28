@@ -36,7 +36,7 @@
 // the merge is how the panel silently reverted to online-only behaviour after
 // every install/uninstall.
 
-import { parseThemeManifest } from '@/design-system/theme';
+import { declaresTheme } from '@/design-system/theme';
 import { fetchPkgHubList, mapHubEntry, type APP_GITHUB, type APP_INFO, type PkgHubEntry } from '@/api/repository/appStore';
 import {
     emptyGithub,
@@ -313,7 +313,7 @@ const installedFields = (manifest: PkgManifest | null, name: string, installedIc
     // legacy manifests with no packageService block (read as managed=true).
     installed_version: typeof manifest?.version === 'string' ? manifest.version : '',
     installed_packageService: manifest?.packageService,
-    installed_theme: parseThemeManifest(name, manifest) !== null,
+    installed_theme: declaresTheme(name, manifest),
     installed_icon: installedIconOf(name, installedIcons),
 });
 

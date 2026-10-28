@@ -1,4 +1,23 @@
-import { THEME_CHANGE_EVENT, THEME_LINK_ID, THEME_STORAGE_KEY, applyStoredTheme, applyTheme, currentScheme, parseThemeManifest, readStoredTheme, setTheme, themeStylesheetUrl } from './theme';
+import {
+    THEME_CHANGE_EVENT,
+    THEME_LINK_ID,
+    THEME_PREVIEW_STYLE_ID,
+    THEME_STORAGE_KEY,
+    applyStoredTheme,
+    applyTheme,
+    clearThemePreview,
+    currentScheme,
+    declaresTheme,
+    handleThemeRequest,
+    parseThemeIndex,
+    parseThemeManifest,
+    previewTheme,
+    readStoredTheme,
+    setTheme,
+    themeIndexFiles,
+    themeKey,
+    themeStylesheetUrl,
+} from './theme';
 import { rgbToHex } from './resolveColor';
 
 const LIGHT = { pkg: 'neo-pkg-theme-light', stylesheet: 'theme.css', label: 'Light', scheme: 'light' as const };
@@ -157,5 +176,144 @@ describe('the remembered stylesheet copy', () => {
         setTheme(null);
         expect(localStorage.getItem('neo.theme.css')).toBeNull();
         expect(document.getElementById('neo-theme-cached')).toBeNull();
+    });
+});
+
+describe('a package holding several themes (neoTheme.index)', () => {
+    const BUILDER = { name: 'neo-pkg-theme-builder', neoTheme: { label: 'Theme Builder', index: ['themes.json', 'user/themes.json'] } };
+
+    test('the index files a manifest names; unusable paths are dropped', () => {
+        expect(themeIndexFiles(BUILDER)).toEqual(['themes.json', 'user/themes.json']);
+        expect(themeIndexFiles({ neoTheme: { index: 'themes.json' } })).toEqual(['themes.json']);
+        expect(themeIndexFiles({ neoTheme: { index: ['../x.json', '/etc/x.json', 'x.css', 42, 'ok/list.json'] } })).toEqual(['ok/list.json']);
+        expect(themeIndexFiles({ neoTheme: { stylesheet: 'theme.css' } })).toEqual([]);
+    });
+
+    test('an index-only manifest declares a theme but is no single theme', () => {
+        expect(parseThemeManifest('neo-pkg-theme-builder', BUILDER)).toBeNull();
+        expect(declaresTheme('neo-pkg-theme-builder', BUILDER)).toBe(true);
+        expect(declaresTheme('neo-pkg-theme-light', { neoTheme: { stylesheet: 'theme.css' } })).toBe(true);
+        expect(declaresTheme('neo-pkg-dbus', { name: 'neo-pkg-dbus' })).toBe(false);
+        expect(declaresTheme('../x', BUILDER)).toBe(false);
+    });
+
+    test('an index lists entries; a bad entry is dropped, not the list', () => {
+        const sIndex = [
+            { id: 'light', label: 'Light', stylesheet: 'presets/light.css', scheme: 'light' },
+            { id: 'evil', label: 'Evil', stylesheet: '../../x.css' },
+            { label: 'Night', stylesheet: 'user/night.css' },
+        ];
+        expect(parseThemeIndex('p', sIndex)).toEqual([
+            { pkg: 'p', stylesheet: 'presets/light.css', label: 'Light', scheme: 'light' },
+            { pkg: 'p', stylesheet: 'user/night.css', label: 'Night', scheme: 'dark' },
+        ]);
+        expect(parseThemeIndex('p', { themes: sIndex })).toHaveLength(2);
+        expect(parseThemeIndex('p', null)).toEqual([]);
+        expect(parseThemeIndex('p', 'nope')).toEqual([]);
+    });
+
+    test('two themes of one package are told apart by stylesheet', () => {
+        expect(themeKey({ pkg: 'p', stylesheet: 'presets/light.css' })).not.toBe(themeKey({ pkg: 'p', stylesheet: 'user/night.css' }));
+    });
+});
+
+describe('reload: the stylesheet itself changed', () => {
+    const HREF = '/public/neo-pkg-theme-light/theme.css';
+
+    test('the same theme again is a no-op without reload', () => {
+        applyTheme(LIGHT);
+        const sFirst = link();
+        applyTheme(LIGHT);
+        expect(link()).toBe(sFirst);
+    });
+
+    test('with reload: the stale copy is dropped and the stylesheet is linked again past the cache', () => {
+        localStorage.setItem('neo.theme.css', JSON.stringify({ href: HREF, css: ':root { --neo-bg-primary: #000; }' }));
+        applyTheme(LIGHT);
+        loadLink();
+        applyTheme(LIGHT, { reload: true });
+        expect(localStorage.getItem('neo.theme.css')).toBeNull();
+        expect(document.getElementById('neo-theme-cached')).toBeNull();
+        expect(link()?.getAttribute('href')).toMatch(/^\/public\/neo-pkg-theme-light\/theme\.css\?v=\d+$/);
+        // Still the same theme: choosing it again without reload does not re-link.
+        loadLink();
+        const sLinked = link();
+        applyTheme(LIGHT);
+        expect(link()).toBe(sLinked);
+    });
+});
+
+describe('preview', () => {
+    afterEach(() => clearThemePreview());
+
+    test('sets the given variables over everything, and only safe ones', () => {
+        applyTheme(LIGHT);
+        previewTheme({ 'bg-primary': '#123456', 'text-primary': 'rgba(1, 2, 3, 0.5)', 'bad name': '#fff', 'x': '#fff; } body { display: none', 'y': 42 });
+        const sStyle = document.getElementById(THEME_PREVIEW_STYLE_ID);
+        expect(sStyle?.textContent).toBe(':root { --neo-bg-primary: #123456; --neo-text-primary: rgba(1, 2, 3, 0.5); }');
+        expect(document.head.lastElementChild).toBe(sStyle);
+    });
+
+    test('a scheme is shown while previewing and given back after', () => {
+        applyTheme(null);
+        previewTheme({ 'bg-primary': '#ffffff' }, 'light');
+        expect(currentScheme()).toBe('light');
+        expect(document.documentElement.dataset.neoScheme).toBe('light');
+        clearThemePreview();
+        expect(document.getElementById(THEME_PREVIEW_STYLE_ID)).toBeNull();
+        expect(currentScheme()).toBe('dark');
+        expect(document.documentElement.dataset.neoScheme).toBeUndefined();
+    });
+
+    test('choosing a theme ends the preview', () => {
+        previewTheme({ 'bg-primary': '#ffffff' }, 'light');
+        setTheme(LIGHT);
+        expect(document.getElementById(THEME_PREVIEW_STYLE_ID)).toBeNull();
+        expect(currentScheme()).toBe('light');
+    });
+});
+
+describe('requests from a package app (postMessage)', () => {
+    let sFrame: HTMLIFrameElement;
+    beforeEach(() => {
+        sFrame = document.createElement('iframe');
+        document.body.appendChild(sFrame);
+    });
+    afterEach(() => {
+        sFrame.remove();
+        clearThemePreview();
+    });
+    const send = (aData: unknown, aFrom: { origin?: string; source?: unknown } = {}) =>
+        handleThemeRequest(new MessageEvent('message', { data: aData, origin: aFrom.origin ?? window.location.origin, source: (aFrom.source ?? sFrame.contentWindow) as Window }));
+
+    test('apply: chooses and remembers the theme', () => {
+        send({ type: 'neo-theme', action: 'apply', choice: LIGHT });
+        expect(readStoredTheme()).toEqual(LIGHT);
+        expect(link()?.getAttribute('href')).toBe('/public/neo-pkg-theme-light/theme.css');
+        send({ type: 'neo-theme', action: 'apply', choice: null });
+        expect(readStoredTheme()).toBeNull();
+    });
+
+    test('apply with reload re-links the chosen stylesheet', () => {
+        send({ type: 'neo-theme', action: 'apply', choice: LIGHT });
+        send({ type: 'neo-theme', action: 'apply', choice: LIGHT, reload: true });
+        expect(link()?.getAttribute('href')).toMatch(/\?v=\d+$/);
+    });
+
+    test('preview and clear', () => {
+        send({ type: 'neo-theme', action: 'preview', vars: { 'bg-primary': '#abcdef' }, scheme: 'light' });
+        expect(document.getElementById(THEME_PREVIEW_STYLE_ID)?.textContent).toContain('#abcdef');
+        send({ type: 'neo-theme', action: 'preview', vars: null });
+        expect(document.getElementById(THEME_PREVIEW_STYLE_ID)).toBeNull();
+    });
+
+    test('ignored: another origin, the page itself, an unknown window, a bad choice', () => {
+        send({ type: 'neo-theme', action: 'apply', choice: LIGHT }, { origin: 'https://evil.example' });
+        send({ type: 'neo-theme', action: 'apply', choice: LIGHT }, { source: window });
+        send({ type: 'neo-theme', action: 'apply', choice: LIGHT }, { source: {} });
+        send({ type: 'neo-theme', action: 'apply', choice: { ...LIGHT, stylesheet: '../../x.css' } });
+        send({ type: 'other', action: 'apply', choice: LIGHT });
+        expect(readStoredTheme()).toBeNull();
+        expect(link()).toBeNull();
     });
 });

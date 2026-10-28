@@ -514,12 +514,52 @@ The stylesheet sets variables on `:root`:
 
 A variable it leaves out keeps the dark default, so a theme can change one colour or all of them.
 
+### A package of several themes
+
+A package can list its themes in JSON files instead of naming one stylesheet (the theme builder
+package, `neo-pkg-theme-builder`, keeps its presets in one list and the themes it saves in
+another):
+
+```json
+"neoTheme": { "label": "Theme Builder", "index": ["themes.json", "user/themes.json"] }
+```
+
+Each list is an array of `{ "id", "label", "stylesheet", "scheme" }` entries, optionally with
+`note` (a short word shown beside it, e.g. `Preset`) and `swatch` (up to eight colours drawn in
+its row). A list that is missing (nothing saved yet) is skipped. Settings → Theme shows such a
+package's themes under its label and, when the package has an app (`main.html`), an
+**Open <label>** button. A theme is told apart by package and stylesheet (`themeKey`), so two
+themes of one package are two choices.
+
+### The theme variables, published
+
+The build publishes every theme variable with its dark default as `/web/ui/theme-tokens.json`
+(`[{ "name": "bg-primary", "dark": "#1e1e1e" }, …]`), read from `_colors.scss` and
+`_shadows.scss` by `theme/themeTokens.ts` (vite.config.ts). A theme builder edits that list, so
+it always matches the web UI it runs on.
+
+### Requests from a package's app
+
+An app tab (a same-origin iframe) can ask the page to show or choose a theme:
+
+```js
+parent.postMessage({ type: 'neo-theme', action: 'preview', vars: { 'bg-primary': '#fff' }, scheme: 'light' }, location.origin);
+parent.postMessage({ type: 'neo-theme', action: 'preview', vars: null }, location.origin); // stop
+parent.postMessage({ type: 'neo-theme', action: 'apply', choice: { pkg, stylesheet, label, scheme }, reload: true }, location.origin);
+```
+
+A preview sets the variables on top of the chosen theme until it is cleared or a theme is chosen;
+nothing is remembered. `apply` chooses a theme as the dialog does (`choice: null` is Dark);
+`reload` links the stylesheet again past every cache, for a stylesheet that was just rewritten.
+Only messages from a frame of the page on its own origin are taken, and the choice is validated
+like a manifest entry.
+
 ### Choosing a theme
 
 Settings → Theme lists the built-in Dark and every installed theme. The choice is kept per
 browser (localStorage `neo.theme`, with the stylesheet path) and applied before the first render,
-so a reload paints in the theme from its first frame. A theme whose package was uninstalled
-falls back to Dark; the Theme dialog then forgets it.
+so a reload paints in the theme from its first frame. A theme whose package was uninstalled (or
+that was deleted from its package's list) falls back to Dark; the Theme dialog then forgets it.
 
 ### In the code
 
