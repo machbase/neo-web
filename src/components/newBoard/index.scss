@@ -18,10 +18,11 @@ $nb-preview-bg: var(--neo-bg-secondary, #282828);
 $nb-line: rgba(255, 255, 255, 0.07);
 $nb-border-strong: var(--neo-border-color-light, rgba(255, 255, 255, 0.18));
 $nb-accent: t.$primary-hover;
-// The tone follows the theme's accent (and the ink on it the theme's frame, its inverse there).
+// The tone follows the theme's accent, and the ink on it is the theme's text-on-accent (bg-primary
+// was its inverse on dark only: a light theme's frame is light, and read 3.7:1 on the crimson).
 $nb-tone: var(--neo-primary-light, #6d8bff);
 $nb-tone-hover: var(--neo-primary-hover, #8ea4ff);
-$nb-tone-ink: var(--neo-bg-primary, #0d1020);
+$nb-tone-ink: var(--neo-text-on-accent, #0d1020);
 $nb-tone-soft: color-mix(in srgb, var(--neo-primary-light, rgb(109, 139, 255)) 35%, transparent);
 $nb-weekend: #9a9aa3;
 $nb-fog-duration: 0.25s;
