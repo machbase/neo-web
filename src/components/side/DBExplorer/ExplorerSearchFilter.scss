@@ -16,7 +16,7 @@
 // store's CatalogSearchBand — is an inset, rounded, filled field, and two search boxes
 // one extension apart should not be different objects.
 $explorer-search-h: 28px;
-$explorer-link-fg: #4199ff;
+$explorer-link-fg: var(--neo-primary-light, #4199ff);
 $search-match-bg: rgba(65, 153, 255, 0.3);
 // On a selected row (#005fb8) a blue wash is invisible, so the highlight inverts
 // to a white one rather than tinting blue on blue.

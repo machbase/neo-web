@@ -4,7 +4,7 @@
 @use '../../tokens/scrollbar' as sb;
 
 // shared accent for both version indicators: latest text + update chip (version/icon)
-$version-accent: #4199ff;
+$version-accent: var(--neo-primary-light, #4199ff);
 
 .sideWrapper {
     display: flex;

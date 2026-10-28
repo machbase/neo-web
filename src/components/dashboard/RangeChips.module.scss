@@ -56,7 +56,7 @@
 }
 
 .labelTime {
-    color: #4199ff;
+    color: var(--neo-primary-light, #4199ff);
 }
 .labelDist {
     color: var(--neo-warning-main, #fdb532);

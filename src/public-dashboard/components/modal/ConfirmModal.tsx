@@ -42,7 +42,7 @@ export const ConfirmModal = (props: DeleteModalProps) => {
                 </Modal.Body>
                 <Modal.Footer>
                     <div className="button-group">
-                        <TextButton pText="OK" pBackgroundColor="#4199ff" onClick={() => handleCallback()} />
+                        <TextButton pText="OK" pBackgroundColor="var(--neo-primary-base, #4199ff)" pFontColor="var(--neo-text-on-accent, #f8f8f8)" onClick={() => handleCallback()} />
                         <div style={{ width: '10px' }}></div>
                         <TextButton pText="Cancel" pBackgroundColor="#666979" onClick={handleClose} />
                     </div>

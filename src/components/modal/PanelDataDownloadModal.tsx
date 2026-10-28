@@ -273,7 +273,8 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
                     <div className="button-group">
                         <TextButton
                             pText={sIsDownloading ? 'Downloading...' : 'Download'}
-                            pBackgroundColor="#4199ff"
+                            pBackgroundColor="var(--neo-primary-base, #4199ff)"
+                            pFontColor="var(--neo-text-on-accent, #f8f8f8)"
                             pIsDisabled={sBlockList.length === 0 || sIsDownloading}
                             onClick={handleDownload}
                         />

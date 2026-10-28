@@ -18,7 +18,7 @@
 $chip-height: 24px;
 $menu-width: 286px;
 // The accent this app already uses for "active / selected" marks in a dozen places.
-$chip-accent: #4199ff;
+$chip-accent: var(--neo-primary-light, #4199ff);
 
 .target-db {
     display: inline-flex;

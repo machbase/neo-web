@@ -59,7 +59,7 @@
                 flex-wrap: wrap;
                 .selected-icons {
                     svg {
-                        color: #4199ff !important;
+                        color: var(--neo-primary-light, #4199ff) !important;
                     }
                 }
                 .icon {

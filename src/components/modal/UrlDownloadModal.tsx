@@ -158,7 +158,7 @@ export const UrlDownloadModal = (props: FolderModalProps) => {
                 </Modal.Body>
                 <Modal.Footer>
                     <div className="button-group">
-                        <TextButton pText="OK" pBackgroundColor="#4199ff" pIsDisabled={!sDownloadUrl || sIsLoad} onClick={handleSave} />
+                        <TextButton pText="OK" pBackgroundColor="var(--neo-primary-base, #4199ff)" pFontColor="var(--neo-text-on-accent, #f8f8f8)" pIsDisabled={!sDownloadUrl || sIsLoad} onClick={handleSave} />
                         <div style={{ width: '10px' }}></div>
                         <TextButton pText="Cancel" pBackgroundColor="#666979" pIsDisabled={sIsLoad} onClick={handleClose} />
                     </div>

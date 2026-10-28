@@ -99,7 +99,7 @@ const ModalShell = ({ pGetInfo, pSetIsModal, pInfo }: any) => {
                     </div>
                 </div>
                 <div className="edit-shell-footer">
-                    <TextButton pWidth={100} pHeight={30} pText="Save" pBackgroundColor="#4199ff" onClick={save} />
+                    <TextButton pWidth={100} pHeight={30} pText="Save" pBackgroundColor="var(--neo-primary-base, #4199ff)" pFontColor="var(--neo-text-on-accent, #f8f8f8)" onClick={save} />
                     <TextButton pWidth={100} pHeight={30} pText="Cancel" pBackgroundColor="#666979" onClick={() => pSetIsModal(false)} />
                 </div>
             </div>

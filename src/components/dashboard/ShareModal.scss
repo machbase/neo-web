@@ -92,7 +92,7 @@
             }
 
             &.active {
-                color: #4199ff;
+                color: var(--neo-primary-light, #4199ff);
             }
         }
     }
