@@ -40,6 +40,7 @@ describe('applyTheme / setTheme', () => {
         applyTheme(LIGHT);
         expect(link()?.getAttribute('href')).toBe('/public/neo-pkg-theme-light/theme.css');
         expect(document.documentElement.dataset.neoTheme).toBe('neo-pkg-theme-light');
+        expect(document.documentElement.dataset.neoScheme).toBe('light');
         expect(currentScheme()).toBe('light');
     });
 
@@ -48,6 +49,7 @@ describe('applyTheme / setTheme', () => {
         applyTheme(null);
         expect(link()).toBeNull();
         expect(document.documentElement.dataset.neoTheme).toBeUndefined();
+        expect(document.documentElement.dataset.neoScheme).toBeUndefined();
         expect(currentScheme()).toBe('dark');
     });
 

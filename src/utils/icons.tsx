@@ -79,13 +79,13 @@ const icons = (aType: string, aIsHome?: boolean) => {
         case 'csv':
             return <MuiCsv />;
         case 'html':
-            return <FaHtml5 color="fc7976" />;
+            return <FaHtml5 className="neo-type-icon" color="fc7976" />;
         case 'css':
-            return <FaCss3 color="399af6" />;
+            return <FaCss3 className="neo-type-icon" color="399af6" />;
         case 'js':
-            return <IoLogoJavascript color="fdda19" />;
+            return <IoLogoJavascript className="neo-type-icon" color="fdda19" />;
         case 'dsh':
-            return aIsHome ? <AiOutlineDashboard /> : <AiOutlineDashboard color="fc7676" />;
+            return aIsHome ? <AiOutlineDashboard /> : <AiOutlineDashboard className="neo-type-icon" color="fc7676" />;
         case 'png':
         case 'jpg':
         case 'jpeg':
@@ -131,7 +131,7 @@ const icons = (aType: string, aIsHome?: boolean) => {
         case 'readOnlyClosedDirectory':
             return <FaBox style={{ width: '13px', height: '13px', fill: 'var(--neo-warning-main, #FF9800)', display: 'flex', justifyContent: 'center', alignItems: 'center' }} />;
         case 'readOnlyOpenDirectory':
-            return <FaBoxOpen style={{ width: '16px', height: '16px', color: 'FF9800', display: 'flex', justifyContent: 'center', alignItems: 'center' }} />;
+            return <FaBoxOpen className="neo-type-icon" style={{ width: '16px', height: '16px', color: 'FF9800', display: 'flex', justifyContent: 'center', alignItems: 'center' }} />;
         case 'publicClosedDirectory':
             return (
                 <span style={{ position: 'relative', display: 'inline-flex' }}>

@@ -124,12 +124,15 @@ export const applyTheme = (aChoice: ThemeChoice | null) => {
         sOld?.remove();
         setCachedStyle(null);
         delete sRoot.dataset.neoTheme;
+        delete sRoot.dataset.neoScheme;
         sRoot.style.removeProperty('color-scheme');
         notify(null);
         return;
     }
     const sHref = themeStylesheetUrl(aChoice);
     sRoot.dataset.neoTheme = aChoice.pkg;
+    // for CSS that depends on the scheme, not on a colour (see .neo-type-icon in global.scss)
+    sRoot.dataset.neoScheme = aChoice.scheme;
     sRoot.style.setProperty('color-scheme', aChoice.scheme);
     if (sOld instanceof HTMLLinkElement && sOld.getAttribute('href') === sHref) {
         notify(aChoice);

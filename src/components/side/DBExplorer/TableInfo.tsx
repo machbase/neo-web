@@ -519,7 +519,7 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
                                                 <TableDiv
                                                     pShowHiddenObj={props.pShowHiddenObj}
                                                     pUserName={sUserName}
-                                                    pTableIcon={<TfiLayoutColumn3Alt style={{ color: getTableTypeColor(aTableType), rotate: '90deg' }} />}
+                                                    pTableIcon={<TfiLayoutColumn3Alt className="neo-type-icon" style={{ color: getTableTypeColor(aTableType), rotate: '90deg' }} />}
                                                     pTable={aTable}
                                                     pTableType={aTableType}
                                                     pTableFlag={aTable[5]}

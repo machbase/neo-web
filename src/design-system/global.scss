@@ -60,3 +60,10 @@ select {
 .react-tooltip {
     box-shadow: 0 0 0 1px t.$tooltip-border;
 }
+
+// File-type and table-type icons keep their identity colours (Material's yellow folders, the table
+// type colours), drawn for a dark page; under a light-scheme theme they are deepened so they still
+// read on a light surface. The dark screen does not have the attribute.
+:root[data-neo-scheme='light'] .neo-type-icon {
+    filter: brightness(0.66) saturate(1.25);
+}
