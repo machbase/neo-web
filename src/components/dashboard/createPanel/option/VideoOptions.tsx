@@ -160,7 +160,7 @@ export const VideoOptions = ({ pPanelOption, pSetPanelOption, pBoardInfo }: Vide
                                     justifyContent: 'space-between',
                                     padding: '8px 12px',
                                     backgroundColor: 'var(--neo-bg-hover, rgba(255, 255, 255, 0.05))',
-                                    borderRadius: '4px',
+                                    borderRadius: 'calc(4px * var(--neo-radius-scale, 1))',
                                     border: '1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.1))',
                                     boxShadow: '0 1px 3px rgba(0, 0, 0, 0.15)',
                                 }}

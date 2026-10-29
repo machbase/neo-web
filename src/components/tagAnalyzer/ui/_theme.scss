@@ -10,4 +10,4 @@ $surface-bg: var(--neo-bg-primary, #1e1e1e);
 $accent: var(--neo-primary-light, #4199ff);
 $warning: var(--neo-warning-main, #fdb532);
 $danger: var(--neo-error-light, #ff6b6b);
-$radius: 4px;
+$radius: calc(4px * var(--neo-radius-scale, 1));

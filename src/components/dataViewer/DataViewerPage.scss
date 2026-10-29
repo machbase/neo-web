@@ -57,9 +57,9 @@
     --font-weight-medium: 500;
     --font-weight-semibold: 600;
     --font-weight-bold: 700;
-    --radius-sm: 3px;
-    --radius-base: 4px;
-    --radius-md: 8px;
+    --radius-sm: calc(3px * var(--neo-radius-scale, 1));
+    --radius-base: calc(4px * var(--neo-radius-scale, 1));
+    --radius-md: calc(8px * var(--neo-radius-scale, 1));
     --shadow-lg: 0 8px 8px rgba(0, 0, 0, 0.25);
     --shadow-switch: 1px 2px 3px #00000020;
     --size-control-height: 32px;
@@ -116,7 +116,7 @@
     padding: 0 8px;
     display: inline-flex;
     align-items: center;
-    border-radius: 4px;
+    border-radius: calc(4px * var(--neo-radius-scale, 1));
     color: var(--neo-text-tertiary, #9da3ad);
     background: var(--neo-dropdown-bg, #2b2d31);
     font-size: 12px;
@@ -165,7 +165,7 @@
     display: flex;
     flex-direction: column;
     border: 1px solid var(--neo-border-color-default, #34363a);
-    border-radius: 6px;
+    border-radius: calc(6px * var(--neo-radius-scale, 1));
     background: var(--neo-bg-secondary, #202226);
     padding: 32px;
     overflow: hidden;
@@ -200,7 +200,7 @@
     height: 32px;
     padding: 0 8px;
     border: 1px solid var(--neo-border-color-light, #404247);
-    border-radius: 6px;
+    border-radius: calc(6px * var(--neo-radius-scale, 1));
     background: var(--neo-bg-secondary, #24262b);
     color: var(--neo-text-primary, #e7e8ea);
     font-size: 12px;
@@ -212,7 +212,7 @@
     overflow: auto;
     padding: 0;
     border: 1px solid var(--neo-border-color-default, #34363a);
-    border-radius: 6px;
+    border-radius: calc(6px * var(--neo-radius-scale, 1));
     background: var(--neo-bg-primary, #191b1f);
 }
 
@@ -224,7 +224,7 @@
     padding-top: 6px;
     padding-right: 8px;
     padding-bottom: 6px;
-    border-radius: 4px;
+    border-radius: calc(4px * var(--neo-radius-scale, 1));
     background: transparent;
     color: var(--neo-text-secondary, #c3c7ce);
     text-align: left;
@@ -252,7 +252,7 @@
     padding-right: 12px;
     padding-bottom: 4px;
     margin: 0 8px;
-    border-radius: 4px;
+    border-radius: calc(4px * var(--neo-radius-scale, 1));
     color: var(--neo-text-primary, #e7e8ea);
     font-size: 13px;
     user-select: none;
@@ -413,7 +413,7 @@
 .neo-data-viewer-btn {
     height: 32px;
     border: 0;
-    border-radius: 4px;
+    border-radius: calc(4px * var(--neo-radius-scale, 1));
     background: transparent;
     color: var(--neo-text-secondary, #d6d9de);
     display: inline-flex;
@@ -448,7 +448,7 @@
     display: flex;
     align-items: center;
     border: 1px solid var(--neo-border-color-light, #3b3d42);
-    border-radius: 4px;
+    border-radius: calc(4px * var(--neo-radius-scale, 1));
     overflow: hidden;
 }
 
@@ -477,7 +477,7 @@
     flex: 1;
     overflow: auto;
     border: 1px solid var(--neo-border-color-default, #34363a);
-    border-radius: 6px 6px 0 0;
+    border-radius: calc(6px * var(--neo-radius-scale, 1)) calc(6px * var(--neo-radius-scale, 1)) 0 0;
     background: var(--neo-bg-primary, #191b1f);
 }
 
@@ -542,7 +542,7 @@
     padding: 0 8px;
     border: 1px solid var(--neo-border-color-default, #34363a);
     border-top: 0;
-    border-radius: 0 0 6px 6px;
+    border-radius: 0 0 calc(6px * var(--neo-radius-scale, 1)) calc(6px * var(--neo-radius-scale, 1));
     background: var(--neo-bg-primary, #191b1f);
 }
 
@@ -559,7 +559,7 @@
 .neo-data-viewer-modal {
     width: min(560px, calc(100vw - 32px));
     border: 1px solid var(--neo-border-color-light, #3b3d42);
-    border-radius: 6px;
+    border-radius: calc(6px * var(--neo-radius-scale, 1));
     background: var(--neo-bg-secondary, #252629);
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
 }
@@ -1231,7 +1231,7 @@
     height: 16px;
     padding: 0;
     border: none;
-    border-radius: 3px;
+    border-radius: calc(3px * var(--neo-radius-scale, 1));
     background-color: transparent;
     color: var(--color-on-surface-tertiary);
     cursor: pointer;
@@ -2244,7 +2244,7 @@
     height: 22px;
     /* Stated, not inherited: the global `button, input { border-radius: 8px }` in src/index.css
        would otherwise round this 8px-wide bar into a circle. */
-    border-radius: 3px;
+    border-radius: calc(3px * var(--neo-radius-scale, 1));
     border: 2px solid var(--neo-color-black, #1b1b1b);
     background-color: var(--neo-bg-active-hover, rgb(0, 108, 210));
     cursor: ew-resize;
@@ -2255,7 +2255,7 @@
     pointer-events: auto;
     width: 8px;
     height: 22px;
-    border-radius: 3px;
+    border-radius: calc(3px * var(--neo-radius-scale, 1));
     border: 2px solid var(--neo-color-black, #1b1b1b);
     background-color: var(--neo-bg-active-hover, rgb(0, 108, 210));
     cursor: ew-resize;
@@ -3273,7 +3273,7 @@
     appearance: none;
     background: none;
     border: 1px solid var(--neo-border-color-default, #3a3a3a);
-    border-radius: 4px;
+    border-radius: calc(4px * var(--neo-radius-scale, 1));
     color: var(--neo-text-secondary, #c4c4c4);
     cursor: pointer;
     font-size: 12px;

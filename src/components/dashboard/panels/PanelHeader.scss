@@ -38,7 +38,7 @@
     .draggable-panel-header-menu {
         // height: 22px;
         padding: 4px;
-        border-bottom-left-radius: 4px;
+        border-bottom-left-radius: calc(4px * var(--neo-radius-scale, 1));
         /* The trigger is shorter than this wrapper's content box, so without centring it sat 4px above
            the strip's middle — and beside the refresh ring, which is centred, the two read as two
            separate rows. Both now sit on the header's centre line. */

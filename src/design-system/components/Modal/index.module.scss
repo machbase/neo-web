@@ -19,7 +19,7 @@
     flex-direction: column;
     background-color: var(--neo-bg-elevated, #2a2a2a);
     border: 1px solid t.$modal-border;
-    border-radius: 8px;
+    border-radius: calc(8px * var(--neo-radius-scale, 1));
     color: t.$text-primary;
     cursor: default;
 

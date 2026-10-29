@@ -42,8 +42,8 @@ const BadgeSelectorItem = ({ item }: { item: { name: string; color: string } }) 
                 width: 'auto',
                 padding: '0 8px',
                 backgroundColor: 'var(--neo-bg-hover-light, #454545)',
-                borderTopRightRadius: '4px',
-                borderBottomRightRadius: '4px',
+                borderTopRightRadius: 'calc(4px * var(--neo-radius-scale, 1))',
+                borderBottomRightRadius: 'calc(4px * var(--neo-radius-scale, 1))',
             }}
         >
             <span style={{ fontSize: '12px' }}>{item.name}</span>

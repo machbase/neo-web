@@ -73,7 +73,7 @@ class ErrorBoundary extends Component<Props, State> {
                                 // a raised surface with the warning border; dark keeps its amber box
                                 backgroundColor: 'var(--neo-bg-elevated, #3a2d00)',
                                 border: '1px solid var(--neo-warning-main, #ff9800)',
-                                borderRadius: '4px',
+                                borderRadius: 'calc(4px * var(--neo-radius-scale, 1))',
                                 color: 'var(--neo-text-primary, #ffcc80)',
                                 fontSize: '13px',
                                 lineHeight: 1.5,
@@ -94,7 +94,7 @@ class ErrorBoundary extends Component<Props, State> {
                                     backgroundColor: 'var(--neo-bg-active-hover, #0078d4)',
                                     color: 'var(--neo-text-primary, #ffffff)',
                                     border: 'none',
-                                    borderRadius: '4px',
+                                    borderRadius: 'calc(4px * var(--neo-radius-scale, 1))',
                                     cursor: 'pointer',
                                     fontSize: '14px',
                                 }}
@@ -110,7 +110,7 @@ class ErrorBoundary extends Component<Props, State> {
                                         backgroundColor: 'var(--neo-bg-active-hover, #0078d4)',
                                         color: 'var(--neo-text-primary, #ffffff)',
                                         border: 'none',
-                                        borderRadius: '4px',
+                                        borderRadius: 'calc(4px * var(--neo-radius-scale, 1))',
                                         cursor: 'pointer',
                                         fontSize: '14px',
                                     }}
@@ -124,7 +124,7 @@ class ErrorBoundary extends Component<Props, State> {
                                         backgroundColor: 'var(--neo-bg-input-dark, #333333)',
                                         color: 'var(--neo-text-primary, #ffffff)',
                                         border: '1px solid var(--neo-border-color-medium, #555555)',
-                                        borderRadius: '4px',
+                                        borderRadius: 'calc(4px * var(--neo-radius-scale, 1))',
                                         cursor: 'pointer',
                                         fontSize: '14px',
                                     }}

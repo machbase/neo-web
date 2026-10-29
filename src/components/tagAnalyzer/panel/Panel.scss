@@ -57,7 +57,7 @@
     pointer-events: none;
     padding: 4px 8px;
     border: 1px solid color-mix(in srgb, var(--neo-warning-main, rgb(253, 181, 50)) 45%, transparent);
-    border-radius: 4px;
+    border-radius: calc(4px * var(--neo-radius-scale, 1));
     // a raised note over the chart (bg-primary was a theme's solid frame colour)
     background: var(--neo-bg-elevated, rgba(22, 22, 22, 0.92));
     color: theme.$warning;

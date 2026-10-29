@@ -12,7 +12,7 @@
     box-sizing: border-box;
 
     svg {
-        border-radius: 5px;
+        border-radius: calc(5px * var(--neo-radius-scale, 1));
         font-size: 18px;
         color: var(--neo-text-tertiary, #939498);
         cursor: pointer;
@@ -41,7 +41,7 @@
     padding: 0.3125rem 1rem 0 1rem;
 
     svg {
-        border-radius: 5px;
+        border-radius: calc(5px * var(--neo-radius-scale, 1));
         font-size: 18px;
         color: var(--neo-text-tertiary, #939498);
         cursor: pointer;

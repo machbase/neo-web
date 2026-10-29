@@ -10,7 +10,7 @@
     margin-top: 0;
     overflow: hidden;
     border: 0 solid theme.$border-color;
-    border-radius: 8px;
+    border-radius: calc(8px * var(--neo-radius-scale, 1));
     background: var(--color-background-primary);
     visibility: hidden;
     opacity: 0;

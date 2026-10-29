@@ -13,7 +13,7 @@ const TestSecurity = '';
 
 /** `/web/ui/theme-tokens.json`: every theme variable and its dark default, from the token sources (theme builder). */
 const themeTokens = (): Plugin => {
-    const sSources = ['src/design-system/tokens/_colors.scss', 'src/design-system/tokens/_shadows.scss'].map((f) => path.resolve(__dirname, f));
+    const sSources = ['src/design-system/tokens/_colors.scss', 'src/design-system/tokens/_shadows.scss', 'src/design-system/tokens/_border-radius.scss'].map((f) => path.resolve(__dirname, f));
     const sJson = () => JSON.stringify(parseThemeTokens(sSources.map((f) => fs.readFileSync(f, 'utf8'))), null, 1);
     return {
         name: 'neo-theme-tokens',

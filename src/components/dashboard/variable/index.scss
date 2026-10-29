@@ -22,7 +22,7 @@
         .variable-selector-header {
             height: 27px;
             border: solid 0.5px color-mix(in srgb, var(--neo-text-primary, rgb(255, 255, 255)) 50%, transparent);
-            border-radius: 4px;
+            border-radius: calc(4px * var(--neo-radius-scale, 1));
             background-color: var(--neo-dropdown-option-hover-bg, #323644);
             padding: 0 8px;
             display: flex;
@@ -67,7 +67,7 @@
             display: flex;
             flex-direction: row;
             align-items: start;
-            border-radius: 4px;
+            border-radius: calc(4px * var(--neo-radius-scale, 1));
             gap: 2px;
             font-size: 14px;
             padding-right: 28px;
@@ -81,7 +81,7 @@
             }
             &-key {
                 border: solid 1px color-mix(in srgb, var(--neo-text-primary, rgb(255, 255, 255)) 50%, transparent);
-                border-radius: 4px;
+                border-radius: calc(4px * var(--neo-radius-scale, 1));
                 padding: 2px 8px;
                 color: var(--neo-text-on-accent, #f1f1f1);
                 background-color: var(--neo-primary-base, rgb(0, 95, 184));
@@ -91,7 +91,7 @@
                 min-height: 27px;
                 padding: 0 8px;
                 border: solid 1px color-mix(in srgb, var(--neo-text-primary, rgb(255, 255, 255)) 50%, transparent);
-                border-radius: 4px;
+                border-radius: calc(4px * var(--neo-radius-scale, 1));
                 background-color: var(--neo-dropdown-option-hover-bg, #323644);
                 display: flex;
                 align-items: center;

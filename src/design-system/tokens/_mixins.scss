@@ -474,7 +474,7 @@
 
     &::-webkit-scrollbar-thumb {
         background: var(--neo-bg-input, rgba(255, 255, 255, 0.2));
-        border-radius: 3px;
+        border-radius: calc(3px * var(--neo-radius-scale, 1));
 
         &:hover {
             background: var(--neo-btn-copy, rgba(255, 255, 255, 0.3));

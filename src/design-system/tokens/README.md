@@ -531,6 +531,14 @@ package's themes under its label and, when the package has an app (`main.html`),
 **Open <label>** button. A theme is told apart by package and stylesheet (`themeKey`), so two
 themes of one package are two choices.
 
+### Corners
+
+Every corner radius is `calc(<size> * var(--neo-radius-scale, 1))`: the `$border-radius-*` tokens
+(`_border-radius.scss`) and the radii written in place alike. With no theme the scale is 1 and
+every corner is the size written; a theme sets `--neo-radius-scale` (0 square, 2 twice as round).
+Circles (`50%`, a dot whose radius is half its size) and pills (20px and over) do not scale. A
+new corner that is not a token: `border-radius: t.rounded(6px)`.
+
 ### The theme variables, published
 
 The build publishes every theme variable with its dark default as `/web/ui/theme-tokens.json`

@@ -487,7 +487,7 @@ const DateTimePicker = ({ pSetApply, pTime }: { pSetApply: (e: any) => void; pTi
                                                     backgroundColor: 'var(--neo-bg-hover, rgba(255, 255, 255, 0.08))',
                                                 },
                                                 '&.Mui-selected': {
-                                                    borderRadius: '3px',
+                                                    borderRadius: 'calc(3px * var(--neo-radius-scale, 1))',
                                                     backgroundColor: 'var(--neo-primary-base, #005fb8)',
                                                     color: 'var(--neo-text-on-accent, #f3f3f3)',
                                                     '&:hover': {

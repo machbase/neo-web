@@ -17,11 +17,12 @@ test('reads every themed() declaration with its dark default, resolving Sass ref
 });
 
 test('the real token files: every token once, every default concrete', () => {
-    const sTokens = parseThemeTokens([read('_colors.scss'), read('_shadows.scss')]);
+    const sTokens = parseThemeTokens([read('_colors.scss'), read('_shadows.scss'), read('_border-radius.scss')]);
     const sNames = sTokens.map((t) => t.name);
     expect(new Set(sNames).size).toBe(sNames.length);
-    expect(sNames).toEqual(expect.arrayContaining(['bg-primary', 'text-primary', 'primary-base', 'text-on-accent', 'shadow-xl']));
+    expect(sNames).toEqual(expect.arrayContaining(['bg-primary', 'text-primary', 'primary-base', 'text-on-accent', 'shadow-xl', 'radius-scale']));
+    expect(sTokens.find((t) => t.name === 'radius-scale')?.dark).toBe('1');
     // Every name the stylesheets set as `themed(<name>, …)` is a declared token.
-    expect(sTokens.length).toBe((read('_colors.scss') + read('_shadows.scss')).match(/^\$[a-z0-9-]+:\s*themed\(/gm)?.length);
+    expect(sTokens.length).toBe((read('_colors.scss') + read('_shadows.scss') + read('_border-radius.scss')).match(/^\$[a-z0-9-]+:\s*themed\(/gm)?.length);
     for (const t of sTokens) expect(t.dark).not.toMatch(/\$|themed\(/);
 });

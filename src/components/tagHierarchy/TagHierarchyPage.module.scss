@@ -738,7 +738,7 @@
     height: calc(50% + #{t.$spacing-6});
     border-left: 1px solid t.$border-color-light;
     border-bottom: 1px solid t.$border-color-light;
-    border-bottom-left-radius: 6px;
+    border-bottom-left-radius: calc(6px * var(--neo-radius-scale, 1));
     pointer-events: none;
 }
 

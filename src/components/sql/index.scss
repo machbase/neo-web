@@ -16,7 +16,7 @@
     svg {
         min-width: 18px;
         min-height: 18px;
-        border-radius: 5px;
+        border-radius: calc(5px * var(--neo-radius-scale, 1));
         font-size: 18px;
         cursor: pointer;
         &:hover {
@@ -153,8 +153,8 @@
             .sql_tab_select {
                 color: var(--neo-warning-main, #fdb532);
                 background-color: var(--neo-bg-primary, #1c1c21);
-                border-top-left-radius: 10px;
-                border-top-right-radius: 10px;
+                border-top-left-radius: calc(10px * var(--neo-radius-scale, 1));
+                border-top-right-radius: calc(10px * var(--neo-radius-scale, 1));
                 border-bottom-right-radius: 0px;
                 border-bottom-left-radius: 0px;
                 position: relative;

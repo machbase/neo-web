@@ -22,7 +22,7 @@
     left: 50%;
     transform: translate(-50%, -50%);
 
-    border-radius: 10px;
+    border-radius: calc(10px * var(--neo-radius-scale, 1));
 
     box-sizing: border-box;
 

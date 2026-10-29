@@ -1,7 +1,7 @@
 // The list of theme variables, read from the token sources themselves.
 //
 // Every themable token is declared once, `$name: themed(name, <dark default>);`, in
-// tokens/_colors.scss and tokens/_shadows.scss. The build publishes that list as
+// tokens/_colors.scss, _shadows.scss and _border-radius.scss (radius-scale). The build publishes that list as
 // `/web/ui/theme-tokens.json` (vite.config.ts) so a theme builder edits exactly the variables
 // this build reads, with their dark defaults, and never a copy that drifts.
 //

@@ -6,7 +6,7 @@
     padding: 0.3rem 0.5rem;
     background-color: var(--neo-dropdown-option-hover-bg, #323644);
     border: solid 0.5px color-mix(in srgb, var(--neo-text-primary, rgb(255, 255, 255)) 50%, transparent);
-    border-radius: 8px;
+    border-radius: calc(8px * var(--neo-radius-scale, 1));
     position: relative;
 
     .select-input {
@@ -38,7 +38,7 @@
         padding: 0.25rem;
         background-color: var(--neo-dropdown-option-hover-bg, #323644);
         border: solid 0.5px color-mix(in srgb, var(--neo-text-primary, rgb(255, 255, 255)) 50%, transparent);
-        border-radius: 8px;
+        border-radius: calc(8px * var(--neo-radius-scale, 1));
         z-index: $dropdown-idx;
         box-sizing: border-box;
 
@@ -51,7 +51,7 @@
 
             .options-item {
                 padding: 0.5rem;
-                border-radius: 8px;
+                border-radius: calc(8px * var(--neo-radius-scale, 1));
                 cursor: pointer;
                 color: var(--neo-text-primary, #f8f8f8);
                 

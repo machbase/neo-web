@@ -33,7 +33,7 @@
     border-width: 1px;
     border-style: solid;
     border-color: $border-color-default;
-    border-radius: 8px;
+    border-radius: calc(8px * var(--neo-radius-scale, 1));
     font-family: 'Open Sans', Helvetica, Arial, sans-serif;
 
     img {

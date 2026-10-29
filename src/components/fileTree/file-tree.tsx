@@ -395,7 +395,7 @@ export const FileTree = (props: FileTreeProps) => {
                 positionStrategy="absolute"
                 delayShow={500}
                 style={{
-                    borderRadius: '4px',
+                    borderRadius: 'calc(4px * var(--neo-radius-scale, 1))',
                     fontSize: '12px',
                     maxWidth: '300px',
                     wordBreak: 'break-all',
@@ -538,7 +538,7 @@ export const GitIcon = ({ aFile, aRefreshCallback }: { aFile: FileTreeType; aRef
         :hover {
             cursor: pointer;
             background-color: var(--neo-bg-hover-light, #4c4c4c);
-            border-radius: 4px;
+            border-radius: calc(4px * var(--neo-radius-scale, 1));
         }
     `;
 

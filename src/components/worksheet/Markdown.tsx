@@ -29,7 +29,7 @@ pre { position: relative; }
     top: 0.5rem;
     right: 0.5rem;
     background-color: transparent;
-    border-radius: 8px;
+    border-radius: calc(8px * var(--neo-radius-scale, 1));
     cursor: pointer;
 }
 .cp-button:hover { background-color: #52535a; }

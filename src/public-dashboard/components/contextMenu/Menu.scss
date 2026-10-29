@@ -9,7 +9,7 @@
     justify-content: center;
     gap: 0.5rem;
     font-size: 13px;
-    border-radius: 6px;
+    border-radius: calc(6px * var(--neo-radius-scale, 1));
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.16);
     border: solid 0.5px color-mix(in srgb, var(--neo-text-primary, rgb(255, 255, 255)) 50%, transparent);
     background-color: var(--neo-bg-hover-light, #404457);
@@ -26,7 +26,7 @@
     display: flex;
     align-items: center;
     gap: 0.3rem;
-    border-radius: 6px;
+    border-radius: calc(6px * var(--neo-radius-scale, 1));
     color: var(--neo-text-disabled, rgba(255, 255, 255, 0.5));
     cursor: pointer;
 

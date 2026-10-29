@@ -170,7 +170,7 @@ const TransformBlock = ({
 
     return (
         <Page
-            style={{ borderRadius: '4px', border: '1px solid var(--neo-border-color-light, #b8c8da41)', gap: '6px', height: 'auto', display: 'table' }}
+            style={{ borderRadius: 'calc(4px * var(--neo-radius-scale, 1))', border: '1px solid var(--neo-border-color-light, #b8c8da41)', gap: '6px', height: 'auto', display: 'table' }}
             data-testid={`transform-${encodeURIComponent(pTransformItem.id)}`}
         >
             <Page.ContentBlock style={{ padding: '4px' }} pHoverNone>

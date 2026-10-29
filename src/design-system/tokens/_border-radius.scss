@@ -1,13 +1,26 @@
 /**
  * Border Radius Tokens
+ *
+ * Corners follow the theme's roundness: `--neo-radius-scale` (1 with no theme, so every corner is
+ * the size written here; 0 is square, 2 twice as round). Circles and pills do not scale.
+ * A corner that is not a token yet: `border-radius: t.rounded(6px)`.
  */
 
+@use './themed' as *;
+
+/* The theme's corner scale — a theme variable like the colours (theme-tokens.json lists it). */
+$radius-scale: themed(radius-scale, 1);
+
+@function rounded($size) {
+    @return calc(#{$size} * #{$radius-scale});
+}
+
 $border-radius-none: 0;
-$border-radius-xs: 2px; // TextButton
-$border-radius-sm: 3px; // Input, Checkbox, MUI selected
-$border-radius-base: 4px; // IconButton, Selector, Switch item
-$border-radius-md: 8px; // Collapse hover, Message
-$border-radius-lg: 10px;
-$border-radius-xl: 12px;
+$border-radius-xs: rounded(2px); // TextButton
+$border-radius-sm: rounded(3px); // Input, Checkbox, MUI selected
+$border-radius-base: rounded(4px); // IconButton, Selector, Switch item
+$border-radius-md: rounded(8px); // Collapse hover, Message
+$border-radius-lg: rounded(10px);
+$border-radius-xl: rounded(12px);
 $border-radius-circle: 50%; // Status circle
-$border-radius-round: 20px; // Switch
+$border-radius-round: 20px; // Switch (a pill: does not scale)

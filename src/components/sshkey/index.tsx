@@ -208,7 +208,7 @@ export const SSHKey = () => {
                                 <Page.ContentTitle>{INFO_SSH_KEY.info_title}</Page.ContentTitle>
                                 <Page.ContentDesc>{INFO_SSH_KEY.info_content}</Page.ContentDesc>
                                 <Page.Space pHeight="12px" />
-                                <div style={{ border: 'solid 1px var(--neo-border-color-light, #f1f1f125)', borderRadius: '3px' }}>
+                                <div style={{ border: 'solid 1px var(--neo-border-color-light, #f1f1f125)', borderRadius: 'calc(3px * var(--neo-radius-scale, 1))' }}>
                                     {sSSHKeyList &&
                                         sSSHKeyList.map((aSSHKey, aIdx) => {
                                             return (

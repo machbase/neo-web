@@ -160,7 +160,7 @@ export const VideoBlock = ({ pPanelOption, pSetPanelOption, pTableList = [] }: V
                     </Page.TabItem>
                 </Page.TabList>
             </Page.TabContainer>
-            <Page.Body style={{ display: 'flex', flexDirection: 'column', borderRadius: '4px', border: '1px solid var(--neo-border-color-light, #b8c8da41)', gap: '8px' }}>
+            <Page.Body style={{ display: 'flex', flexDirection: 'column', borderRadius: 'calc(4px * var(--neo-radius-scale, 1))', border: '1px solid var(--neo-border-color-light, #b8c8da41)', gap: '8px' }}>
                 {sSelectTab === 'source' && (
                     <VideoBlockSource
                         sourceInfo={sourceInfo}

@@ -71,7 +71,7 @@
     }
 
     .checkbox-wrapper input[type='checkbox']:not(.switch) {
-        border-radius: 3px;
+        border-radius: calc(3px * var(--neo-radius-scale, 1));
     }
     .checkbox-wrapper input[type='checkbox']:not(.switch):after {
         width: 5px;

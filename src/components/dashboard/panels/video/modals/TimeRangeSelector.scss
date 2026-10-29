@@ -261,7 +261,7 @@
         font-size: 11px;
         font-family: 'JetBrains Mono', monospace;
         padding: 6px 10px;
-        border-radius: 4px;
+        border-radius: calc(4px * var(--neo-radius-scale, 1));
         white-space: nowrap;
         z-index: 30;
 
@@ -306,7 +306,7 @@
         height: 70px;
         background: var(--neo-bg-primary, rgba(0, 0, 0, 0.2));
         border: 1px solid $d-modal-gray-btn;
-        border-radius: 4px;
+        border-radius: calc(4px * var(--neo-radius-scale, 1));
         margin-bottom: 8px;
         cursor: pointer;
 
@@ -377,7 +377,7 @@
                     width: 4px;
                     height: 32px;
                     background: var(--neo-primary-light, #{$color-blue});
-                    border-radius: 2px;
+                    border-radius: calc(2px * var(--neo-radius-scale, 1));
                     transition: all 0.15s;
                 }
 

@@ -1217,7 +1217,7 @@ $nb-fog-duration: 0.25s;
         content: '';
         position: absolute;
         z-index: 4;
-        border-radius: 2px;
+        border-radius: calc(2px * var(--neo-radius-scale, 1));
         background: $nb-accent;
     }
     .nb-node.is-drop-before-x::before,
@@ -2134,7 +2134,7 @@ $nb-fog-duration: 0.25s;
     flex: none;
     display: grid;
     place-items: center;
-    border-radius: 7px;
+    border-radius: calc(7px * var(--neo-radius-scale, 1));
     color: var(--nb-group-color);
     background: color-mix(in srgb, var(--nb-group-color) 22%, transparent);
 }
@@ -2371,7 +2371,7 @@ $nb-fog-duration: 0.25s;
     width: 16px;
     height: 16px;
     color: t.$text-disabled;
-    border-radius: 2px;
+    border-radius: calc(2px * var(--neo-radius-scale, 1));
 
     &:hover {
         color: t.$text-primary;
@@ -2431,7 +2431,7 @@ $nb-fog-duration: 0.25s;
     height: 30px;
     display: grid;
     place-items: center;
-    border-radius: 6px;
+    border-radius: calc(6px * var(--neo-radius-scale, 1));
     background: t.$bg-hover;
     color: t.$text-tertiary;
 

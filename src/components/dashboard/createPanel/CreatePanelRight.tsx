@@ -65,7 +65,7 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
 
     return (
         <Page style={{ padding: '8px 16px 8px 8px' }}>
-            <Page.Body fullHeight style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--neo-border-color-light, #b8c8da41)' }}>
+            <Page.Body fullHeight style={{ padding: '8px', borderRadius: 'calc(4px * var(--neo-radius-scale, 1))', border: '1px solid var(--neo-border-color-light, #b8c8da41)' }}>
                 <ConfirmableSelect
                     pConfirmTrigger="Geomap"
                     pConfirmMessage={`Changing to geomap type will remove transform data.`}

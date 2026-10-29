@@ -125,7 +125,7 @@ const ResultBlock = ({ result }: { result?: CallResult }) => {
                                 padding: 8,
                                 background: 'var(--neo-bg-primary, #0d1117)',
                                 border: '1px solid var(--neo-border-color-default, #30363d)',
-                                borderRadius: 4,
+                                borderRadius: 'calc(4px * var(--neo-radius-scale, 1))',
                                 color: 'var(--neo-text-secondary, #c9d1d9)',
                                 fontSize: 12,
                                 whiteSpace: 'pre-wrap',
@@ -178,7 +178,7 @@ const RpcProbe = () => {
         background: '#21262d',
         color: '#c9d1d9',
         border: '1px solid #30363d',
-        borderRadius: 4,
+        borderRadius: 'calc(4px * var(--neo-radius-scale, 1))',
         cursor: 'pointer',
         fontSize: 13,
     };
@@ -199,7 +199,7 @@ const RpcProbe = () => {
                 ▶ Run all reads
             </button>
 
-            <table style={{ width: '100%', borderCollapse: 'collapse', background: 'var(--neo-bg-primary, #0d1117)', border: '1px solid var(--neo-border-color-default, #30363d)', borderRadius: 6, fontSize: 13 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', background: 'var(--neo-bg-primary, #0d1117)', border: '1px solid var(--neo-border-color-default, #30363d)', borderRadius: 'calc(6px * var(--neo-radius-scale, 1))', fontSize: 13 }}>
                 <thead>
                     <tr style={{ textAlign: 'left', color: 'var(--neo-text-tertiary, #8b949e)' }}>
                         <th style={cellStyle}>method (named wrapper)</th>
@@ -233,13 +233,13 @@ const RpcProbe = () => {
                     value={customMethod}
                     onChange={(e) => setCustomMethod(e.target.value)}
                     placeholder="method (e.g. bridge.list)"
-                    style={{ padding: 6, width: 260, background: 'var(--neo-bg-primary, #0d1117)', color: 'var(--neo-text-secondary, #c9d1d9)', border: '1px solid var(--neo-border-color-default, #30363d)', borderRadius: 4, fontFamily: 'monospace' }}
+                    style={{ padding: 6, width: 260, background: 'var(--neo-bg-primary, #0d1117)', color: 'var(--neo-text-secondary, #c9d1d9)', border: '1px solid var(--neo-border-color-default, #30363d)', borderRadius: 'calc(4px * var(--neo-radius-scale, 1))', fontFamily: 'monospace' }}
                 />
                 <input
                     value={customParams}
                     onChange={(e) => setCustomParams(e.target.value)}
                     placeholder='params (JSON array, e.g. ["name"])'
-                    style={{ padding: 6, width: 320, background: 'var(--neo-bg-primary, #0d1117)', color: 'var(--neo-text-secondary, #c9d1d9)', border: '1px solid var(--neo-border-color-default, #30363d)', borderRadius: 4, fontFamily: 'monospace' }}
+                    style={{ padding: 6, width: 320, background: 'var(--neo-bg-primary, #0d1117)', color: 'var(--neo-text-secondary, #c9d1d9)', border: '1px solid var(--neo-border-color-default, #30363d)', borderRadius: 'calc(4px * var(--neo-radius-scale, 1))', fontFamily: 'monospace' }}
                 />
                 <button style={btnStyle} onClick={runCustom}>
                     call

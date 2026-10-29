@@ -18,7 +18,7 @@
     transform: translate(-50%, -50%);
     background-color: var(--neo-bg-hover-light, #404457);
     z-index: $modal-idx;
-    border-radius: 8px;
+    border-radius: calc(8px * var(--neo-radius-scale, 1));
     border: solid 0.5px color-mix(in srgb, var(--neo-text-primary, rgb(255, 255, 255)) 50%, transparent);
     font-size: 14px;
     display: flex;

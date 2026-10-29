@@ -437,7 +437,7 @@
     background: linear-gradient(90deg, var(--neo-bg-input, rgba(224, 224, 224, 0.15)) 25%, var(--neo-bg-hover-light, rgba(224, 224, 224, 0.25)) 50%, var(--neo-bg-input, rgba(224, 224, 224, 0.15)) 75%);
     background-size: 200% 100%;
     animation: loading 1.5s ease-in-out infinite;
-    border-radius: 4px;
+    border-radius: calc(4px * var(--neo-radius-scale, 1));
 
     &.skeleton-text {
         height: 16px;

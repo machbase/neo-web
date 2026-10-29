@@ -87,7 +87,7 @@ $version-accent: var(--neo-primary-light, #4199ff);
         height: 20px;
         padding: 0 8px;
         border: 1px solid th.alpha(c.$primary-light, 0.32);
-        border-radius: 5px;
+        border-radius: calc(5px * var(--neo-radius-scale, 1));
         background: transparent;
         color: $version-accent;
         font-size: 11px;

@@ -43,7 +43,7 @@ $explorer-narrow-bp: 220px;
     margin: 6px 8px;
     padding: 0 8px;
     border: 1px solid transparent;
-    border-radius: 4px;
+    border-radius: calc(4px * var(--neo-radius-scale, 1));
     background-color: t.$bg-elevated;
     color: t.$text-disabled;
 
@@ -105,7 +105,7 @@ $explorer-narrow-bp: 220px;
     border: none;
     // Restated against the global `button { border-radius: 8px }` in src/index.css,
     // which would otherwise round this 16px box almost to a circle.
-    border-radius: 2px;
+    border-radius: calc(2px * var(--neo-radius-scale, 1));
     background: transparent;
     color: t.$text-disabled;
     cursor: pointer;
@@ -125,7 +125,7 @@ $explorer-narrow-bp: 220px;
     height: 22px;
     margin: -2px 8px 6px;
     padding: 0 8px;
-    border-radius: 3px;
+    border-radius: calc(3px * var(--neo-radius-scale, 1));
     background-color: $filter-summary-bg;
     font-size: 11px;
     color: t.$text-secondary;
@@ -240,7 +240,7 @@ $explorer-narrow-bp: 220px;
     // tint. It fills the same 18px box, so nothing on the row moves when it goes on.
     &.is-active {
         padding: 0 4px;
-        border-radius: 3px;
+        border-radius: calc(3px * var(--neo-radius-scale, 1));
         background-color: t.$primary-base;
         color: t.$text-on-accent;
         opacity: 1;
@@ -297,7 +297,7 @@ $explorer-narrow-bp: 220px;
 // ------------------------------------------------------------ match highlight
 
 .db-explorer-match {
-    border-radius: 2px;
+    border-radius: calc(2px * var(--neo-radius-scale, 1));
     background-color: $search-match-bg;
     // The glyph colour is left alone on purpose: recolouring it as well made the
     // match read as a different kind of object rather than the same name, found.
