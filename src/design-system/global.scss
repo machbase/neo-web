@@ -63,9 +63,17 @@ select {
 
 // File-type and table-type icons keep their identity colours (Material's yellow folders, the table
 // type colours), drawn for a dark page; under a light-scheme theme they are deepened so they still
-// read on a light surface. The dark screen does not have the attribute.
+// read on a light surface — the yellow ones (folders, SQL, JSON) on a selected row too, which is
+// what sets the depth. The dark screen does not have the attribute.
 :root[data-neo-scheme='light'] .neo-type-icon {
-    filter: brightness(0.55) saturate(1.3);
+    filter: brightness(0.45) saturate(1.35);
+}
+
+// Tag Analyzer's warning wash behind warning-coloured text (hover, active toggles): a light theme's
+// headers are mid tones that the dark screen's 12% wash darkens under the text, so there it lightens
+// toward the raised surface instead (ui/_theme.scss).
+:root[data-neo-scheme='light'] {
+    --tag-analyzer-warning-wash: color-mix(in srgb, var(--neo-warning-main, #fdb532) 10%, var(--neo-bg-elevated, #ffffff));
 }
 
 // Content drawn dark on its own keeps the dark palette for the controls on it (see _darkIsland.scss).

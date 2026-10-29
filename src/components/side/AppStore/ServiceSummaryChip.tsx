@@ -27,7 +27,7 @@ type Props = {
 export const ServiceSummaryChip = ({ summary, pkgName }: Props) => {
     if (!summary) return null;
     const { total, running, errors } = summary;
-    const dotColor = running > 0 ? '#3fb950' : '#6e7681';
+    const dotColor = running > 0 ? 'var(--neo-success-main, #3fb950)' : 'var(--neo-text-disabled, #6e7681)';
     const tooltipId = `pkg-svc-errs-${pkgName}`;
     const hasErrors = errors.length > 0;
     return (

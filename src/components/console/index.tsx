@@ -1,5 +1,5 @@
 import './index.scss';
-import { logLevelColor } from './logLevelColor';
+import { logLevelColor, logRepeatBadgeStyle } from './logLevelColor';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRecoilState } from 'recoil';
 import { gShellList } from '@/recoil/recoil';
@@ -214,9 +214,7 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                                                     {bItem.repeat && (
                                                         <div
                                                             className="repeat"
-                                                            style={{
-                                                                background: setColor(bItem.level),
-                                                            }}
+                                                            style={logRepeatBadgeStyle(bItem.level, sSelectTask === bItem.task)}
                                                         >
                                                             {bItem.repeat}
                                                         </div>

@@ -12,3 +12,12 @@ const LEVEL_COLORS: Record<string, string> = {
 };
 
 export const logLevelColor = (aLevel: string | undefined): string | undefined => (aLevel ? LEVEL_COLORS[aLevel] : undefined);
+
+/**
+ * The repeat-count badge after a log line: the level colour is its fill, so its digits are accent
+ * ink. With no theme they keep the row's text colour (brighter on the selected task's rows).
+ */
+export const logRepeatBadgeStyle = (aLevel: string | undefined, aSelected: boolean) => ({
+    background: logLevelColor(aLevel),
+    color: `var(--neo-text-on-accent, ${aSelected ? '#f4f4f4' : '#d1d1d1'})`,
+});

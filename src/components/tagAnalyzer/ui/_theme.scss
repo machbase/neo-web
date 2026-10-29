@@ -9,5 +9,7 @@ $surface-hover: var(--neo-bg-hover, rgba(255, 255, 255, 0.08));
 $surface-bg: var(--neo-bg-primary, #1e1e1e);
 $accent: var(--neo-primary-light, #4199ff);
 $warning: var(--neo-warning-main, #fdb532);
+/** Behind warning-coloured text; a light scheme sets its own (global.scss). */
+$warning-wash: var(--tag-analyzer-warning-wash, color-mix(in srgb, #{$warning} 12%, transparent));
 $danger: var(--neo-error-light, #ff6b6b);
 $radius: calc(4px * var(--neo-radius-scale, 1));
