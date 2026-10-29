@@ -70,10 +70,11 @@ select {
 }
 
 // Tag Analyzer's warning wash behind warning-coloured text (hover, active toggles): a light theme's
-// headers are mid tones that the dark screen's 12% wash darkens under the text, so there it lightens
-// toward the raised surface instead (ui/_theme.scss).
+// headers are mid tones that the dark screen's 12% wash darkens under the text, so there it is
+// mixed into the raised surface instead (ui/_theme.scss) — 16%, so it still stands apart from the
+// light footer as well as from the mid-tone header.
 :root[data-neo-scheme='light'] {
-    --tag-analyzer-warning-wash: color-mix(in srgb, var(--neo-warning-main, #fdb532) 10%, var(--neo-bg-elevated, #ffffff));
+    --tag-analyzer-warning-wash: color-mix(in srgb, var(--neo-warning-main, #fdb532) 16%, var(--neo-bg-elevated, #ffffff));
 }
 
 // Content drawn dark on its own keeps the dark palette for the controls on it (see _darkIsland.scss).
