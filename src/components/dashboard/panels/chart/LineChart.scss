@@ -47,7 +47,7 @@
 }
 
 .chart-message-success {
-    color: rgb(65, 153, 255);
+    color: var(--neo-primary-light, rgb(65, 153, 255));
 }
 
 .chart-non-header {

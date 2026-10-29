@@ -44,11 +44,11 @@ $version-accent: var(--neo-primary-light, #4199ff);
         // lives only on the update chip / latest indicator.
         &:hover {
             .sideVersionLatest {
-                color: #66adff;
+                color: var(--neo-primary-light, #66adff);
             }
 
             .sideVersionUpdate {
-                background: rgba(64, 153, 255, 0.1);
+                background: color-mix(in srgb, var(--neo-primary-light, rgb(64, 153, 255)) 10%, transparent);
             }
         }
     }

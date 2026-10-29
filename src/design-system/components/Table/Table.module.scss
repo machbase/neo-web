@@ -107,7 +107,7 @@
 
     .row-num {
         cursor: default;
-        color: #3b3b3b;
+        color: t.$text-row-number;
     }
 
     &-action {
@@ -127,7 +127,7 @@
 
     span.row-num {
         cursor: default;
-        color: #3b3b3b;
+        color: t.$text-row-number;
     }
 
     .active-row {
