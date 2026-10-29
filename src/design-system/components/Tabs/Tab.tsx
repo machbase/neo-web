@@ -1,6 +1,7 @@
+import {subscribeFileOperations, getFileOperationVersion, isFileStateUnconfirmed} from '@/api/repository/fileWriteQueue';
 import icons from '@/utils/icons';
 import { isBoardSaved } from '@/utils/boardSaveStatus';
-import React, { useEffect, useState } from 'react';
+import React, { useState, useSyncExternalStore } from 'react';
 import { SaveCricle } from '@/assets/icons/Icon';
 import styles from './Tab.module.scss';
 
@@ -17,11 +18,8 @@ interface TabProps {
 
 const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTabDragInfo, pOnCloseTab, pOnContextMenu }: TabProps) => {
     const [sHover, setHover] = useState(false);
-    const [sIsSaved, setIsSaved] = useState<boolean>(false);
-
-    useEffect(() => {
-        compareValue(pBoard);
-    }, [pBoard]);
+    useSyncExternalStore(subscribeFileOperations, getFileOperationVersion, getFileOperationVersion);
+    const sIsSaved = isBoardSaved(pBoard);
 
     const closeTab = (aEvent: React.MouseEvent) => {
         aEvent.stopPropagation();
@@ -32,9 +30,6 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
         setHover(aValue);
     };
 
-    const compareValue = (aBoard: any) => {
-        setIsSaved(isBoardSaved(aBoard));
-    };
     const handleDragStart = () => {
         pSetSelectedTab(pBoard.id);
         pSetTabDragInfo((prev: any) => ({ ...prev, start: pIdx }));
@@ -76,6 +71,7 @@ const Tab = ({ pBoard, pSelectedTab, pSetSelectedTab, pIdx, pTabDragInfo, pSetTa
     return (
         <button
             data-testid={`main-tab-${pBoard.id}`}
+            data-file-state={pBoard.path && isFileStateUnconfirmed(pBoard.path + pBoard.name) ? 'unconfirmed' : sIsSaved ? 'saved' : 'unsaved'}
             onClick={() => pSetSelectedTab(pBoard.id)}
             onContextMenu={(event) => pOnContextMenu(event, pBoard.id)}
             onMouseEnter={() => handleHover(true)}

@@ -47,6 +47,7 @@ import { isWidgetAvailable, UNAVAILABLE_REASON, useStatzAccess } from './widgetA
 // Weather is off for now; see WidgetPanel.
 // import { WeatherSettings, WeatherWidget } from './widgets/WeatherWidget';
 import { WidgetSettingsModal } from './widgets/WidgetSettingsModal';
+import { useAbortController } from '@/hooks/useAbortController';
 
 interface NewBoardProps {
     pExtentionList: any;
@@ -80,6 +81,7 @@ const NewBoard = (props: NewBoardProps) => {
     const sShellList = useRecoilValue<any>(gShellList);
     const sRecentFiles = useRecentFiles();
     const openShellCreate = useOpenShellCreate();
+    const { createSignal: createOpenSignal, releaseSignal: releaseOpenSignal } = useAbortController();
 
     /**
      * Turn this New tab into something else, keeping its id. Applied to the tab list as it is then: a
@@ -204,20 +206,31 @@ const NewBoard = (props: NewBoardProps) => {
             return;
         }
         const sTabId = sSelectedTab;
-        const sLoaded = await loadBoardFromFile(aFile, sTabId);
-        if (sLoaded.error !== undefined) {
-            if (sLoaded.invalid) {
-                // the file is there but damaged: keep it in Recent so the user can fix and retry
-                Toast.error(`${aFile.path}${aFile.name} is damaged and cannot be opened: ${sLoaded.error}`, { testId: 'new-board-open-file-error-toast' });
+        const signal = createOpenSignal(sTabId);
+        try {
+            const sLoaded = await loadBoardFromFile(aFile, sTabId);
+            if (signal.aborted) return;
+            if (sLoaded.error !== undefined) {
+                if (sLoaded.blocked) {
+                    Toast.error(sLoaded.error); return;
+                }
+                if (sLoaded.invalid) {
+                    // the file is there but damaged: keep it in Recent so the user can fix and retry
+                    Toast.error(`${aFile.path}${aFile.name} is damaged and cannot be opened: ${sLoaded.error}`, { testId: 'new-board-open-file-error-toast' });
+                    return;
+                }
+                Toast.error(`Could not open ${aFile.path}${aFile.name}: ${sLoaded.error}. It was removed from Recent.`);
+                removeRecentFile(aFile);
                 return;
             }
-            Toast.error(`Could not open ${aFile.path}${aFile.name}: ${sLoaded.error}. It was removed from Recent.`);
-            removeRecentFile(aFile);
-            return;
+            pGetInfo?.();
+            recordRecentFile(aFile);
+            // The placeholder may have become an editor while this read waited.
+            // Its contents and file connection belong to that newer action.
+            replaceTab(sTabId, item => item.type === 'new' ? sLoaded.board : item);
+        } finally {
+            releaseOpenSignal(signal, sTabId);
         }
-        pGetInfo?.();
-        recordRecentFile(aFile);
-        replaceTab(sTabId, () => sLoaded.board);
     };
 
     const { sCreateItems, sShellItems } = useMemo(() => {

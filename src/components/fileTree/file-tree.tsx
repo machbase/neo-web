@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import icons from '@/utils/icons';
 import { FileTreeType, FileType, sortDir, sortFile } from '@/utils/fileTreeParser';
 import { useRecoilState, useSetRecoilState } from 'recoil';
-import { GBoardListType, gBoardList, gSelectedTab } from '@/recoil/recoil';
+import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { gDeleteFileList, gFileTree, gRecentDirectory, gRenameFile } from '@/recoil/fileTree';
 import { extractionExtension } from '@/utils';
 import { getFileNameAndExtension, getFileNameOnly } from '@/utils/fileNameUtils';
@@ -12,11 +12,12 @@ import { ErrorBoundary } from '@/design-system/components/ErrorBoundary';
 import { postFileList } from '@/api/repository/api';
 import { findItemByUniqueKey, findParentDirByUniqueKey } from '@/utils/file-manager';
 import useThrottle from '@/hooks/useThrottle';
+import { useFileMutationTabs } from '@/hooks/useFileMoveTabs';
 import { moveFile } from '@/api/repository/fileTree';
 import { resolveCloneTarget } from '@/utils/fileExistence';
 import { useClonePrompt } from '@/components/modal/useOverwritePrompt';
 import { isTypingName, validateName } from '@/utils/fileName';
-import { computeMovedBoardPath, isInDropSection, isMultiSelectClick } from './fileTreePath';
+import { isInDropSection, isMultiSelectClick } from './fileTreePath';
 import { getFileRequestFailure } from '@/utils/fileRequestResult';
 import { Toast } from '@/design-system/components';
 import { Tooltip } from 'react-tooltip';
@@ -37,7 +38,7 @@ interface FileTreeProps {
 const FileTreeKeyList = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter'];
 
 export const FileTree = (props: FileTreeProps) => {
-    const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
+    const moveTabs = useFileMutationTabs();
     const setRecentDirectory = useSetRecoilState(gRecentDirectory);
     const [sEnterItem, setEnterItem] = useState<any>(null);
     const [sDeleteFileList, setDeleteFileList] = useRecoilState(gDeleteFileList);
@@ -254,10 +255,13 @@ export const FileTree = (props: FileTreeProps) => {
         if (getFileNameOnly(aFile.name) === aName) return;
         const sOldName = aFile.path + aFile.name;
         const sCurName = aFile.path + aName + sExpand;
-        const sRenameResult: any = await moveFile(sOldName, sCurName);
+        const handlers = moveTabs(sOldName);
+        const sRenameResult: any = await moveFile(sOldName, sCurName, {...handlers, onMoved: async context => {
+            await handlers.onMoved?.(context);
+            if (context.isCurrent()) props.onRename(aFile, aName + sExpand);
+        }});
         const sFailure = getFileRequestFailure(sRenameResult, 'Failed to rename.');
-        if (!sFailure) props.onRename(aFile, aName + sExpand);
-        else Toast.error(sFailure.reason, { testId: 'file-explorer-error-toast', id: 'file-explorer-rename' });
+        if (sFailure) Toast.error(sFailure.reason, { testId: 'file-explorer-error-toast', id: 'file-explorer-rename' });
     };
     const handleDragOver: any = () => {
         const sTargetItem = findItemByUniqueKey(props.rootDir, sDragOverItem);
@@ -306,7 +310,7 @@ export const FileTree = (props: FileTreeProps) => {
                 for (const aItem of sParsedList) {
                     const sOldPath = aItem.path + aItem.name;
                     const sDestinationPath = sIsDropZone ? '/' + aItem.name : sEnterItem.path + (sEnterItem.type === 0 ? '' : sEnterItem.name + '/') + aItem.name;
-                    const aResult: any = await moveFile(sOldPath, sDestinationPath);
+                    const aResult: any = await moveFile(sOldPath, sDestinationPath, moveTabs(sOldPath));
                     const sFailure = getFileRequestFailure(aResult, 'Failed to move.');
                     if (!sFailure) moveResult.push(aItem);
                     else sFailReasons.push(`${aItem.name}: ${sFailure.reason}`);
@@ -341,23 +345,6 @@ export const FileTree = (props: FileTreeProps) => {
                             else sTestRoot.dirs = addTargetDir(sTestRoot, aAddItem, sAddTargetPath);
                         }
                     });
-                    const updateBoardList = JSON.parse(JSON.stringify(sBoardList));
-                    updateBoardList.map((aBoard: any, aIdx: number) => {
-                        moveResult.map((fItem: any) => {
-                            if (aBoard.name === fItem.name && aBoard.path === fItem.path) {
-                                updateBoardList[aIdx] = { ...aBoard, path: sAddTargetPath };
-                            } else {
-                                const sNewPath = computeMovedBoardPath(aBoard.path, fItem, sAddTargetPath);
-                                if (sNewPath !== null) {
-                                    updateBoardList[aIdx] = {
-                                        ...aBoard,
-                                        path: sNewPath,
-                                    };
-                                }
-                            }
-                        });
-                    });
-                    setBoardList(updateBoardList);
                     props.onSetFileTree(JSON.parse(JSON.stringify(sTestRoot)));
                 }
                 DndClear();

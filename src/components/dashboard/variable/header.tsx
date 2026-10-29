@@ -1,7 +1,7 @@
 import { VARIABLE_ITEM_TYPE, VARIABLE_TYPE } from '.';
 import { gBoardList, type GBoardListType } from '@/recoil/recoil';
 import { useRecoilState } from 'recoil';
-import { postFileList } from '@/api/repository/api';
+import { useBoardFileSave } from '@/hooks/useBoardFileSave';
 import { Page, Dropdown, Button } from '@/design-system/components';
 import { useEffect, useState } from 'react';
 
@@ -17,6 +17,7 @@ export const VariableHeader = ({
     callback?: (item: VARIABLE_TYPE[]) => void;
 }) => {
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
+    const saveBoard = useBoardFileSave();
     const [sUpdateVarList, setUpdateVarList] = useState<VARIABLE_TYPE[]>(pBoardInfo?.dashboard?.variables ?? []);
 
     const updateVariableCode = () => {
@@ -43,7 +44,6 @@ export const VariableHeader = ({
                 return {
                     ...aItem,
                     dashboard: sTmpDashboard,
-                    savedCode: sCurrentBoard.path !== '' ? JSON.stringify(sTmpDashboard) : aItem.savedCode,
                 };
             });
 
@@ -52,7 +52,7 @@ export const VariableHeader = ({
             if (sCurrentBoard.path !== '') {
                 const sSaveTarget = sTabList.find((aItem) => aItem.id === pBoardInfo.id);
                 if (sSaveTarget) {
-                    postFileList(sSaveTarget, sSaveTarget.path, sSaveTarget.name);
+                    void saveBoard(sSaveTarget);
                 }
             }
 

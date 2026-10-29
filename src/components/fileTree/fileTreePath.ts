@@ -1,3 +1,4 @@
+import { relocateFilePath } from '@/utils/filePath';
 // Pure path helpers for the file tree. String comparisons only — paths are user-controlled and
 // may contain regex metacharacters ( ( [ + . $ ), so they must never be fed into `new RegExp`.
 
@@ -35,9 +36,6 @@ export const isMultiSelectClick = (aEvent: { metaKey?: boolean; ctrlKey?: boolea
  * Returns null when the board is not affected. Replaces the prefix once (startsWith, not includes).
  */
 export const computeMovedBoardPath = (aBoardPath: string, aMovedItem: { type: number; name: string; path: string }, aTargetDirPath: string): string | null => {
-    const sTarget = withTrailingSlash(aTargetDirPath);
     if (aMovedItem.type === 0) return null;
-    const sOldPrefix = aMovedItem.path + aMovedItem.name + '/';
-    if (!aBoardPath.startsWith(sOldPrefix)) return null;
-    return sTarget + aMovedItem.name + '/' + aBoardPath.slice(sOldPrefix.length);
+    return relocateFilePath(aBoardPath, aMovedItem.path + aMovedItem.name, withTrailingSlash(aTargetDirPath) + aMovedItem.name);
 };

@@ -72,7 +72,7 @@ describe('readTargetDir (r20 — the one lookup)', () => {
 describe('resolveOverwrite (shared check)', () => {
     beforeEach(() => jest.clearAllMocks());
     it('re-queries without a filter and asks only for an existing file', async () => {
-        (getFiles as jest.Mock).mockResolvedValue(dirOf([{ name: 'X.DSH', isDir: false }]));
+        (getFiles as jest.Mock).mockImplementation((path: string) => Promise.resolve(dirOf(path === '/' ? [{name:'d',isDir:true}] : [{ name: 'X.DSH', isDir: false }])));
         const sAsk = jest.fn().mockResolvedValue(false);
         expect(await resolveOverwrite('/d', 'X.DSH', sAsk)).toEqual({ status: 'cancel' });
         expect(getFiles).toHaveBeenCalledWith('/d/');

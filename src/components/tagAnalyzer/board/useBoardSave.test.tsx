@@ -1,9 +1,10 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { Toast } from '@/design-system/components';
 import type { BoardInfo } from './boardModel';
-import * as boardSave from './boardDocuments';
+import * as boardSave from '@/utils/boardFileSave';
 import * as boardSnapshot from '../persistence/tazBoardSnapshot';
 import { useBoardSave } from './useBoardSave';
+import { UncertainFileWriteError } from '@/api/repository/fileWriteQueue';
 import { createTagAnalyzerBoardFromPayload } from '../application/adapters';
 
 function createBoard(overrides: Partial<BoardInfo> = {}): BoardInfo {
@@ -23,10 +24,12 @@ function createBoard(overrides: Partial<BoardInfo> = {}): BoardInfo {
 
 function createDeferred<T>() {
     let resolve!: (value: T) => void;
-    const promise = new Promise<T>((resolvePromise) => {
+    let reject!: (reason: unknown) => void;
+    const promise = new Promise<T>((resolvePromise, rejectPromise) => {
         resolve = resolvePromise;
+        reject = rejectPromise;
     });
-    return { promise, resolve };
+    return { promise, resolve, reject };
 }
 
 function renderBoardSave(board = createBoard(), isActive = true) {
@@ -52,12 +55,45 @@ function renderBoardSave(board = createBoard(), isActive = true) {
     };
 }
 
+// Drive the common save boundary. Its real repository/queue contract is tested
+// in boardFileSave.test.ts; this suite checks the hook's live editor response.
+function spyOnSave() {
+    const write = jest.fn();
+    jest.spyOn(boardSave, 'saveBoardFile').mockImplementation(async options => {
+        try {
+            const saved = await write(options.board);
+            if (saved) options.onSuccess(saved, {isSaving: () => false, isLatestAction: options.canApply?.() !== false});
+            return !!saved;
+        } catch (error) {
+            if (error instanceof UncertainFileWriteError) options.onUncertain();
+            throw error;
+        }
+    });
+    return write;
+}
+
 beforeEach(() => {
     jest.spyOn(boardSnapshot, 'isTazBoardSaved').mockReturnValue(false);
 });
 
 afterEach(() => {
     jest.restoreAllMocks();
+});
+
+it.each([false, true])('observed ambiguous file only acknowledges its baseline, source unmounted=%s', async unmounted => {
+    const board = createBoard({ boardTimeRange: { start: 'now-3h', end: 'now' } });
+    const observed = createBoard({ id: 'read-snapshot', savedCode: 'OBSERVED', boardTimeRange: { start: 'now-1h', end: 'now' } });
+    const pending = createDeferred<boolean>();
+    let options!: Parameters<typeof boardSave.saveBoardFile>[0];
+    jest.spyOn(boardSave, 'saveBoardFile').mockImplementation(async value => { options = value; return pending.promise; });
+    const hook = renderBoardSave(board);
+    let saving!: Promise<boolean>;
+    act(() => { saving = hook.result.current.save(); });
+    if (unmounted) hook.unmount();
+    await act(async () => { options.onRead?.(observed); pending.resolve(false); await saving; });
+    expect(hook.onSavedBoard).toHaveBeenCalledWith(observed, { overwritten: false, acknowledgementOnly: true });
+    if (unmounted) expect(hook.applySaveResult).not.toHaveBeenCalled();
+    else expect(hook.applySaveResult).toHaveBeenCalledWith(expect.objectContaining({ id: board.id, boardTimeRange: board.boardTimeRange, savedCode: observed.savedCode }));
 });
 
 describe('useBoardSave', () => {
@@ -71,7 +107,7 @@ describe('useBoardSave', () => {
             }],
         });
         if (result.status !== 'ok') throw new Error(result.reason);
-        const saveSpy = jest.spyOn(boardSave, 'saveTazBoard');
+        const saveSpy = spyOnSave();
         const hook = renderBoardSave(result.board);
 
         await act(async () => {
@@ -91,7 +127,7 @@ describe('useBoardSave', () => {
     });
 
     it('opens Save As instead of persisting a pathless board', async () => {
-        const saveSpy = jest.spyOn(boardSave, 'saveTazBoard');
+        const saveSpy = spyOnSave();
         const hook = renderBoardSave(createBoard({ path: '' }));
 
         let didSave: boolean | undefined;
@@ -119,7 +155,7 @@ describe('useBoardSave', () => {
     it('directly saves an existing root file without opening Save As or refreshing the file tree', async () => {
         const existingBoard = createBoard({ name: 'Selected Tags.taz', savedCode: 'previous snapshot' });
         const savedBoard = { ...existingBoard, savedCode: 'saved' };
-        const saveSpy = jest.spyOn(boardSave, 'saveTazBoard')
+        const saveSpy = spyOnSave()
             .mockResolvedValue(savedBoard);
         const successToast = jest.spyOn(Toast, 'success');
         const {
@@ -138,7 +174,7 @@ describe('useBoardSave', () => {
         expect(result.current.isSaveAsOpen).toBe(false);
         expect(saveSpy).toHaveBeenCalledWith(existingBoard);
         expect(applySaveResult).toHaveBeenCalledWith(savedBoard);
-        expect(onSavedBoard).toHaveBeenCalledWith(savedBoard, { overwritten: false });
+        expect(onSavedBoard).toHaveBeenCalledWith(savedBoard, expect.objectContaining({ overwritten: false, isSaving: expect.any(Function) }));
         expect(onFileSaved).not.toHaveBeenCalled();
         expect(successToast).toHaveBeenCalledWith(
             'TAZ file saved successfully.',
@@ -152,7 +188,7 @@ describe('useBoardSave', () => {
             name: 'copy.taz',
             savedCode: 'saved',
         });
-        const saveSpy = jest.spyOn(boardSave, 'saveTazBoard')
+        const saveSpy = spyOnSave()
             .mockResolvedValue(savedBoard);
         const errorToast = jest.spyOn(Toast, 'error');
         const hook = renderBoardSave();
@@ -174,6 +210,7 @@ describe('useBoardSave', () => {
         expect(hook.onFileSaved).toHaveBeenCalledWith(
             '/reports/',
             'copy.taz',
+            expect.any(Function),
         );
         expect(errorToast).toHaveBeenCalledWith(
             'TAZ file saved, but file tree refresh failed.',
@@ -181,7 +218,7 @@ describe('useBoardSave', () => {
     });
 
     it('does not apply a failed save', async () => {
-        jest.spyOn(boardSave, 'saveTazBoard')
+        spyOnSave()
             .mockResolvedValue(undefined);
         const errorToast = jest.spyOn(Toast, 'error');
         const hook = renderBoardSave();
@@ -202,7 +239,7 @@ describe('useBoardSave', () => {
     it('ignores an older save that completes after a newer request', async () => {
         const older = createDeferred<BoardInfo | undefined>();
         const newer = createDeferred<BoardInfo | undefined>();
-        jest.spyOn(boardSave, 'saveTazBoard')
+        spyOnSave()
             .mockImplementationOnce(() => older.promise)
             .mockImplementationOnce(() => newer.promise);
         const successToast = jest.spyOn(Toast, 'success');
@@ -247,9 +284,9 @@ describe('useBoardSave', () => {
         expect(hook.result.current.closeSaveAs).toBe(closeSaveAs);
     });
 
-    it('ignores a save that completes after the board unmounts', async () => {
+    it('acknowledges the file without updating a board that unmounted', async () => {
         const pending = createDeferred<BoardInfo | undefined>();
-        jest.spyOn(boardSave, 'saveTazBoard')
+        spyOnSave()
             .mockReturnValue(pending.promise);
         const successToast = jest.spyOn(Toast, 'success');
         const hook = renderBoardSave();
@@ -266,13 +303,13 @@ describe('useBoardSave', () => {
         });
 
         expect(hook.applySaveResult).not.toHaveBeenCalled();
-        expect(hook.onSavedBoard).not.toHaveBeenCalled();
+        expect(hook.onSavedBoard).toHaveBeenCalledWith(expect.objectContaining({savedCode:'saved'}), {overwritten:false,acknowledgementOnly:true});
         expect(successToast).not.toHaveBeenCalled();
     });
 
-    it('ignores a save that completes after switching boards', async () => {
+    it('acknowledges the old file without updating a switched board', async () => {
         const pending = createDeferred<BoardInfo | undefined>();
-        jest.spyOn(boardSave, 'saveTazBoard')
+        spyOnSave()
             .mockReturnValue(pending.promise);
         const hook = renderBoardSave();
 
@@ -290,12 +327,12 @@ describe('useBoardSave', () => {
             expect(await saveResult).toBe(false);
         });
         expect(hook.applySaveResult).not.toHaveBeenCalled();
-        expect(hook.onSavedBoard).not.toHaveBeenCalled();
+        expect(hook.onSavedBoard).toHaveBeenCalledWith(expect.objectContaining({savedCode:'saved'}), {overwritten:false,acknowledgementOnly:true});
     });
 
     it('handles the save shortcut only while the board is active', async () => {
         const savedBoard = createBoard({ savedCode: 'saved' });
-        const saveSpy = jest.spyOn(boardSave, 'saveTazBoard')
+        const saveSpy = spyOnSave()
             .mockResolvedValue(savedBoard);
         const hook = renderBoardSave();
         const activeEvent = new KeyboardEvent('keydown', {
@@ -319,4 +356,43 @@ describe('useBoardSave', () => {
         expect(inactiveEvent.defaultPrevented).toBe(false);
         expect(saveSpy).toHaveBeenCalledTimes(1);
     });
+});
+
+
+it('acknowledges the first successful same-file save even when both later saves fail', async () => {
+    const first = createDeferred<BoardInfo | undefined>();
+    const second = createDeferred<BoardInfo | undefined>();
+    const third = createDeferred<BoardInfo | undefined>();
+    spyOnSave().mockImplementationOnce(() => first.promise)
+        .mockImplementationOnce(() => second.promise).mockImplementationOnce(() => third.promise);
+    const board = createBoard({ boardTimeRange: { start: 'now-2h', end: 'now' } });
+    const hook = renderBoardSave(board);
+    let p1!: Promise<boolean>, p2!: Promise<boolean>, p3!: Promise<boolean>;
+    act(() => { p1 = hook.result.current.save(); });
+    hook.rerender({currentBoard: {...board, boardTimeRange: {start: 'now-3h', end: 'now'}}, active: true});
+    act(() => { p2 = hook.result.current.save(); });
+    hook.rerender({currentBoard: {...board, boardTimeRange: {start: 'now-1h', end: 'now'}}, active: true});
+    act(() => { p3 = hook.result.current.save(); });
+    const saved = {...board, savedCode: 'first snapshot'};
+    await act(async () => { first.resolve(saved); await p1; second.resolve(undefined); await p2; third.resolve(undefined); await p3; });
+    expect(hook.applySaveResult).toHaveBeenCalledWith(expect.objectContaining({savedCode: 'first snapshot', boardTimeRange: {start: 'now-1h', end: 'now'}}));
+    expect(hook.onSavedBoard).toHaveBeenCalledWith({...saved, boardTimeRange: {start: 'now-1h', end: 'now'}}, {overwritten: false, acknowledgementOnly: true});
+});
+
+
+it('keeps later TAZ edits and invalidates only the file whose response was lost', async () => {
+    const pending = createDeferred<BoardInfo | undefined>();
+    spyOnSave().mockReturnValue(pending.promise);
+    const first = createBoard({ boardTimeRange: {start: 'now-2h', end: 'now'} });
+    const hook = renderBoardSave(first);
+    let saved!: Promise<boolean>;
+    act(() => { saved = hook.result.current.save(); });
+    const later = {...first, boardTimeRange: {start: 'now-4h', end: 'now'}};
+    hook.rerender({currentBoard: later, active: true});
+    await act(async () => {
+        pending.reject(new UncertainFileWriteError(new Error('response lost')));
+        expect(await saved).toBe(false);
+    });
+    expect(hook.applySaveResult).toHaveBeenCalledWith({...later, savedCode: false});
+    expect(hook.onSavedBoard).toHaveBeenCalledWith({...later, savedCode: false}, {overwritten: false, acknowledgementOnly: true});
 });
