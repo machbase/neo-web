@@ -531,6 +531,21 @@ package's themes under its label and, when the package has an app (`main.html`),
 **Open <label>** button. A theme is told apart by package and stylesheet (`themeKey`), so two
 themes of one package are two choices.
 
+### Themes kept in the browser
+
+The theme builder saves a user's own themes in the browser, not on the server:
+`localStorage['neo.themes.<user>']` (the user is the sign-in token's `sub`) holds
+`[{ id, label, scheme, css, swatch, note }]`, and such a theme is chosen as
+`{ pkg: '@local', stylesheet: '<id>.css' }`. Nobody else can change it — another account on the
+same server included — and saving needs no write permission. Only the `--neo-*` declarations of
+the kept text are applied (`localThemeCss`).
+
+The choice is kept per user too (`neo.theme.<user>`, Dark included) and as the browser's last
+(`neo.theme`): the sign-in page, before the user is known, paints the last one (from the
+remembered copy for a browser theme), and signing in applies the user's own. Settings → Theme
+lists the user's browser themes under **My themes**; another user on the same browser does not
+see them.
+
 ### Corners
 
 Every corner radius is `calc(<size> * var(--neo-radius-scale, 1))`: the `$border-radius-*` tokens
@@ -564,8 +579,9 @@ like a manifest entry.
 
 ### Choosing a theme
 
-Settings → Theme lists the built-in Dark and every installed theme. The choice is kept per
-browser (localStorage `neo.theme`, with the stylesheet path) and applied before the first render,
+Settings → Theme lists the built-in Dark, the user's own browser themes and every installed
+theme. The choice is kept per user and per browser (localStorage `neo.theme.<user>` and
+`neo.theme`, with the stylesheet path) and applied before the first render,
 so a reload paints in the theme from its first frame. A theme whose package was uninstalled (or
 that was deleted from its package's list) falls back to Dark; the Theme dialog then forgets it.
 

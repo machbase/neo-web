@@ -166,3 +166,27 @@ describe('a package holding several themes (the theme builder)', () => {
         expect(screen.queryByTestId('theme-open-app-neo-pkg-theme-builder')).toBeNull();
     });
 });
+
+describe('my own themes (kept in this browser by the builder)', () => {
+    const token = (aSub: string) => `h.${btoa(JSON.stringify({ sub: aSub })).replace(/=+$/, '')}.s`;
+
+    test('listed for the signed-in user, chosen like any other, painted from the browser', async () => {
+        localStorage.setItem('accessToken', token('alice'));
+        localStorage.setItem('neo.themes.alice', JSON.stringify([{ id: 'night', label: 'Night', scheme: 'dark', css: ':root { --neo-bg-primary: #101820; }', swatch: ['#101820', '#202830'] }]));
+        render(<ThemeModal isOpen onClose={() => {}} />);
+        const sRow = await screen.findByTestId('theme-option-@local/night.css');
+        expect(screen.getByRole('group', { name: 'My themes' })).toContainElement(sRow);
+        fireEvent.click(sRow);
+        expect(document.getElementById(THEME_LINK_ID)).toBeNull();
+        expect(document.getElementById('neo-theme-cached')?.textContent).toContain('#101820');
+        expect(JSON.parse(localStorage.getItem('neo.theme.alice') ?? '{}').stylesheet).toBe('night.css');
+    });
+
+    test('another user does not see them', async () => {
+        localStorage.setItem('neo.themes.alice', JSON.stringify([{ id: 'night', label: 'Night', scheme: 'dark', css: ':root{}' }]));
+        localStorage.setItem('accessToken', token('bob'));
+        render(<ThemeModal isOpen onClose={() => {}} />);
+        await screen.findByTestId('theme-option-neo-pkg-theme-light');
+        expect(screen.queryByTestId('theme-option-@local/night.css')).toBeNull();
+    });
+});

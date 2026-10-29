@@ -10,6 +10,7 @@ import { Input } from '@/design-system/components/Input';
 import { Alert } from '@/design-system/components/Alert';
 import { Button, Page, PasswordInput, Checkbox } from '@/design-system/components';
 import { readViewPath } from './loginRedirect';
+import { applyStoredTheme } from '@/design-system/theme';
 
 const Login = () => {
     const sNavigate = useNavigate();
@@ -65,6 +66,8 @@ const Login = () => {
             const sIsView = localStorage.getItem('view');
             localStorage.setItem('accessToken', sReturn.accessToken);
             localStorage.setItem('refreshToken', sReturn.refreshToken);
+            // The user is known now: their own theme choice, not the browser's last.
+            applyStoredTheme();
             sReturn.option && sReturn.option.experimentMode ? setExperiment(sReturn.option.experimentMode) : rmExperiment();
             const sViewPath = readViewPath(sIsView);
             // A broken value is dropped too, or every later sign-in would trip over it again.

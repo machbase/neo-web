@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { MdOutlinePalette } from 'react-icons/md';
 import { Modal } from '@/design-system/components';
-import { readStoredTheme, setTheme, themeKey, type ThemeChoice } from '@/design-system/theme';
+import { localThemeChoice, readLocalThemes, readStoredTheme, setTheme, themeKey, LOCAL_THEME_PKG, type ThemeChoice } from '@/design-system/theme';
 import { useAppStoreTabs } from '@/components/side/AppStore/appTabs';
 import { listThemePackages, type InstalledTheme, type ThemePackage } from './installedThemes';
 import './ThemeModal.scss';
@@ -28,6 +28,8 @@ export const ThemeModal = ({ isOpen, onClose }: ThemeModalProps) => {
         return sStored ? themeKey(sStored) : DEFAULT_KEY;
     });
     const { openAppViewTab } = useAppStoreTabs();
+    // The user's own themes, kept in this browser by the theme builder.
+    const [sMine] = useState<InstalledTheme[]>(() => readLocalThemes().map((t) => ({ ...localThemeChoice(t), swatch: t.swatch, detail: t.note || 'Mine' })));
 
     useEffect(() => {
         let sAlive = true;
@@ -38,7 +40,8 @@ export const ThemeModal = ({ isOpen, onClose }: ThemeModalProps) => {
             // The remembered theme was uninstalled (or deleted in the builder): its stylesheet
             // already 404s and the dark defaults show, so say so — and stop requesting it.
             const sStored = readStoredTheme();
-            if (sStored && !aPackages.some((p) => p.themes.some((t) => themeKey(t) === themeKey(sStored)))) {
+            const sKnown = (t: ThemeChoice) => themeKey(t) === themeKey(sStored as ThemeChoice);
+            if (sStored && !(sStored.pkg === LOCAL_THEME_PKG ? sMine.some(sKnown) : aPackages.some((p) => p.themes.some(sKnown)))) {
                 setTheme(null);
                 setSelected(DEFAULT_KEY);
             }
@@ -46,9 +49,10 @@ export const ThemeModal = ({ isOpen, onClose }: ThemeModalProps) => {
         return () => {
             sAlive = false;
         };
-    }, []);
+    }, [sMine]);
 
     const choose = (aTheme: ThemeChoice | null) => {
+        // the row's extras (swatch, detail) are not part of the choice
         setSelected(aTheme ? themeKey(aTheme) : DEFAULT_KEY);
         setTheme(aTheme && { pkg: aTheme.pkg, stylesheet: aTheme.stylesheet, label: aTheme.label, scheme: aTheme.scheme });
     };
@@ -58,7 +62,7 @@ export const ThemeModal = ({ isOpen, onClose }: ThemeModalProps) => {
         onClose();
     };
 
-    const option = (aKey: string, aTestId: string, aLabel: string, aDetail: string, aSwatch: string[], aTheme: InstalledTheme | null) => (
+    const option = (aKey: string, aTestId: string, aLabel: string, aDetail: string, aSwatch: string[], aTheme: ThemeChoice | null) => (
         <button
             key={aKey || 'default'}
             type="button"
@@ -115,10 +119,19 @@ export const ThemeModal = ({ isOpen, onClose }: ThemeModalProps) => {
             <Modal.Body>
                 <div className="theme-modal__list" role="radiogroup" aria-label="Theme">
                     {option(DEFAULT_KEY, 'default', 'Dark', 'Built in', sPackages?.some((p) => p.themes.some((t) => t.swatch.length > 0)) ? DARK_SWATCH : [], null)}
+                    {sMine.length > 0 && (
+                        <div className="theme-modal__group" role="group" aria-label="My themes">
+                            <div className="theme-modal__group-head">
+                                <span className="theme-modal__group-label">My themes</span>
+                                <span className="theme-modal__detail">this browser</span>
+                            </div>
+                            {sMine.map((t) => option(themeKey(t), themeKey(t), t.label, t.detail, t.swatch, t))}
+                        </div>
+                    )}
                     {sPackages?.map(packageRows)}
                 </div>
                 {sPackages === undefined && <p className="theme-modal__note">Looking for installed themes…</p>}
-                {sPackages?.length === 0 && <p className="theme-modal__note">No theme package is installed. Themes are installed from the App Store.</p>}
+                {sPackages?.length === 0 && sMine.length === 0 && <p className="theme-modal__note">No theme package is installed. Themes are installed from the App Store.</p>}
                 {sPackages === null && <p className="theme-modal__note">The installed packages could not be read.</p>}
             </Modal.Body>
             <Modal.Footer>

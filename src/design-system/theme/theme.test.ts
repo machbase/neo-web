@@ -17,6 +17,10 @@ import {
     themeIndexFiles,
     themeKey,
     themeStylesheetUrl,
+    themeUser,
+    readLocalThemes,
+    localThemeCss,
+    LOCAL_THEME_PKG,
 } from './theme';
 import { rgbToHex } from './resolveColor';
 
@@ -315,5 +319,89 @@ describe('requests from a package app (postMessage)', () => {
         send({ type: 'other', action: 'apply', choice: LIGHT });
         expect(readStoredTheme()).toBeNull();
         expect(link()).toBeNull();
+    });
+});
+
+describe('themes kept in the browser, per user', () => {
+    const token = (aSub: string) => `h.${btoa(JSON.stringify({ sub: aSub })).replace(/=+$/, '')}.s`;
+    const signIn = (aSub: string | null) => (aSub ? localStorage.setItem('accessToken', token(aSub)) : localStorage.removeItem('accessToken'));
+    const NIGHT = { id: 'night', label: 'Night', scheme: 'dark', css: ':root { --neo-bg-primary: #101820; }', swatch: ['#101820'], note: 'Mine' };
+    const NIGHT_CHOICE = { pkg: LOCAL_THEME_PKG, stylesheet: 'night.css', label: 'Night', scheme: 'dark' as const };
+    const cached = () => document.getElementById('neo-theme-cached')?.textContent ?? null;
+
+    test('the user is the token\'s sub; no token, no user', () => {
+        signIn('Alice');
+        expect(themeUser()).toBe('alice');
+        signIn(null);
+        expect(themeUser()).toBeNull();
+        localStorage.setItem('accessToken', 'not-a-jwt');
+        expect(themeUser()).toBeNull();
+    });
+
+    test('each user reads only their own list, and bad entries are dropped', () => {
+        localStorage.setItem('neo.themes.alice', JSON.stringify([NIGHT, { id: '../x', css: '' }, { id: 'ok', css: 'x', label: '' }]));
+        expect(readLocalThemes('alice').map((t) => t.id)).toEqual(['night', 'ok']);
+        expect(readLocalThemes('bob')).toEqual([]);
+        expect(readLocalThemes(null)).toEqual([]);
+    });
+
+    test('only --neo-* declarations survive from the kept text', () => {
+        expect(localThemeCss('/* c */ :root { --neo-bg-primary: #fff; color: red; --neo-x: a; } body { display: none } --neo-y: url(x) }')).toBe(':root { --neo-bg-primary: #fff; --neo-x: a; --neo-y: url(x); }');
+    });
+
+    test('choosing one paints it from its text — no request — and remembers it for the user', () => {
+        signIn('alice');
+        localStorage.setItem('neo.themes.alice', JSON.stringify([NIGHT]));
+        setTheme(NIGHT_CHOICE);
+        expect(link()).toBeNull();
+        expect(cached()).toBe(':root { --neo-bg-primary: #101820; }');
+        expect(JSON.parse(localStorage.getItem('neo.theme.alice') ?? 'null')).toEqual(NIGHT_CHOICE);
+        expect(readStoredTheme()).toEqual(NIGHT_CHOICE);
+    });
+
+    test('the sign-in page (no user yet) paints the browser\'s last choice from the remembered copy', () => {
+        signIn('alice');
+        localStorage.setItem('neo.themes.alice', JSON.stringify([NIGHT]));
+        setTheme(NIGHT_CHOICE);
+        applyTheme(null);
+        signIn(null);
+        applyStoredTheme();
+        expect(cached()).toContain('#101820');
+        expect(document.documentElement.dataset.neoTheme).toBe(LOCAL_THEME_PKG);
+    });
+
+    test('another user on the same browser: their own choice, and Alice\'s theme is not theirs', () => {
+        signIn('alice');
+        localStorage.setItem('neo.themes.alice', JSON.stringify([NIGHT]));
+        setTheme(NIGHT_CHOICE);
+        signIn('bob');
+        localStorage.setItem('neo.theme.bob', 'null');
+        expect(readStoredTheme()).toBeNull();
+        localStorage.removeItem('neo.theme.bob');
+        // no choice of his own: the browser's last — which is not in his list, so the dark defaults
+        localStorage.removeItem('neo.theme.css');
+        applyStoredTheme();
+        expect(cached()).toBeNull();
+        expect(document.documentElement.dataset.neoTheme).toBeUndefined();
+    });
+
+    test('a theme its user deleted falls back to the dark defaults', () => {
+        signIn('alice');
+        localStorage.setItem('neo.themes.alice', JSON.stringify([NIGHT]));
+        setTheme(NIGHT_CHOICE);
+        localStorage.setItem('neo.themes.alice', '[]');
+        applyTheme(NIGHT_CHOICE);
+        expect(cached()).toBeNull();
+        expect(document.documentElement.dataset.neoTheme).toBeUndefined();
+    });
+
+    test('Dark chosen by a user is theirs, not the browser\'s last', () => {
+        signIn('alice');
+        setTheme(LIGHT);
+        signIn('bob');
+        setTheme(null);
+        expect(readStoredTheme()).toBeNull();
+        signIn('alice');
+        expect(readStoredTheme()).toEqual(LIGHT);
     });
 });

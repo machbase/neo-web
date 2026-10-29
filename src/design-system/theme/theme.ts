@@ -10,6 +10,11 @@
 // and whose stylesheet sets the variables it changes on `:root`. Choosing it adds one
 // `<link>` to that stylesheet; choosing the default removes it.
 //
+// A theme can also live in the browser: the theme builder saves a user's own themes in
+// localStorage (`neo.themes.<user>`, pkg `@local`), so nobody else — another account on the same
+// server included — can change them. The choice is kept per user too (`neo.theme.<user>`), with
+// the browser's last choice (`neo.theme`) for the sign-in page, before the user is known.
+//
 // A package can hold several themes instead: `"neoTheme": { "index": ["themes.json", …] }`
 // names JSON files listing `{ id, label, stylesheet, scheme }` entries (the theme builder
 // package keeps its presets in one and the themes it saves in another). A theme is then told
@@ -49,7 +54,7 @@ const SAFE_INDEX = safeFile('json');
 
 /** One theme: `{ label, stylesheet, scheme }` from a manifest's `neoTheme` or an index entry. */
 export const parseThemeEntry = (aPkg: string, aEntry: unknown): ThemeChoice | null => {
-    if (!SAFE_PKG.test(aPkg) || !aEntry || typeof aEntry !== 'object') return null;
+    if ((aPkg !== LOCAL_THEME_PKG && !SAFE_PKG.test(aPkg)) || !aEntry || typeof aEntry !== 'object') return null;
     const { label, stylesheet, scheme } = aEntry as Record<string, unknown>;
     if (typeof stylesheet !== 'string' || !SAFE_STYLESHEET.test(stylesheet)) return null;
     return {
@@ -90,13 +95,103 @@ export const themeKey = (aChoice: Pick<ThemeChoice, 'pkg' | 'stylesheet'>) => `$
 
 export const themeStylesheetUrl = (aChoice: ThemeChoice) => `/public/${encodeURIComponent(aChoice.pkg)}/${aChoice.stylesheet.split('/').map(encodeURIComponent).join('/')}`;
 
-/** The remembered choice, validated again (localStorage is anyone's to edit). */
+// -----------------------------------------------------------------------------
+// THEMES IN THE BROWSER — a user's own, saved by the theme builder
+// -----------------------------------------------------------------------------
+
+/** The `pkg` of a theme kept in the browser; its `stylesheet` is `<id>.css`. Not a package name (`@`). */
+export const LOCAL_THEME_PKG = '@local';
+/** `neo.themes.<user>`: the user's own themes, `[{ id, label, scheme, css, swatch?, note? }]`. */
+export const LOCAL_THEMES_KEY = 'neo.themes';
+
+export interface LocalTheme {
+    id: string;
+    label: string;
+    scheme: ThemeScheme;
+    /** Only `--neo-*` declarations are taken from it (`localThemeCss`). */
+    css: string;
+    swatch: string[];
+    note: string;
+}
+
+const SAFE_LOCAL_ID = /^[a-z0-9][a-z0-9-]{0,47}$/;
+
+/** The signed-in user (the token's `sub`), to keep themes per user; null before sign-in. */
+export const themeUser = (): string | null => {
+    try {
+        const sToken = localStorage.getItem('accessToken');
+        const sPart = sToken?.split('.')[1];
+        if (!sPart) return null;
+        const sClaims = JSON.parse(atob(sPart.replace(/-/g, '+').replace(/_/g, '/'))) as { sub?: unknown };
+        return typeof sClaims.sub === 'string' && sClaims.sub ? sClaims.sub.toLowerCase() : null;
+    } catch {
+        return null;
+    }
+};
+
+/** The user's own themes, validated (localStorage is anyone's to edit). */
+export const readLocalThemes = (aUser: string | null = themeUser()): LocalTheme[] => {
+    if (!aUser) return [];
+    try {
+        const sList = JSON.parse(localStorage.getItem(`${LOCAL_THEMES_KEY}.${aUser}`) ?? '[]') as unknown;
+        if (!Array.isArray(sList)) return [];
+        return sList.flatMap((e): LocalTheme[] => {
+            if (!e || typeof e !== 'object') return [];
+            const { id, label, scheme, css, swatch, note } = e as Record<string, unknown>;
+            if (typeof id !== 'string' || !SAFE_LOCAL_ID.test(id) || typeof css !== 'string' || css.length > 65536) return [];
+            return [
+                {
+                    id,
+                    label: typeof label === 'string' && label.trim() ? label.trim() : id,
+                    scheme: scheme === 'light' ? 'light' : 'dark',
+                    css,
+                    swatch: Array.isArray(swatch) ? swatch.filter((c): c is string => typeof c === 'string').slice(0, 8) : [],
+                    note: typeof note === 'string' ? note.slice(0, 24) : '',
+                },
+            ];
+        });
+    } catch {
+        return [];
+    }
+};
+
+export const localThemeChoice = (aTheme: LocalTheme): ThemeChoice => ({ pkg: LOCAL_THEME_PKG, stylesheet: `${aTheme.id}.css`, label: aTheme.label, scheme: aTheme.scheme });
+
+/**
+ * A browser theme's stylesheet, rebuilt from its `--neo-*` declarations only: what is kept in
+ * localStorage is not trusted as CSS.
+ */
+export const localThemeCss = (aCss: string): string => {
+    const sDecls: string[] = [];
+    const sCode = aCss.replace(/\/\*[\s\S]*?\*\//g, '');
+    for (const m of sCode.matchAll(/--neo-([a-z0-9-]+)\s*:\s*([^;}]+)/g)) {
+        if (SAFE_TOKEN.test(m[1]) && SAFE_VALUE.test(m[2].trim())) sDecls.push(`--neo-${m[1]}: ${m[2].trim()};`);
+    }
+    return `:root { ${sDecls.join(' ')} }`;
+};
+
+const userChoiceKey = (aUser: string) => `${THEME_STORAGE_KEY}.${aUser}`;
+
+const parseStored = (aRaw: string | null): ThemeChoice | null | undefined => {
+    if (aRaw === null) return undefined;
+    try {
+        const sValue = JSON.parse(aRaw) as Partial<ThemeChoice> | null;
+        return sValue ? parseThemeEntry(String(sValue.pkg ?? ''), sValue) : null;
+    } catch {
+        return null;
+    }
+};
+
+/**
+ * The remembered choice, validated again: the signed-in user's own (`neo.theme.<user>`, Dark
+ * included), else the browser's last (`neo.theme`) — all there is on the sign-in page.
+ */
 export const readStoredTheme = (): ThemeChoice | null => {
     try {
-        const sRaw = localStorage.getItem(THEME_STORAGE_KEY);
-        if (!sRaw) return null;
-        const sValue = JSON.parse(sRaw) as Partial<ThemeChoice>;
-        return parseThemeEntry(String(sValue.pkg ?? ''), sValue);
+        const sUser = themeUser();
+        const sMine = sUser ? parseStored(localStorage.getItem(userChoiceKey(sUser))) : undefined;
+        if (sMine !== undefined) return sMine;
+        return parseStored(localStorage.getItem(THEME_STORAGE_KEY)) ?? null;
     } catch {
         return null;
     }
@@ -166,6 +261,27 @@ export const applyTheme = (aChoice: ThemeChoice | null, aOptions?: { reload?: bo
         notify(null);
         return;
     }
+    if (aChoice.pkg === LOCAL_THEME_PKG) {
+        // In the browser: no request, its text is the stylesheet. Before sign-in only the
+        // remembered copy is there; a theme its user deleted falls back to the dark defaults.
+        const sKey = `local:${aChoice.stylesheet}`;
+        const sTheme = readLocalThemes().find((t) => `${t.id}.css` === aChoice.stylesheet);
+        // The remembered copy only stands in before sign-in; a signed-in user without it deleted it.
+        const sCss = sTheme ? localThemeCss(sTheme.css) : themeUser() ? null : readCachedCss(sKey);
+        sOld?.remove();
+        if (sCss === null) {
+            writeCachedCss(sKey, null);
+            applyTheme(null);
+            return;
+        }
+        sRoot.dataset.neoTheme = aChoice.pkg;
+        sRoot.dataset.neoScheme = aChoice.scheme;
+        sRoot.style.setProperty('color-scheme', aChoice.scheme);
+        setCachedStyle(sCss);
+        writeCachedCss(sKey, sCss);
+        notify(aChoice);
+        return;
+    }
     const sHref = themeStylesheetUrl(aChoice);
     sRoot.dataset.neoTheme = aChoice.pkg;
     // for CSS that depends on the scheme, not on a colour (see .neo-type-icon in global.scss)
@@ -203,9 +319,11 @@ export const applyTheme = (aChoice: ThemeChoice | null, aOptions?: { reload?: bo
     if (sOld) sOld.removeAttribute('id');
 };
 
-/** Chooses a theme for this browser (null: the dark default). */
+/** Chooses a theme for the signed-in user and as this browser's last (null: the dark default). */
 export const setTheme = (aChoice: ThemeChoice | null, aOptions?: { reload?: boolean }) => {
     try {
+        const sUser = themeUser();
+        if (sUser) localStorage.setItem(userChoiceKey(sUser), JSON.stringify(aChoice));
         if (aChoice) localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(aChoice));
         else {
             localStorage.removeItem(THEME_STORAGE_KEY);
@@ -217,7 +335,7 @@ export const setTheme = (aChoice: ThemeChoice | null, aOptions?: { reload?: bool
     applyTheme(aChoice, aOptions);
 };
 
-/** Applies the remembered theme. Called once before the first render. */
+/** Applies the remembered theme. Called before the first render, and after sign-in (the user is known then). */
 export const applyStoredTheme = () => applyTheme(readStoredTheme());
 
 /** The scheme in force: what a component that cannot read CSS variables needs to know. */
