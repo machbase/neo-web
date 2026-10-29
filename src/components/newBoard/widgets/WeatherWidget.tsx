@@ -39,7 +39,7 @@ const describe = (aCode: number): { text: string; icon: 'sun' | 'cloud' | 'fog' 
 };
 
 const WeatherIcon = ({ pIcon, pIsDay }: { pIcon: ReturnType<typeof describe>['icon']; pIsDay: boolean }) => {
-    const sun = pIsDay ? <circle cx="16" cy="16" r="7" style={{ fill: 'var(--neo-event-match-main, #f5c142)' }} /> : <path d="M20 9a8 8 0 1 0 5 13 7 7 0 0 1-5-13z" fill="#c4c4c4" />;
+    const sun = pIsDay ? <circle cx="16" cy="16" r="7" style={{ fill: 'var(--neo-event-match-main, #f5c142)' }} /> : <path d="M20 9a8 8 0 1 0 5 13 7 7 0 0 1-5-13z" style={{ fill: 'var(--neo-text-secondary, #c4c4c4)' }} />;
     // Clear sky gets the whole tile: a bigger sun with rays (or the moon at night).
     const bigSun = pIsDay ? (
         <g>
