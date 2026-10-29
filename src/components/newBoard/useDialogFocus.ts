@@ -1,8 +1,5 @@
 import { useEffect, useState } from 'react';
-
-const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
-
-const isShown = (aEl: HTMLElement | null | undefined): aEl is HTMLElement => !!aEl && aEl.isConnected && aEl.getClientRects().length > 0;
+import { focusables, isShown } from '@/design-system/hooks/focusable';
 
 /**
  * Where focus goes back to: what had it when the dialog opened, or, when that was an item of a "⋯"
@@ -18,7 +15,8 @@ const returnTargets = (aOpener: HTMLElement | null): HTMLElement[] => {
  * The New tab's open dialog (found by its test id) takes focus when it opens, keeps Tab inside it,
  * and once it closes gives focus back to the control that opened it. Without this Tab left the
  * dialog for the browser's address bar, focus could stay on a button behind the dialog, and closing
- * it dropped focus on the page. Kept to the New tab's dialogs: the shared Modal is left as it is.
+ * it dropped focus on the page. The shared Modal now does this for every dialog; on top of it the
+ * New tab's dialogs start on their first field and hand focus back to a "⋯" menu's button.
  */
 export const useDialogFocus = (aTestId: string) => {
     // Read while the dialog first renders: by the time effects run, its autoFocus field has focus,
@@ -26,10 +24,10 @@ export const useDialogFocus = (aTestId: string) => {
     const [sReturnTo] = useState(() => returnTargets(document.activeElement as HTMLElement | null));
     useEffect(() => {
         const dialog = () => document.querySelector<HTMLElement>(`[data-testid="${aTestId}"]`);
-        const focusables = (aDialog: HTMLElement) => [...aDialog.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(isShown);
-        // Into the dialog unless one of its fields already took focus (autoFocus).
+        // Into the dialog unless one of its fields already took focus (autoFocus). The spot the shared
+        // Modal parks focus on when it opens is not a field: go on to the first one from there.
         const sOpened = dialog();
-        if (sOpened && !sOpened.contains(document.activeElement)) (focusables(sOpened).find((aEl) => !aEl.matches('[aria-label="Close modal"]')) ?? sOpened).focus();
+        if (sOpened && (!sOpened.contains(document.activeElement) || document.activeElement?.hasAttribute('data-modal-focus-start'))) (focusables(sOpened).find((aEl) => !aEl.matches('[aria-label="Close modal"]')) ?? sOpened).focus();
 
         const onKeyDown = (aEvent: KeyboardEvent) => {
             if (aEvent.key !== 'Tab') return;

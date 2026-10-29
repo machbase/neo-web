@@ -23,6 +23,15 @@
     color: t.$text-primary;
     cursor: default;
 
+    // Where focus lands when the dialog opens without an autoFocus field: out of the layout and unseen.
+    &__focus-start {
+        position: absolute;
+        width: 0;
+        height: 0;
+        overflow: hidden;
+        outline: none;
+    }
+
     // Size variants
     &--fit {
         // No size restrictions, content determines size

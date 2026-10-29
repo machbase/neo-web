@@ -77,9 +77,17 @@ const HierarchicalComboboxRoot = ({
     const inputRef = useRef<HTMLInputElement>(null);
     const menuRef = useRef<HTMLDivElement>(null);
 
-    // Initialize selected label and category from value
+    // Follow the value the parent holds — also when it changes it, e.g. back to '' when a new panel's
+    // chart type is switched. Otherwise the field kept showing the old pick that was no longer saved.
     useEffect(() => {
-        if (value && categories.length > 0) {
+        if (value === undefined) return;
+        setSelectedValue(value);
+        if (!value) {
+            setSelectedLabel(undefined);
+            setSelectedCategory(null);
+            return;
+        }
+        if (categories.length > 0) {
             for (const category of categories) {
                 const item = category.items?.find((item) => item.id === value);
                 if (item) {

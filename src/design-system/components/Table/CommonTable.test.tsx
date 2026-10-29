@@ -351,23 +351,29 @@ describe('CommonTable NULL cells', () => {
 // react-virtuoso windows on measured viewport height, which is always 0 in jsdom.
 // Standing in for it here is what lets the virtualized branch's own row markup be
 // asserted; every other suite in this file stays under the 50-row threshold.
+// Its "scroll one row" button windows the list from one row further down, re-rendering inside the
+// list only, as a real scroll does (F-59).
 jest.mock('react-virtuoso', () => ({
     TableVirtuoso: ({ data, fixedHeaderContent, itemContent, components }: any) => {
+        const [sStart, setStart] = jest.requireActual('react').useState(0);
         const Table = components?.Table ?? 'table';
         const Head = components?.TableHead ?? 'thead';
         const Body = components?.TableBody ?? 'tbody';
         const Row = components?.TableRow ?? 'tr';
         return (
-            <Table>
-                <Head>{fixedHeaderContent?.()}</Head>
-                <Body>
-                    {(data ?? []).map((item: any, idx: number) => (
-                        <Row key={idx} item={item}>
-                            {itemContent(idx, item)}
-                        </Row>
-                    ))}
-                </Body>
-            </Table>
+            <>
+                <Table>
+                    <Head>{fixedHeaderContent?.()}</Head>
+                    <Body>
+                        {(data ?? []).slice(sStart).map((item: any, aOffset: number) => (
+                            <Row key={sStart + aOffset} item={item}>
+                                {itemContent(sStart + aOffset, item)}
+                            </Row>
+                        ))}
+                    </Body>
+                </Table>
+                <button type="button" data-testid="virtuoso-scroll-one-row" onClick={() => setStart((aStart: number) => aStart + 1)} />
+            </>
         );
     },
 }));
@@ -494,5 +500,48 @@ describe('CommonTable array and object cells', () => {
         expect(cells[3].querySelector('input')).toBeNull();
         expect(cells[3].textContent).toBe('[1,2,3,4]');
         expect(cells[2].querySelector('input')).not.toBeNull();
+    });
+});
+
+// F-59: data cells got a new random key on every render, so any redraw (a scroll of the virtualized
+// table) rebuilt them — a copy check vanished and a drag selection lost its end.
+describe('CommonTable keeps its data cells across a redraw (F-59)', () => {
+    const rows = (aCount: number) => Array.from({ length: aCount }, (_, aIdx) => [aIdx, 'v' + aIdx]);
+    const tableProps = (aRows: any[][]) => ({ data: { columns: ['N', 'TEXT'], types: ['int32', 'string'], rows: aRows }, showRowNumber: true, showCopyButton: true }) as any;
+    const cellOf = (aText: string) => screen.getByText(aText).closest('td') as HTMLTableCellElement;
+
+    // The virtualized branch renders through the react-virtuoso stand-in above (rows keyed by index, as the real one).
+    test('virtualized table: scrolling keeps the cells still in view and their copy check', () => {
+        render(<CommonTable {...tableProps(rows(200))} virtualize />);
+        const sCell = cellOf('v4');
+        fireEvent.click(within(sCell).getByRole('button'));
+        const sCopied = within(sCell).getByRole('button').innerHTML;
+
+        fireEvent.click(screen.getByTestId('virtuoso-scroll-one-row'));
+        expect(screen.queryByText('v0')).not.toBeInTheDocument();
+        expect(cellOf('v4')).toBe(sCell);
+        expect(within(cellOf('v4')).getByRole('button').innerHTML).toBe(sCopied);
+    });
+
+    test('plain table: a redraw keeps the same cell nodes, renderer cells included', () => {
+        const sProps = (aRows: any[][]) => ({ ...tableProps(aRows), cellRenderers: [{ column: 'TEXT', render: (aRow: any[]) => <span>{aRow[1]}</span> }] });
+        const sRows = rows(3);
+        const { rerender } = render(<CommonTable {...sProps(sRows)} />);
+        const sNumberCell = screen.getAllByText('1').map((aEl) => aEl.closest('td')).find((aTd) => aTd?.className.includes('result-table-item'));
+        const sRendered = cellOf('v1');
+
+        rerender(<CommonTable {...sProps([...sRows])} />);
+        expect(cellOf('v1')).toBe(sRendered);
+        expect(screen.getAllByText('1').map((aEl) => aEl.closest('td')).find((aTd) => aTd?.className.includes('result-table-item'))).toBe(sNumberCell);
+    });
+
+    test('rows removed and reordered still show each row\'s own values', () => {
+        const { rerender } = render(<CommonTable {...tableProps(rows(3))} />);
+        rerender(<CommonTable {...tableProps([[2, 'v2'], [0, 'v0']])} />);
+
+        const sBodyRows = document.querySelectorAll('tbody tr');
+        expect(within(sBodyRows[0] as HTMLElement).getByText('v2')).toBeInTheDocument();
+        expect(within(sBodyRows[1] as HTMLElement).getByText('v0')).toBeInTheDocument();
+        expect(screen.queryByText('v1')).not.toBeInTheDocument();
     });
 });

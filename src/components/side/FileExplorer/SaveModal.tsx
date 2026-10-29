@@ -543,6 +543,7 @@ export const SaveModal = (props: SaveModalProps) => {
                         <div className="save-modal__footer-input">
                             <Input
                                 data-testid="file-name-input"
+                                autoFocus
                                 label="File name"
                                 labelPosition="left"
                                 value={sSaveFileName}

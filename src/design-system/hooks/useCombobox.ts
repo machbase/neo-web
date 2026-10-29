@@ -266,6 +266,9 @@ export const useCombobox = ({
 
                 case 'Escape':
                     e.preventDefault();
+                    // An open list takes Escape for itself: it goes no further, so a dialog around it stays open.
+                    // A closed combobox lets it through to close the dialog.
+                    if (isOpen) e.stopPropagation();
                     setIsOpen(false);
                     setSearchQuery('');
                     setFocusedIndex(-1);

@@ -382,6 +382,9 @@ export const InputSelect = forwardRef<HTMLInputElement, InputSelectProps>(
                     break;
                 case 'Escape':
                     event.preventDefault();
+                    // An open list takes Escape for itself: it goes no further, so a dialog around it stays open.
+                    // A closed select lets it through to close the dialog.
+                    if (isOpen) event.stopPropagation();
                     setIsOpen(false);
                     focusTrigger();
                     break;

@@ -8,7 +8,7 @@ import { GiCancel } from 'react-icons/gi';
 import { PiFileSqlThin } from 'react-icons/pi';
 import { Play, Save } from '@/assets/icons/Icon';
 import { MuiTagAnalyzer } from '@/assets/icons/Mui';
-import { generateUUID, isObject } from '@/utils';
+import { isObject } from '@/utils';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { IconButton } from '@/components/buttons/IconButton';
 import { Button } from '../Button';
@@ -598,8 +598,10 @@ const CommonTable = (props: CommonTableProps) => {
                             {rowList.map((cellData: any, rIdx: number) => {
                                 const renderer = getCellRenderer(data?.columns?.[rIdx]);
                                 const numeric = shouldAlignNumeric(data?.types?.[rIdx], cellData);
+                                // Keyed by column, not anew on every render: a scroll redraws the row and would
+                                // otherwise rebuild every cell, dropping a copy check and the drag selection.
                                 return (
-                                    <td className={['result-table-item', numeric ? styles['numeric-cell'] : ''].filter(Boolean).join(' ')} key={generateUUID()} data-testid={getCellTestId?.(data?.columns?.[rIdx])}>
+                                    <td className={['result-table-item', numeric ? styles['numeric-cell'] : ''].filter(Boolean).join(' ')} key={'cell-' + rIdx} data-testid={getCellTestId?.(data?.columns?.[rIdx])}>
                                         {renderer ? (
                                             renderer(rowList)
                                         ) : (
@@ -757,7 +759,7 @@ const CommonTable = (props: CommonTableProps) => {
                                           if (renderer) {
                                               const numericRenderer = shouldAlignNumeric(data?.types?.[cellIdx], cellData);
                                               return (
-                                                  <td className={['result-table-item', numericRenderer ? styles['numeric-cell'] : ''].filter(Boolean).join(' ')} key={generateUUID()} style={wrapStyle} data-testid={getCellTestId?.(data?.columns?.[cellIdx])}>
+                                                  <td className={['result-table-item', numericRenderer ? styles['numeric-cell'] : ''].filter(Boolean).join(' ')} key={'table-' + rowIdx + '-' + cellIdx} style={wrapStyle} data-testid={getCellTestId?.(data?.columns?.[cellIdx])}>
                                                       {renderer(rowList)}
                                                   </td>
                                               );
