@@ -1,5 +1,6 @@
 import { useAbortController } from '@/hooks/useAbortController';
-import { applyBoardSaveResult, getBoardSaveData, hasBoardContentChanged } from '@/utils/boardSaveResult';
+import { applyFileReadResult, applySaveAsResult, invalidateFileSaveResult } from '@/utils/boardSaveResult';
+import { saveBoardFile, type BoardFileSaveContext } from '@/utils/boardFileSave';
 import { useState, useEffect, useRef } from 'react';
 import { recordRecentFile } from '@/utils/recentFiles';
 import { getFileList, postFileList } from '@/api/repository/api';
@@ -18,15 +19,11 @@ import EnterCallback from '@/hooks/useEnter';
 import { TreeFetchDrilling } from '@/utils/UpdateTree';
 import { validateName } from '@/utils/fileName';
 import { getTypedFileList, resolveOverwrite, type OverwriteDecision } from '@/utils/fileExistence';
-import { afterOverwrite, isTabOnFile } from '@/utils/boardAfterOverwrite';
 import { useOverwritePrompt } from '@/components/modal/useOverwritePrompt';
 import { Alert, Button, Input, Modal, FileListHeader } from '@/design-system/components';
-import {
-    loadTazBoard,
-    saveTazBoard,
-} from '@/components/tagAnalyzer/persistence/tazDocumentService';
-import type { BoardInfo } from '@/components/tagAnalyzer/board/boardModel';
+import { loadBoardFromFile } from './loadBoardFromFile';
 import './SaveModal.scss';
+import {useFileMutationTabs} from '@/hooks/useFileMoveTabs';
 
 export interface SaveModalProps {
     setIsOpen: any;
@@ -35,6 +32,7 @@ export interface SaveModalProps {
 }
 
 export const SaveModal = (props: SaveModalProps) => {
+    const fileMutations = useFileMutationTabs();
     const { setIsOpen, pIsSave } = props;
     const sLocalSaveRequests = useAbortController();
     const sSaveRequests = props.saveRequests ?? sLocalSaveRequests;
@@ -200,83 +198,60 @@ export const SaveModal = (props: SaveModalProps) => {
     // A failed lookup / folder conflict is shown inside this dialog (r13), not as a toast.
     const checkSaveTarget = async (aPath: string, aFileName: string, canSave: () => boolean): Promise<OverwriteDecision> => {
         setSaveError(undefined);
-        const sDecision = await resolveOverwrite(aPath, aFileName, name => canSave() ? askOverwrite(name) : Promise.resolve(false));
+        const sDecision = await resolveOverwrite(aPath, aFileName, name => canSave() ? askOverwrite(name) : Promise.resolve(false), canSave);
         if (canSave() && (sDecision.status === 'folder' || sDecision.status === 'failed')) setSaveError(sDecision.reason);
         return sDecision;
     };
 
     const saveFile = async () => {
         if (sSaveInProgress.current) return;
+        setSaveError(undefined);
         const sCurrentBoards = getCurrentBoards();
         const sTab = sCurrentBoards.find(isSaveOwner);
         if (!sTab) {
             setSaveError('The source tab was closed or changed. Please reopen Save As.');
             return;
         }
-        const sSaveData = getBoardSaveData(sTab, sFileType);
         const sOverwriteBoards = new Map(sCurrentBoards.map(board => [board.id, board]));
         const sPath = sSelectedDir.length > 0 ? '/' + sSelectedDir.join('/') + '/' : '/';
         sSaveInProgress.current = true;
         const sSignal = sSaveRequests.createSignal(sTab.id);
-        const canSave = () => sDialogOpen.current && !sSignal.aborted && getCurrentBoards().some(isSaveOwner);
+        const canSave = (boards = getCurrentBoards()) => sDialogOpen.current && !sSignal.aborted && boards.some(isSaveOwner);
         try {
-            const sDecision = await checkSaveTarget(sPath, sSaveFileName, canSave);
-            // Lookup and overwrite confirmation can outlive their dialog/source.
-            // Check again before sending any request, not only when applying its result.
-            if (!sDialogOpen.current || sSignal.aborted) return;
-            if (!getCurrentBoards().some(isSaveOwner)) {
-                setSaveError('The source tab was closed or changed. Please reopen Save As.');
-                return;
-            }
-            if (sDecision.status !== 'none' && sDecision.status !== 'confirmed') return;
-            // r20 M1: written under the name the user typed — POST, tab and Recent; the server's file system decides the case
+            let sDecision: OverwriteDecision = {status: 'none'};
+            let latestAction = true;
             const sFileName = sSaveFileName;
-            // Reuse overwrite handling against the current tabs. Only the submitted
-            // snapshot becomes saved; edits made after Apply remain unsaved.
-            const applyTabs = (aSubmitted: any) => applyCurrentTabs((aBoards) => {
-                if (sSignal.aborted || !aBoards.some((aBoard) =>
-                    aBoard.id === sTab.id && aBoard.path === sTab.path && aBoard.name === sTab.name,
-                )) return aBoards;
-                const sTarget = { path: sPath, name: sFileName };
-                const sCurrentBoards = sDecision.status === 'confirmed' ? aBoards.map(board => {
-                    if (board.id === sTab.id || !isTabOnFile(board, sTarget)) return board;
-                    const previous = sOverwriteBoards.get(board.id);
-                    // The confirmation did not authorize discarding later edits or
-                    // newly opened tabs. Keep them as drafts, separate from the file
-                    // now owned by the writer. Their next Save opens Save As.
-                    return !previous || hasBoardContentChanged(board, previous)
-                        ? { ...board, path: '', savedCode: false }
-                        : board;
-                }) : aBoards;
-                return afterOverwrite(
-                    sCurrentBoards,
-                    { ...sTarget, currentTabId: sTab.id, confirmed: sDecision.status === 'confirmed' },
-                    (aBoard) => ({
-                        ...applyBoardSaveResult(aBoard, sFileType, aSubmitted),
-                        name: sFileName,
-                        path: sPath,
-                    }),
-                );
+            const applyTabs = (submitted: any, context: BoardFileSaveContext) => applyCurrentTabs(boards => {
+                latestAction = context.isLatestAction;
+                // A successful wire write still acknowledges its target, but a
+                // dismissed dialog no longer owns the source tab's binding.
+                const sourceIsCurrent = latestAction && canSave(boards);
+                return applySaveAsResult(boards, {
+                    owner: sTab, target: {path: sPath, name: sFileName}, fileType: sFileType,
+                    submitted, sourceIsCurrent,
+                    confirmed: sDecision.status === 'confirmed', previousBoards: sOverwriteBoards,
+                    isSaving: board => context.isSaving(board) || sSaveRequests.hasPendingRequest(board.id),
+                });
             }, sTab.id);
-
-            if (sFileType === 'taz') {
-                const sBoardToSave: BoardInfo = { ...(sTab as unknown as BoardInfo), name: sFileName, path: sPath };
-                const sSavedBoard = await saveTazBoard(sBoardToSave);
-                if (sSignal.aborted) return;
-                setModalPath(sPath);
-                if (!sSavedBoard) {
-                    Toast.error('Failed to save TAZ file. Please try again.');
-                    return;
-                }
-                applyTabs(sSavedBoard);
-            } else {
-                const sResult: any = await postFileList(sSaveData, sPath, sFileName);
-                if (sSignal.aborted) return;
-                setModalPath(sPath);
-                if (!sResult.success) return;
-                applyTabs(sSaveData);
-                recordRecentFile({ name: sFileName, path: sPath });
-            }
+            const success = await saveBoardFile({
+                board: sTab, target: {path: sPath, name: sFileName}, fileType: sFileType, saveAs: true,
+                beforeWrite: async () => {
+                    if (!canSave()) return false;
+                    sDecision = await checkSaveTarget(sPath, sFileName, canSave);
+                    if (sDialogOpen.current && !sSignal.aborted && !getCurrentBoards().some(isSaveOwner)) setSaveError('The source tab was closed or changed. Please reopen Save As.');
+                    return canSave() && (sDecision.status === 'none' || sDecision.status === 'confirmed');
+                },
+                canApply: () => sSaveRequests.isCurrentLifetime(sSignal),
+                canWrite: canSave,
+                getSaveBoards: getCurrentBoards,
+                onFailure: reason => { if (canSave()) setSaveError(current => current ?? reason); },
+                onSuccess: applyTabs,
+                onRead: loaded => applyCurrentTabs(boards => applyFileReadResult(boards, loaded), sTab.id),
+                onUncertain: (target = {path: sPath, name: sFileName}) => applyCurrentTabs(boards => invalidateFileSaveResult(boards, target), sTab.id),
+            });
+            if (!success || !sDialogOpen.current || sSignal.aborted || !latestAction) return;
+            setModalPath(sPath);
+            if (sFileType !== 'taz') recordRecentFile({name: sFileName, path: sPath});
             // A file is saved before refreshing the explorer; a slow listing
             // must not postpone its tab metadata or later replace new tabs.
             handleClose();
@@ -332,62 +307,13 @@ export const SaveModal = (props: SaveModalProps) => {
             setSelectedTab(sExistBoard.id as string);
         } else {
             const sPath = sSelectedDir.length > 0 ? '/' + sSelectedDir.join('/') + '/' : '/';
-            const sType = extractionExtension(file.name);
-            const sData = await getFilesTree(`${sSelectedDir.join('/')}/${file.name}`);
-            let sParseData;
-            if ((sType === 'wrk' && typeof sData === 'string') || (typeof sData === 'string' && sType === 'dsh')) {
-                sParseData = JSON.parse(sData);
-            }
             const sTmpId = getId();
-            if (sType === 'taz') {
-                try {
-                    const sParsedTaz = typeof sData === 'string' ? JSON.parse(sData) : sData;
-                    const sTazBoardInfo = loadTazBoard(sParsedTaz, sTmpId, file.name, sPath);
-
-                    setBoardList([...sBoardList, sTazBoardInfo as any]);
-                    setSelectedTab(sTmpId);
-                    handleClose();
-                    return;
-                } catch (error) {
-                    Toast.error(error instanceof Error ? error.message : 'Failed to load TAZ file.');
-                    return;
-                }
-            }
-            if (sType === 'dsh') {
-                setBoardList([
-                    ...sBoardList,
-                    {
-                        ...sParseData,
-                        id: sTmpId,
-                        name: file.name,
-                        type: sType,
-                        path: sPath,
-                        savedCode: JSON.stringify(sParseData),
-                    },
-                ]);
-                setSelectedTab(sTmpId);
-                handleClose();
+            const loaded = await loadBoardFromFile({path: sPath, name: file.name}, sTmpId);
+            if (loaded.error !== undefined) {
+                Toast.error(loaded.error);
                 return;
-            } else {
-                const sSheetData = sType === 'wrk' ? sParseData?.data ?? [] : [];
-                const sCodeData = sType === 'wrk' ? '' : sData;
-                const savedCode = sType === 'wrk' ? JSON.stringify(sSheetData) : sCodeData;
-                setBoardList([
-                    ...sBoardList,
-                    {
-                        id: sTmpId,
-                        name: file.name,
-                        type: sType,
-                        path: sPath,
-                        code: sCodeData,
-                        panels: [],
-                        range_bgn: '',
-                        range_end: '',
-                        sheet: sSheetData,
-                        savedCode: savedCode,
-                    },
-                ]);
             }
+            setBoardList(boards => [...boards, loaded.board]);
             setSelectedTab(sTmpId);
         }
         handleClose();
@@ -449,7 +375,7 @@ export const SaveModal = (props: SaveModalProps) => {
     const deleteFile = async () => {
         const sConfirm = confirm(`Do you want to delete this file (${sSelectedFile?.name})?`);
         if (sConfirm && sSelectedFile !== undefined) {
-            const sResult: any = await deleteContextFile(sSelectedDir.join('/'), sSelectedFile.name, { recursive: false });
+            const sResult: any = await deleteContextFile(sSelectedDir.join('/'), sSelectedFile.name, { recursive: false, handlers: fileMutations('/' + [...sSelectedDir, sSelectedFile.name].join('/')) });
             if (sResult.reason === 'success') {
                 getFiles(sFileType);
                 const sPath = sSelectedDir.length > 0 ? '/' + sSelectedDir.join('/') + '/' : '/';

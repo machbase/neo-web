@@ -49,3 +49,9 @@ export const toDshUrlPath = (aNameOrPath: string): string => encodeFilePath(toDs
  * and open it. Segment-encoded like the share link: a `#` or `?` in a name cut the link short (#1565).
  */
 export const toTqlFileUrlPath = (aPath: string): string => '/db/tql' + encodeFilePath(aPath);
+
+/** Segment-aware relocation shared by tree paths and observed file aliases. */
+export const relocateFilePath = (path: string, source: string, destination: string): string | null => {
+    const from = source.replace(/\/$/, ''), to = destination.replace(/\/$/, '');
+    return path === from ? to : path.startsWith(from + '/') ? to + path.slice(from.length) : null;
+};

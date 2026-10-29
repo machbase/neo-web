@@ -1,9 +1,12 @@
+import {observeFileAccess} from '@/utils/fileExistence';
+import {getRequestSession} from '@/api/core/requestSession';
 import axios from 'axios';
 import { getFiles } from '@/api/repository/fileTree';
 import { getId, isImage, binaryCodeEncodeBase64, extractionExtension } from '@/utils';
 import { CheckDataCompatibility } from '@/utils/CheckDataCompatibility';
 import { loadTazBoard } from '@/components/tagAnalyzer/persistence/tazDocumentService';
 import { validateBoardContent } from '@/components/newBoard/openFileContent';
+import { ConsistentFileReader, readFileConsistently, getFileObservationClock, stampFileSnapshot } from '@/api/repository/fileWriteQueue';
 
 const hasOwn = (aValue: unknown, aKey: string) => typeof aValue === 'object' && aValue !== null && Object.prototype.hasOwnProperty.call(aValue, aKey);
 
@@ -11,19 +14,29 @@ const hasOwn = (aValue: unknown, aKey: string) => typeof aValue === 'object' && 
 // rejects) and does NOT toast a network failure, so callers must report it themselves.
 // `invalid` marks a file that exists but whose content is corrupt or not a board of its type, so
 // callers can tell it apart from a missing file (keep it in Recent, say it is damaged).
-export type LoadBoardResult = { board: any; error?: undefined } | { board?: undefined; error: string; transport?: boolean; invalid?: boolean };
+export type LoadBoardResult = { board: any; error?: undefined } | { board?: undefined; error: string; transport?: boolean; invalid?: boolean; blocked?: boolean };
 
 /**
  * Read a saved file and turn it into a tab (board) the way the file explorer opens it.
  *
  * Shared by the explorer and the New tab's recent list so both open every extension identically.
- * `aFile.path` is the directory with its trailing slash; `aFile.id` is what the extension is read from
- * (the explorer passes its tree id, which ends in the file name).
+ * `aFile.path` is the directory with its trailing slash; the real `aFile.name` owns the format.
+ * An optional ID may be a tree path or an editor UUID and must not choose the format.
  */
-export const loadBoardFromFile = async (aFile: { name: string; path: string; id?: string }, aBoardId: string = getId()): Promise<LoadBoardResult> => {
-    const sId = aFile.id ?? aFile.name;
+export const loadBoardFromFile = async (aFile: { name: string; path: string; id?: string }, aBoardId: string = getId(), read: ConsistentFileReader = readFileConsistently): Promise<LoadBoardResult> => {
+    // File metadata may carry either a tree path or an editor UUID as its ID.
+    // The real filename owns the format for every caller, including readback.
+    const sId = aFile.name;
     // As stored: the tab shows and saves the file's own text, never a re-serialized copy of it.
-    const sContentResult: any = await getFiles(`${aFile.path}${aFile.name}`, { rawText: true });
+    const filePath = aFile.path + aFile.name;
+    const session = getRequestSession();
+    await observeFileAccess(filePath, () => session === getRequestSession());
+    if (session !== getRequestSession()) return {error: 'File lookup cancelled.', blocked: true};
+    let observed = getFileObservationClock();
+    const sContentResult: any = await read(filePath, async () => {
+        const result = await getFiles(filePath, {rawText: true});
+        observed = getFileObservationClock(); return result;
+    });
     const sFileExtension = extractionExtension(sId);
     if (axios.isAxiosError(sContentResult)) return { error: sContentResult.message || 'Failed to open the file.', transport: true };
     if (hasOwn(sContentResult, 'headers') || hasOwn(sContentResult, 'reason') || hasOwn(sContentResult?.data, 'reason')) {
@@ -35,7 +48,7 @@ export const loadBoardFromFile = async (aFile: { name: string; path: string; id?
                 // Invalid JSON response from server
             }
         }
-        return { error: sContentResult?.reason ?? sParseData?.reason ?? 'Unknown error' };
+        return { error: sContentResult?.reason ?? sParseData?.reason ?? 'Unknown error', blocked: !!sContentResult?.fileMutationBlocked || !!sContentResult?.fileOperationCancelled };
     }
 
     let sTmpBoard: any = { id: aBoardId, name: aFile.name, type: sFileExtension, path: aFile.path, savedCode: sContentResult, code: '' };
@@ -97,5 +110,16 @@ export const loadBoardFromFile = async (aFile: { name: string; path: string; id?
         };
     } else sTmpBoard.code = sContentResult;
 
-    return { board: sTmpBoard };
+    return { board: stampFileSnapshot(sTmpBoard, filePath, observed) };
+};
+
+/** Reconcile confirmed file snapshots without replacing any current editor. */
+export const readBoardSnapshots = async (paths: Iterable<string>, context: {read: ConsistentFileReader; isCurrent: () => boolean}, onRead: (board: any) => void): Promise<void> => {
+    for (const path of new Set(paths)) {
+        if (!context.isCurrent()) return;
+        const separator = path.lastIndexOf('/');
+        const loaded = await loadBoardFromFile({path: path.slice(0, separator + 1), name: path.slice(separator + 1)}, undefined, context.read);
+        if (!context.isCurrent()) return;
+        if (loaded.board) onRead(loaded.board);
+    }
 };

@@ -4,6 +4,7 @@ import {
     type ReactNode,
     useCallback,
     useEffect,
+    useLayoutEffect,
     useRef,
     useState,
 } from 'react';
@@ -26,7 +27,7 @@ import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import OverlapModal from '../overlap/OverlapModal';
 import { CreatePanelModal } from '../panel/CreatePanelModal';
 import { SaveAsModal } from '../persistence/SaveAsModal';
-import { useBoardSave } from './useBoardSave';
+import { useBoardSave, type SavedBoardOptions } from './useBoardSave';
 import type { BoardInfo, UnreadableTazPanel } from './boardModel';
 import type { PanelInfo } from '../panel/panelModel';
 import { getSeriesListAxisKind } from '../seriesModel';
@@ -49,6 +50,8 @@ export default function Board({
     isActiveTab,
     onSavedBoard,
     onFileSaved,
+    onRuntimeChange,
+    getSaveBoards,
     rollupTableList,
 }: BoardProps) {
     const [sIsHelpModalOpen, setIsHelpModalOpen] = useState(false);
@@ -91,6 +94,7 @@ export default function Board({
             applySaveResult,
         },
     } = useBoardState(info);
+    useLayoutEffect(() => { onRuntimeChange?.(sBoardInfoForSave); }, [onRuntimeChange, sBoardInfoForSave]);
     const sBoardInfo = sBoardState.info;
     const sPanels = sBoardInfo.panels;
     const sPanelRanges = sBoardState.panelRanges;
@@ -136,6 +140,7 @@ export default function Board({
         applySaveResult,
         onSavedBoard,
         onFileSaved,
+        getSaveBoards,
     });
 
     useEffect(() => {
@@ -436,6 +441,7 @@ export default function Board({
                     initialFileName={sBoardInfo.name}
                     onClose={boardSave.closeSaveAs}
                     onSaveAs={boardSave.saveAs}
+                    getSaveBoards={getSaveBoards}
                 />
             )}
             {isActiveTab && overlap.openSession && (
@@ -457,7 +463,9 @@ export default function Board({
 type BoardProps = {
     info: BoardInfo;
     isActiveTab: boolean;
-    onSavedBoard: (savedBoard: BoardInfo, opts: { overwritten: boolean }) => void;
+    onSavedBoard: (savedBoard: BoardInfo, opts: SavedBoardOptions) => BoardInfo | void;
+    onRuntimeChange?: (board: BoardInfo) => void;
+    getSaveBoards?: () => BoardInfo[];
     onFileSaved: (directoryPath: string, fileName: string) => Promise<void>;
     rollupTableList: RollupTableMap;
 };

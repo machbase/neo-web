@@ -4,28 +4,20 @@ import { getId } from '@/utils';
 import { useClosePkgView } from '@/components/side/AppStore/pkgViews';
 import { isBoardSaved } from '@/utils/boardSaveStatus';
 import icons from '@/utils/icons';
-import { useState, useEffect } from 'react';
+import { useState, useSyncExternalStore } from 'react';
+import {subscribeFileOperations, getFileOperationVersion} from '@/api/repository/fileWriteQueue';
 import { useRecoilState } from 'recoil';
 import { Button, Side } from '@/design-system/components';
 
 const OpenFile = ({ pBoard, pSetSelectedTab, pIdx }: any) => {
-    const [sIsSaved, setIsSaved] = useState<boolean>(true);
+    useSyncExternalStore(subscribeFileOperations, getFileOperationVersion, getFileOperationVersion);
+    const sIsSaved = isBoardSaved(pBoard);
     const [sBoardList, setBoardList] = useRecoilState<any>(gBoardList);
     const [sHover, setHover] = useState(false);
     const [sSelectedTab] = useRecoilState(gSelectedTab);
     // Closing an `APP:` tab here ends the package's session, exactly as closing it
     // from the tab strip does — see MainContent.resetActiveStateForClosedBoard.
     const closePkgView = useClosePkgView();
-
-    useEffect(() => {
-        compareValue(pBoard);
-    }, [pBoard]);
-
-    const compareValue = (aBoard: any) => {
-        if (sSelectedTab === aBoard.id) {
-            setIsSaved(isBoardSaved(aBoard));
-        }
-    };
 
     const addFile = () => {
         const sNewTab = { id: getId(), type: 'new', name: 'new', path: '', code: '', panels: [], range_bgn: '', range_end: '', sheet: [], savedCode: false };

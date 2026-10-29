@@ -2,7 +2,7 @@ import Sql from '../sql';
 import Tql from '../tql';
 import Dashboard from '../dashboard';
 import Shell from '../shell/Shell';
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
+import { useRecoilState, useRecoilValue, useSetRecoilState, useRecoilCallback } from 'recoil';
 import NewBoard from '../newBoard';
 import LegacyNewBoard from '../newBoard/legacy';
 import { useExperiment } from '@/hooks/useExperiment';
@@ -13,11 +13,11 @@ import Tab from '@/design-system/components/Tabs/Tab';
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import useSaveCommand from '@/hooks/useSaveCommand';
 import { useAbortController } from '@/hooks/useAbortController';
-import { applyBoardSaveResult, getBoardSaveData } from '@/utils/boardSaveResult';
+import { applyFileReadResult, applyFileSaveResult, invalidateFileSaveResult } from '@/utils/boardSaveResult';
+import { saveBoardFile } from '@/utils/boardFileSave';
 import useMoveTab from '@/hooks/useMoveTab';
 import { WorkSheet } from '@/components/worksheet/WorkSheet';
 import { extractionExtension } from '@/utils';
-import { postFileList } from '@/api/repository/api';
 import { Close, PlusCircle, VscMultipleWindows } from '@/assets/icons/Icon';
 import { ContextMenu, Toast } from '@/design-system/components';
 import { ImageBox } from '@/components/imageBox/ImageBox';
@@ -56,7 +56,6 @@ import {
 } from '@/recoil/recoil';
 import { useClosePkgView, useRevealPkgView } from '@/components/side/AppStore/pkgViews';
 import { closeOtherTabsState, closeTabState, createNewBoardTab } from './tabCloseUtils';
-import { saveTazBoard } from '@/components/tagAnalyzer/persistence/tazDocumentService';
 
 const DEFAULT_CONTEXT_MENU_STATE = {
     open: false,
@@ -74,6 +73,7 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
     const [sIsOpenModal, setIsOpenModal] = useState<boolean>(false);
     const [sBodyWidth, setBodyWidth] = useState<number>(0);
     const sSaveRequests = useAbortController();
+    const getSaveBoards = useRecoilCallback(({snapshot}) => () => snapshot.getLoadable(gBoardList).getValue(), []);
     const sTabRef = useRef(null);
     const [sTabContextMenu, setTabContextMenu] = useState(DEFAULT_CONTEXT_MENU_STATE);
     const [sTabDragInfo, setTabDragInfo] = useState<{
@@ -126,29 +126,22 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                 const sSignal = sSaveRequests.createSignal(sFilterBoard.id);
                 const applySavedResult = (aSubmitted: any) => {
                     setBoardList((aBoards) =>
-                        sSignal.aborted ? aBoards : aBoards.map((aBoard) =>
-                            aBoard.id === sFilterBoard.id && aBoard.path === sFilterBoard.path && aBoard.name === sFilterBoard.name
-                                ? applyBoardSaveResult(aBoard, sFileType, aSubmitted)
-                                : aBoard,
-                        ),
+                        applyFileSaveResult(aBoards, sFilterBoard, sFileType, aSubmitted),
                     );
                 };
+                let failureReason: string | undefined;
                 try {
-                    if (sFileType === 'taz') {
-                        const sSavedBoard = await saveTazBoard(sFilterBoard);
-                        if (sSignal.aborted) return;
-                        if (sSavedBoard) applySavedResult(sSavedBoard);
-                        else Toast.error('save file fail retry please');
-                        return;
-                    }
-
-                    const sSaveData = getBoardSaveData(sFilterBoard, sFileType);
-                    const sResult: any = await postFileList(
-                        sSaveData,
-                        sFilterBoard.path.replace('/', ''),
-                        sFilterBoard.name,
-                    );
-                    if (!sSignal.aborted && sResult.success) applySavedResult(sSaveData);
+                    const success = await saveBoardFile({
+                        board: sFilterBoard, fileType: sFileType,
+                        beforeWrite: async () => sSaveRequests.isCurrentLifetime(sSignal),
+                        canApply: () => sSaveRequests.isCurrentLifetime(sSignal),
+                        getSaveBoards,
+                        onFailure: reason => {failureReason = reason;},
+                        onSuccess: applySavedResult,
+                        onRead: loaded => setBoardList(boards => applyFileReadResult(boards, loaded)),
+                        onUncertain: (target = sFilterBoard) => setBoardList(boards => invalidateFileSaveResult(boards, target)),
+                    });
+                    if (!success && !sSignal.aborted) Toast.error(failureReason ?? 'save file fail retry please');
                 } catch {
                     if (!sSignal.aborted) Toast.error('save file fail retry please');
                 } finally {

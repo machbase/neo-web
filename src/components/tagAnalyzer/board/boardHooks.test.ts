@@ -213,3 +213,19 @@ describe('board runtime hooks', () => {
         expect(result.current.state.panelRanges['panel-a']).toBeUndefined();
     });
 });
+
+
+it.each(['new snapshot', false])('keeps runtime edits when incoming saved metadata changes to %s', savedCode => {
+    const board = createBoard();
+    const hook = renderHook(({info}) => useBoardState(info), {initialProps:{info:board}});
+    act(() => {
+        hook.result.current.commands.setBoardRange('time',{start:'now-3h',end:'now'});
+        hook.result.current.commands.applyPanelInfo({...board.panels[0],title:'NEW EDIT'});
+        hook.result.current.commands.setPanelRange('panel-a',PANEL_RANGE_STATE);
+    });
+    hook.rerender({info:{...board,savedCode} as BoardInfo});
+    expect(hook.result.current.state.info.boardTimeRange).toEqual({start:'now-3h',end:'now'});
+    expect(hook.result.current.state.info.panels[0].title).toBe('NEW EDIT');
+    expect(hook.result.current.state.panelRanges['panel-a']).toBe(PANEL_RANGE_STATE);
+    expect(hook.result.current.state.info.savedCode).toBe(savedCode);
+});

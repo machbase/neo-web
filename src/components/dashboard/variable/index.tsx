@@ -6,7 +6,7 @@ import { IoArrowBackOutline } from 'react-icons/io5';
 import { generateUUID } from '@/utils';
 import { useRecoilState } from 'recoil';
 import { gBoardList, type GBoardListType } from '@/recoil/recoil';
-import { postFileList } from '@/api/repository/api';
+import { useBoardFileSave } from '@/hooks/useBoardFileSave';
 import { Close, PlusCircle } from '@/assets/icons/Icon';
 import { DOWNLOADER_EXTENSION, sqlOriginDataDownloader as Downloader } from '@/utils/sqlOriginDataDownloader';
 import Papa from 'papaparse';
@@ -77,6 +77,7 @@ const DEFAULT_VARIABLE = {
 
 export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal: React.Dispatch<React.SetStateAction<boolean>> }) => {
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
+    const saveBoard = useBoardFileSave();
     const sBodyRef: any = useRef(null);
     const [isVertical, setIsVertical] = useState<boolean>(true);
     const [sGroupWidth, setGroupWidth] = useState<number[]>([50, 50]);
@@ -103,7 +104,6 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
             return {
                 ...aItem,
                 dashboard: sTmpDashboard,
-                savedCode: sCurrentBoard.path !== '' ? JSON.stringify(sTmpDashboard) : aItem.savedCode,
             };
         });
 
@@ -112,7 +112,7 @@ export const Variable = ({ pBoardInfo, pSetModal }: { pBoardInfo: any; pSetModal
         if (sCurrentBoard.path !== '') {
             const sSaveTarget = sTabList.find((aItem) => aItem.id === pBoardInfo.id);
             if (sSaveTarget) {
-                postFileList(sSaveTarget, sSaveTarget.path, sSaveTarget.name);
+                void saveBoard(sSaveTarget);
             }
         }
     };

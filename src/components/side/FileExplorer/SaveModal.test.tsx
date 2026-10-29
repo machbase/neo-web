@@ -5,15 +5,22 @@
 import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react';
 import { RecoilRoot, useRecoilState } from 'recoil';
 import { SaveModal } from './SaveModal';
-import { getFileList, postFileList } from '@/api/repository/api';
 import { getFiles } from '@/api/repository/fileTree';
-import { saveTazBoard } from '@/components/tagAnalyzer/persistence/tazDocumentService';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
+import { useAbortController } from '@/hooks/useAbortController';
+import { queueFileWrite, UncertainFileWriteError, cancelAllPendingFileWrites } from '@/api/repository/fileWriteQueue';
 
-jest.mock('@/api/repository/api', () => ({
-    getFileList: jest.fn(),
-    postFileList: jest.fn(),
-}));
+jest.mock('@/api/core', () => {
+    const transport = jest.fn(), listing = jest.fn();
+    return { __esModule: true, transport, listing, default: (config: any) => {
+        if (config.method === 'GET') return listing(config.url.includes('?') ? config.url.slice(config.url.indexOf('?')) : '', config.url.split('?')[0], '');
+        const path = decodeURIComponent(config.url.replace('/api/files', ''));
+        const separator = path.lastIndexOf('/');
+        return transport(config.data, path.slice(0, separator + 1), path.slice(separator + 1));
+    }};
+});
+const postFileList = jest.requireMock('@/api/core').transport as jest.Mock;
+const getFileList = jest.requireMock('@/api/core').listing as jest.Mock;
 jest.mock('@/api/repository/fileTree', () => ({
     getFiles: jest.fn(),
     deleteFile: jest.fn(),
@@ -24,10 +31,7 @@ jest.mock('@/utils/UpdateTree', () => ({
 jest.mock('@/utils/recentFiles', () => ({
     recordRecentFile: jest.fn(),
 }));
-jest.mock('@/components/tagAnalyzer/persistence/tazDocumentService', () => ({
-    loadTazBoard: jest.fn(),
-    saveTazBoard: jest.fn(),
-}));
+
 
 let sLatestBoards: any[] = [];
 let updateBoards: (updater: any) => void;
@@ -76,6 +80,55 @@ const clickApply = async () => {
 };
 
 const SQL_TAB = { id: 't1', type: 'sql', name: 'q.sql', path: '/', code: 'SELECT 1', savedCode: '', sheet: [], panels: [], range_bgn: '', range_end: '' };
+
+it.each(['sql', 'wrk'].flatMap(type => ['unchanged', 'closed', 'renamed', 'superseded', 'superseded-only', 'ended-lifetime', 'released-dialog'].map(change => [type, change])))
+('keeps a %s destination attached while its later Save waits and its source is %s', async (type, change) => {
+    jest.clearAllMocks();
+    const source = { ...SQL_TAB, type, name: `q.${type}`, sheet: [{ id: 'source', contents: 'SOURCE' }] };
+    const destination = { ...SQL_TAB, id: 'destination', type, name: `b.${type}`, code: 'DESTINATION',
+        savedCode: type === 'wrk' ? JSON.stringify([{ id: 'destination', contents: 'DESTINATION' }]) : 'DESTINATION',
+        sheet: [{ id: 'destination', contents: 'DESTINATION' }] };
+    mockListing([], [{ name: destination.name, type: `.${type}` }]);
+    let finish!: (result: any) => void;
+    (postFileList as jest.Mock).mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    let requests!: ReturnType<typeof useAbortController>;
+    const SharedSave = () => {
+        requests = useAbortController();
+        return <SaveModal pIsSave setIsOpen={jest.fn()} saveRequests={requests} />;
+    };
+    render(<RecoilRoot initializeState={({ set }) => {
+        set(gBoardList, [source, destination] as any); set(gSelectedTab, source.id);
+    }}><SharedSave /><BoardSpy /></RecoilRoot>);
+    await screen.findByDisplayValue(source.name);
+    typeName(source.name, destination.name); await clickApply();
+    await act(async () => fireEvent.click(within(await screen.findByTestId('file-overwrite-dialog')).getByTestId('confirm')));
+    await waitFor(() => expect(finish).toBeDefined());
+    let finishDestination!: () => void;
+    const pendingDestination = change === 'released-dialog'
+        ? queueFileWrite('/' + destination.name, () => new Promise(resolve => { finishDestination = () => resolve({ success: true }); }))
+        : undefined;
+    // The destination's ordinary Save is queued behind this Save As. It may
+    // later succeed OR fail; until then the file contains the source snapshot.
+    const currentSource = change === 'renamed' ? { ...source, name: `renamed.${type}` } : source;
+    act(() => {
+        if (change !== 'superseded-only') requests.createSignal(destination.id);
+        selectTab(destination.id);
+        updateBoards(change === 'closed' ? [destination] : [currentSource, destination]);
+        if (change.startsWith('superseded')) requests.createSignal(source.id);
+        if (change === 'ended-lifetime') requests.abort();
+        if (change === 'released-dialog') {
+            const dialog = requests.createSignal(destination.id);
+            requests.releaseSignal(dialog, destination.id);
+            expect(requests.hasPendingRequest(destination.id)).toBe(false);
+        }
+    });
+    await act(async () => finish({ success: true }));
+    if (pendingDestination) { finishDestination(); await pendingDestination; }
+    expect(sLatestBoards).toEqual([...(change === 'closed' ? [] : [currentSource]), { ...destination,
+        savedCode: type === 'wrk' ? JSON.stringify(source.sheet) : source.code,
+    }]);
+    expect(latestSelectedTab).toBe(destination.id);
+});
 
 describe('SaveModal — overwrite check', () => {
     let sConfirmSpy: jest.SpyInstance;
@@ -196,7 +249,7 @@ describe('SaveModal — overwrite check', () => {
     it('taz branch saves under the TYPED name too (r20 M1) and keeps the tab', async () => {
         const sTazTab = { ...SQL_TAB, id: 'z1', type: 'taz', name: 'mine.taz', path: '/' };
         mockListing([], [{ name: 'other.taz', type: '.taz' }]);
-        (saveTazBoard as jest.Mock).mockImplementation((aB: any) => Promise.resolve({ ...aB }));
+
         renderSave([sTazTab], 'z1');
         await screen.findByDisplayValue('mine.taz');
         typeName('mine.taz', 'OTHER.taz');
@@ -205,8 +258,8 @@ describe('SaveModal — overwrite check', () => {
         await act(async () => {
             fireEvent.click(within(sDialog).getByTestId('confirm'));
         });
-        await waitFor(() => expect(saveTazBoard).toHaveBeenCalledTimes(1));
-        expect((saveTazBoard as jest.Mock).mock.calls[0][0]).toMatchObject({ name: 'OTHER.taz', path: '/' });
+        await waitFor(() => expect(postFileList).toHaveBeenCalledTimes(1));
+        expect(postFileList.mock.calls[0].slice(1)).toEqual(['/', 'OTHER.taz']);
         await waitFor(() => expect(sLatestBoards.map((aB) => [aB.id, aB.name])).toEqual([['z1', 'OTHER.taz']]));
     });
 
@@ -230,18 +283,20 @@ describe('SaveModal — overwrite check', () => {
     it('asks for the taz branch too and saves only after OK', async () => {
         const sTazTab = { ...SQL_TAB, id: 'z1', type: 'taz', name: 'mine.taz', path: '/a/' };
         mockListing([], [{ name: 'other.taz', type: '.taz' }]);
-        (saveTazBoard as jest.Mock).mockResolvedValue({ ...sTazTab, name: 'other.taz', path: '/a/' });
+        jest.mocked(getFiles).mockImplementation(async path => ({success:true,data:{isDir:true,children:path==='/'
+            ?[{name:'a',isDir:true}]:[{name:'other.taz',type:'.taz'}]}} as any));
+
         renderSave([sTazTab], 'z1');
         await screen.findByDisplayValue('mine.taz');
         typeName('mine.taz', 'other.taz');
         await clickApply();
 
         const sDialog = await screen.findByTestId('file-overwrite-dialog');
-        expect(saveTazBoard).not.toHaveBeenCalled();
+        expect(postFileList).not.toHaveBeenCalled();
         await act(async () => {
             fireEvent.click(within(sDialog).getByTestId('confirm'));
         });
-        await waitFor(() => expect(saveTazBoard).toHaveBeenCalledTimes(1));
+        await waitFor(() => expect(postFileList).toHaveBeenCalledTimes(1));
         expect(sConfirmSpy).not.toHaveBeenCalled();
     });
 
@@ -428,4 +483,81 @@ it('a second Apply during preflight cannot supersede the first save attempt', as
     expect(getFiles).toHaveBeenCalledTimes(1);
     await act(async () => { finish({ success: true, data: { isDir: true, children: [] } }); });
     await waitFor(() => expect(postFileList).toHaveBeenCalledTimes(1));
+});
+
+
+it('own-file Save As with a lost response invalidates only that file and keeps all drafts', async () => {
+    jest.clearAllMocks();
+    const source = {...SQL_TAB, savedCode: SQL_TAB.code};
+    const neighbour = {...source, id:'case-neighbour', name:'Q.SQL'};
+    mockListing([{name: source.name, type: '.sql'}], [{name: source.name, type: '.sql'}]);
+    // This neighbour represents a distinct case-sensitive file, whose exact
+    // entry and body must exist in the mocked server as they do on Neo.
+    jest.mocked(getFiles).mockResolvedValue({success:true,data:{isDir:true,children:[{name:'q.sql'},{name:'Q.SQL'}]}} as any);
+    (postFileList as jest.Mock).mockRejectedValueOnce(new UncertainFileWriteError(new Error('response lost')));
+    renderSave([source, neighbour], source.id);
+    await screen.findByDisplayValue(source.name); await clickApply();
+    await act(async () => fireEvent.click(within(await screen.findByTestId('file-overwrite-dialog')).getByTestId('confirm')));
+    await waitFor(() => expect(sLatestBoards[0].savedCode).toBe(false));
+    expect(sLatestBoards).toEqual([{...source, savedCode: false}, neighbour]);
+    expect(screen.getByTestId('file-save-dialog')).toBeInTheDocument();
+});
+
+it.each(['cancel','close-source'])('extra alias preflight after %s must not POST', async action => {
+    jest.clearAllMocks();
+    jest.requireActual('@/utils/fileIdentity').forgetFileIdentities();
+    (postFileList as jest.Mock).mockResolvedValue({success:true});
+    const source={...SQL_TAB,path:'/Reports/'};
+    const peer={...SQL_TAB,id:'peer',path:'/REPORTS/',name:'b.sql',code:'OLD',savedCode:'OLD'};
+    (getFileList as jest.Mock).mockResolvedValue({success:true,data:{isDir:true,children:[{name:'b.sql',type:'.sql'}]}});
+    let releaseAlias!:()=>void;
+    (getFiles as jest.Mock).mockImplementation(async path=>{
+        if(path==='/REPORTS/') return new Promise(resolve=>{releaseAlias=()=>resolve({success:true,data:{isDir:true,children:[{name:'b.sql',type:'.sql'}]}});});
+        return {success:true,data:{isDir:true,children:path==='/'?[{name:'Reports',type:'dir',isDir:true}]:[{name:'b.sql',type:'.sql'}]}};
+    });
+    const SharedSave=()=>{const requests=useAbortController();return <SaveModal pIsSave setIsOpen={jest.fn()} saveRequests={requests}/>;};
+    render(<RecoilRoot initializeState={({set})=>{set(gBoardList,[source,peer] as any);set(gSelectedTab,source.id);}}><SharedSave/><BoardSpy/></RecoilRoot>);
+    await screen.findByDisplayValue(source.name);typeName(source.name,'b.sql');await clickApply();
+    await act(async()=>fireEvent.click(within(await screen.findByTestId('file-overwrite-dialog')).getByTestId('confirm')));
+    await waitFor(()=>expect(releaseAlias).toBeDefined());
+    await act(async()=>{
+        if(action==='cancel') fireEvent.click(within(screen.getByTestId('file-save-dialog')).getByRole('button',{name:/^Cancel$/}));
+        else updateBoards([peer]);
+    });
+    await act(async()=>releaseAlias());
+    expect(postFileList).not.toHaveBeenCalled();
+});
+
+
+it.each(['wrk', 'dsh'].flatMap(type => ['cancel', 'logout'].map(action => [type, action])))
+('a late %s Save As lookup after %s cannot replace current directory identity', async (type, action) => {
+    jest.clearAllMocks();
+    cancelAllPendingFileWrites();
+    const {rememberDirectoryIdentity, getFileMutationRelation} = jest.requireActual('@/utils/fileIdentity');
+    const source = {...SQL_TAB, type, name: 'a.' + type, path: '/TARGET/',
+        sheet: [{id:'cell', contents:'KEEP WRK DRAFT', type:'mrk', height:200}],
+        dashboard: {title:'KEEP DSH DRAFT', panels:[], variables:[], timeRange:{start:'now-1h',end:'now'}, distanceRange:{start:'',end:''}}};
+    (getFileList as jest.Mock).mockResolvedValue({data:{isDir:true,children:[]}});
+    let release!: () => void;
+    jest.mocked(getFiles).mockImplementation(async path => {
+        if (path === '/') return new Promise(resolve => {release = () => resolve({data:{isDir:true,children:[{name:'target',isDir:true}]}} as any);});
+        return {data:{isDir:true,children:[]}} as any;
+    });
+    renderSave([source], source.id);
+    await screen.findByDisplayValue(source.name); typeName(source.name, 'pending.' + type); await clickApply();
+    await waitFor(() => expect(release).toBeDefined());
+    const next = {...SQL_TAB, id:'new-login', code:'NEW LOGIN DRAFT', savedCode:''};
+    await act(async () => {
+        if (action === 'cancel') fireEvent.click(within(screen.getByTestId('file-save-dialog')).getByRole('button',{name:/^Cancel$/}));
+        else {cancelAllPendingFileWrites(); updateBoards([next]); selectTab(next.id);}
+        // A current lookup observed the folder's new actual spelling.
+        rememberDirectoryIdentity('/target/', '/TARGET/');
+        rememberDirectoryIdentity('/TARGET/', '/TARGET/');
+    });
+    expect(getFileMutationRelation('/TARGET/new.' + type, '/target')).toBe('same');
+    await act(async () => release());
+    expect(postFileList).not.toHaveBeenCalled();
+    expect(getFileMutationRelation('/TARGET/new.' + type, '/target')).toBe('same');
+    expect(sLatestBoards).toEqual(action === 'logout' ? [next] : [source]);
+    cancelAllPendingFileWrites();
 });

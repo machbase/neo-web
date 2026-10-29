@@ -1,0 +1,32 @@
+import {act, renderHook, waitFor} from '@testing-library/react';
+import request from '@/api/core';
+import {useBoardSave} from '@/components/tagAnalyzer/board/useBoardSave';
+import {createTazBoardSnapshot,isTazBoardSaved} from '@/components/tagAnalyzer/persistence/tazBoardSnapshot';
+import {applyFileSaveResult,invalidateFileSaveResult} from '@/utils/boardSaveResult';
+import {saveBoardFile} from '@/utils/boardFileSave';
+import {cancelAllPendingFileWrites} from '@/api/repository/fileWriteQueue';
+import {rememberFileIdentity} from '@/utils/fileIdentity';
+jest.mock('@/api/core',()=>({__esModule:true,default:jest.fn()}));
+const http=jest.mocked(request);
+const board=(id:string,name:string,start:string)=>createTazBoardSnapshot({id,name,path:'/',type:'taz',code:'',panels:[],boardTimeRange:{start,end:'now'},boardNumericRange:{start:'',end:''},savedCode:false});
+it.each([[false,false],[false,true],[true,false],[true,true]])('acknowledges surviving destination; close source=%s, response lost=%s; later B Save fails',async(close,lost)=>{
+ cancelAllPendingFileWrites();http.mockReset();rememberFileIdentity('/b.taz','/b.taz');
+ let boards=[{...board('a','a.taz','now-1h'),boardTimeRange:{start:'now-2h',end:'now'}},board('b','b.taz','now-1h')];
+ let diskB:any;let complete!:(v:any)=>void;const held=new Promise(r=>complete=r);
+ let writes=0;http.mockImplementation(async(config:any)=>{if(++writes>1)return {success:false};diskB=config.data;await held;if(lost)throw new Error('response lost after disk write');return {success:true};});
+ const saved=jest.fn((value:any)=>{boards=applyFileSaveResult(boards,value,'taz',value);});
+ const local=jest.fn();
+ const hook=renderHook(()=>useBoardSave({board:boards[0],isActive:true,applySaveResult:local,onSavedBoard:saved,onFileSaved:jest.fn().mockResolvedValue(undefined)}));
+ let pending!:Promise<boolean>;act(()=>{pending=hook.result.current.saveAs('/','b.taz',true);});
+ await waitFor(()=>expect(http).toHaveBeenCalledTimes(1));
+ const b=boards.find(b=>b.id==='b')!;const later=saveBoardFile({board:b,onSuccess:submitted=>{boards=applyFileSaveResult(boards,b,'taz',submitted);},onUncertain:()=>{boards=invalidateFileSaveResult(boards,b);}});
+ if(close){boards=boards.filter(b=>b.id!=='a');hook.unmount();}
+ await act(async()=>{complete({success:true});await pending;await later;});
+ const target=boards.find(b=>b.id==='b')!;
+ expect(diskB.boardTimeRange.start).toBe('now-2h');
+ expect(target.boardTimeRange.start).toBe('now-1h');
+ expect(isTazBoardSaved(target)).toBe(false);
+ expect(saved).toHaveBeenCalledTimes(1);
+ if(close)expect(local).not.toHaveBeenCalled();
+ expect(boards.map(b=>[b.id,b.name])).toEqual(close?[['b','b.taz']]:[['a','a.taz'],['b','b.taz']]);
+});

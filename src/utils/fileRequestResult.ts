@@ -8,6 +8,20 @@ const isBytes = (aValue: unknown): aValue is ArrayBuffer | ArrayBufferView =>
 
 const hasOwn = (aValue: unknown, aKey: string) => typeof aValue === 'object' && aValue !== null && Object.prototype.hasOwnProperty.call(aValue, aKey);
 
+/** HTTP errors on image paths carry the same Neo JSON envelope as bytes. */
+export const getFileResponseBody = (response: any): any => {
+    let data = response?.data ?? response;
+    if (isBytes(data)) {
+        try { data = new TextDecoder().decode(data as ArrayBuffer); }
+        catch { return undefined; }
+    }
+    if (typeof data === 'string') {
+        try { return JSON.parse(data); }
+        catch { return data; }
+    }
+    return data;
+};
+
 /**
  * The request layer (src/api/core) never rejects: an HTTP error resolves to `error.response`
  * (`{ data: { success:false, reason }, status, headers }`) and a network failure resolves to the
@@ -25,22 +39,7 @@ export const getFileRequestFailure = (aRes: any, aFallback: string = 'Request fa
     if (aRes instanceof ArrayBuffer || (typeof Blob !== 'undefined' && aRes instanceof Blob) || typeof aRes === 'string') return null;
     if (hasOwn(aRes, 'headers') && hasOwn(aRes, 'status')) {
         if (typeof aRes.status === 'number' && aRes.status >= 200 && aRes.status < 300) return null;
-        let sData = aRes.data;
-        // image paths ask for responseType 'arraybuffer', so an error body arrives as bytes too (r20 L5)
-        if (isBytes(sData)) {
-            try {
-                sData = new TextDecoder().decode(sData as ArrayBuffer);
-            } catch {
-                sData = undefined;
-            }
-        }
-        if (typeof sData === 'string') {
-            try {
-                sData = JSON.parse(sData);
-            } catch {
-                // keep raw string
-            }
-        }
+        const sData = getFileResponseBody(aRes);
         const sReason = (sData && typeof sData === 'object' && sData.reason) || aRes.statusText || aFallback;
         return { reason: String(sReason), transport: false };
     }
@@ -49,6 +48,10 @@ export const getFileRequestFailure = (aRes: any, aFallback: string = 'Request fa
     // unknown object shape without a success flag — treat as success (e.g. parsed JSON file content)
     return null;
 };
+
+/** A POST acknowledgement needs an explicit success flag as well as a valid response. */
+export const isSuccessfulFileWrite = (response: any): boolean =>
+    !getFileRequestFailure(response) && (response?.success === true || response?.data?.success === true);
 
 /**
  * Why a dashboard panel's chart request failed, or null when it can be drawn. A refused query comes

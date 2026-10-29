@@ -8,7 +8,8 @@ import { useRecoilState } from 'recoil';
 import { gBoardList } from '@/recoil/recoil';
 import { createDefaultTagTableOption, getChartDefaultWidthSize, getTableType, PanelIdParser, setUnitTime } from '@/utils/dashboardUtil';
 import { TableTypeOrderList } from '@/components/side/DBExplorer/utils';
-import { getTableList, postFileList } from '@/api/repository/api';
+import { getTableList } from '@/api/repository/api';
+import { useBoardFileSave } from '@/hooks/useBoardFileSave';
 import { decodeJwt, generateUUID, isValidJSON, parseDashboardTables } from '@/utils';
 import { DefaultChartOption, getDefaultSeriesOption } from '@/utils/eChartHelper';
 import { fetchBlockTimeMinMax } from '@/api/repository/machiot';
@@ -71,6 +72,7 @@ const CreatePanel = ({
     const [sAppliedPanelOption, setAppliedPanelOption] = useState<any>({});
     const [sTableList, setTableList] = useState<any>([]);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
+    const saveBoard = useBoardFileSave();
     const [sCreateModeTimeMinMax, setCreateModeTimeMinMax] = useState<any>(undefined);
     const [sIsPreview, setIsPreview] = useState<boolean>(false);
     const [sBoardTimeRange, setBoardTimeRange] = useState<any>(undefined);
@@ -133,13 +135,12 @@ const CreatePanel = ({
                     sSaveTarget = {
                         ...aItem,
                         dashboard: sTmpDashboard,
-                        savedCode: JSON.stringify(sTmpDashboard),
                     };
                     return sSaveTarget;
                 } else return aItem;
             });
             setBoardList(() => sTabList);
-            postFileList(sSaveTarget, sSaveTarget.path, sSaveTarget.name);
+            void saveBoard(sSaveTarget);
         } else {
             const sTabList = sBoardList.map((aItem) => {
                 if (aItem.id === pBoardInfo.id) {
@@ -241,13 +242,12 @@ const CreatePanel = ({
                     sSaveTarget = {
                         ...aItem,
                         dashboard: sTmpDashboard,
-                        savedCode: JSON.stringify(sTmpDashboard),
                     };
                     return sSaveTarget;
                 } else return aItem;
             });
             setBoardList(() => sTabList);
-            postFileList(sSaveTarget, sSaveTarget.path, sSaveTarget.name);
+            void saveBoard(sSaveTarget);
         } else {
             const sTabList = sBoardList.map((aItem) => {
                 if (aItem.id === pBoardInfo.id) {

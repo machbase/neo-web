@@ -24,8 +24,11 @@ import { EXTENSION_SET } from '@/utils/constants';
 import { Toast } from '@/design-system/components';
 import { gWsLog } from '@/recoil/websocket';
 import { FileModal } from './FileModal';
+import {useFileMutationTabs} from '@/hooks/useFileMoveTabs';
+import {getRequestSession} from '@/api/core/requestSession';
 
 export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
+    const fileMutations = useFileMutationTabs();
     const sParedData: FileTreeType = {
         depth: 0,
         dirs: [],
@@ -139,7 +142,7 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
             }
 
             pGetInfo();
-            setBoardList([...sBoardList, sLoaded.board]);
+            setBoardList(boards => [...boards, sLoaded.board]);
             setSelectedTab(sTmpId);
         }
         recordRecentFile(file);
@@ -182,15 +185,6 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
     };
 
     const onRename = async (aSelectedItem: any, aName: string) => {
-        const sTmpBoardList = JSON.parse(JSON.stringify(sBoardList));
-        const updateBoardList = sTmpBoardList.map((aBoard: any) => {
-            if (aBoard.name === aSelectedItem.name && aBoard.path === aSelectedItem.path) {
-                return { ...aBoard, name: aName };
-            } else if (aBoard.path.includes(aSelectedItem.path + aSelectedItem.name + '/')) {
-                return { ...aBoard, path: aBoard.path.replace(aSelectedItem.path + aSelectedItem.name, aSelectedItem.path + aName) };
-            } else return aBoard;
-        });
-        setBoardList(updateBoardList);
         const sResultRoot = renameManager(sFileTree as any, aSelectedItem.path + aSelectedItem.name + '-' + aSelectedItem.depth, aName);
         setFileTree(JSON.parse(JSON.stringify(sResultRoot)));
     };
@@ -221,53 +215,51 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
         closeContextMenu();
     };
 
-    const multiDelete = async (aDelList: any) => {
-        const sReslutList: any = [];
+    const multiDelete = async (aDelList: any, isCurrent: () => boolean) => {
         const sFailReasons: string[] = [];
-        for (const aItem of aDelList) {
-            if (!aItem || !aItem.path || !aItem.name) continue;
-            const aResult: any = await deleteContextFile(aItem.path, aItem.name, { recursive: !!aItem.recursive });
-            const sFailure = getFileRequestFailure(aResult, 'Failed to delete.');
-            if (!sFailure) {
-                sReslutList.push(aItem);
-                DeleteFileTree(aItem);
-            } else {
-                sFailReasons.push(`${aItem.name}: ${sFailure.reason}`);
-                setConsoleList((prev: any) => [
-                    ...prev,
-                    {
-                        timestamp: new Date().getTime(),
-                        level: 'ERROR',
-                        task: '',
-                        message: sFailure.reason,
-                    },
-                ]);
-            }
-        }
-        if (sFailReasons.length > 0) Toast.error(sFailReasons.join('\n'), { testId: 'file-explorer-error-toast', id: 'file-explorer-delete' });
-        if (sReslutList && sReslutList.length > 0) {
-            let updateBoardList: any = JSON.parse(JSON.stringify(sBoardList));
-            sReslutList.map((aResult: any) => {
-                if (aResult.type === 0) {
-                    updateBoardList = updateBoardList.filter((aBoard: any) => !(aBoard.name === aResult.name && aBoard.path === aResult.path));
+        let preceding: Promise<void> = Promise.resolve();
+        // Register every target now in the existing mutation queue. Only the
+        // transmission waits for the previous item; later Saves see the intent.
+        const pending = aDelList.filter((item: any) => item?.path && item?.name).map((aItem: any) => {
+            const wait = preceding, handlers = fileMutations(aItem.path + aItem.name);
+            const deleting = deleteContextFile(aItem.path, aItem.name, {recursive: !!aItem.recursive, handlers: {
+                ...handlers,
+                prepare: async context => {
+                    await handlers.prepare?.(context);
+                    context.scope.capture();
+                    await wait;
+                },
+            }}).then((aResult: any) => {
+                if (!isCurrent()) return;
+                const sFailure = getFileRequestFailure(aResult, 'Failed to delete.');
+                if (!sFailure) {
+                    DeleteFileTree(aItem);
                 } else {
-                    updateBoardList = updateBoardList.filter((aBoard: any) => !aBoard.path.includes(aResult.path + aResult.name + '/'));
+                    sFailReasons.push(`${aItem.name}: ${sFailure.reason}`);
+                    setConsoleList((prev: any) => [
+                        ...prev,
+                        {
+                            timestamp: new Date().getTime(),
+                            level: 'ERROR',
+                            task: '',
+                            message: sFailure.reason,
+                        },
+                    ]);
                 }
             });
-
-            if (updateBoardList.length > 0) setSelectedTab(updateBoardList[0].id);
-            else {
-                const tmpId = getId();
-                updateBoardList = [{ id: tmpId, type: 'new', name: 'new', path: '', code: '', panels: [], range_bgn: '', range_end: '', sheet: [], savedCode: false }];
-                setSelectedTab(tmpId);
-            }
-            setBoardList(updateBoardList);
-        }
+            preceding = deleting.then(() => undefined, () => undefined);
+            return deleting;
+        });
+        await Promise.all(pending);
+        if (!isCurrent()) return;
+        if (sFailReasons.length > 0) Toast.error(sFailReasons.join('\n'), { testId: 'file-explorer-error-toast', id: 'file-explorer-delete' });
         // getFileTree();
         setRecentDirectory('/');
     };
 
     const handleDeleteFile = async (isRecursive: boolean) => {
+        const session = getRequestSession();
+        const isCurrent = () => session === getRequestSession();
         if (sDeleteFileList && (sDeleteFileList as any).length > 0) {
             const sDeleteList = JSON.parse(JSON.stringify(sDeleteFileList)).map((aDelFile: any) => {
                 return {
@@ -289,31 +281,14 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
                 if (!sDeleteList.some((aItem: any) => aItem.path === sContextItem.path && aItem.name === sContextItem.name)) sDeleteList.push(sContextItem);
             }
             setDeleteFileList(undefined);
-            multiDelete(sDeleteList);
+            setIsDeleteModal(false);
+            await multiDelete(sDeleteList, isCurrent);
         } else {
             if (selectedContextFile && selectedContextFile.path && selectedContextFile.name) {
-                const sResult: any = await deleteContextFile(selectedContextFile.path, selectedContextFile.name, { recursive: isRecursive });
+                const sResult: any = await deleteContextFile(selectedContextFile.path, selectedContextFile.name, { recursive: isRecursive, handlers: fileMutations(selectedContextFile.path + selectedContextFile.name) });
+                if (!isCurrent()) return;
                 const sFailure = getFileRequestFailure(sResult, 'Failed to delete.');
                 if (!sFailure) {
-                    const sTmpBoardList = JSON.parse(JSON.stringify(sBoardList));
-                    let updateBoardList: any = [];
-                    if (selectedContextFile.type === 0) {
-                        updateBoardList = sTmpBoardList.filter((aBoard: any) => !(aBoard.name === selectedContextFile.name && aBoard.path === selectedContextFile.path));
-                        if (updateBoardList.length === 0) {
-                            const tmpId = getId();
-                            setBoardList([{ id: tmpId, type: 'new', name: 'new', path: '', code: '', panels: [], range_bgn: '', range_end: '', sheet: [], savedCode: false }]);
-                            setSelectedTab(tmpId);
-                        } else setBoardList(updateBoardList);
-                        if (updateBoardList.length > 0) setSelectedTab(updateBoardList[0].id);
-                    } else {
-                        updateBoardList = sTmpBoardList.filter((cBoard: any) => !cBoard.path.includes(selectedContextFile.path + selectedContextFile.name + '/'));
-                        if (updateBoardList.length === 0) {
-                            const tmpId = getId();
-                            setBoardList([{ id: tmpId, type: 'new', name: 'new', path: '', code: '', panels: [], range_bgn: '', range_end: '', sheet: [], savedCode: false }]);
-                            setSelectedTab(tmpId);
-                        } else setBoardList(updateBoardList);
-                        if (updateBoardList.length > 0) setSelectedTab(updateBoardList[0].id);
-                    }
                     // getFileTree();
                     DeleteFileTree(selectedContextFile);
                     setRecentDirectory('/');
@@ -331,7 +306,7 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
                 }
             }
         }
-        setIsDeleteModal(false);
+        if (isCurrent()) setIsDeleteModal(false);
     };
 
     const downloadFile = async () => {

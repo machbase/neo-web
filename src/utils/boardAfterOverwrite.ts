@@ -1,26 +1,22 @@
 import { extractionExtension, isImage } from '@/utils';
+import { isSameFilePath } from './fileIdentity';
 
 /**
- * What happens to the open tabs after a file was written (issue-1544 r13/r15/r20).
- * Rule: the written file keeps exactly ONE representative tab.
- *
- * r20: the file is written under the name the USER TYPED (the server decides by file system whether 'A.sql' over an
- * existing 'a.sql' overwrites it — macOS/Windows — or makes a second file — Linux). Tabs are matched as follows:
- * - the writer tab (`currentTabId`) is always the one updated;
- * - other tabs are touched ONLY when `confirmed` (the user explicitly approved overwriting that file), and then they
- *   are matched by exact path + name compared case-INSENSITIVELY — the same comparison that raised the question
- *   (findExistingEntry), so the tab on the file the user agreed to overwrite ('a.sql') is updated/closed even though
- *   the typed name was 'A.sql'. On Linux this also closes the 'a.sql' tab although 'a.sql' survives as a separate
- *   file — accepted: the user confirmed overwriting it, and the tab would otherwise show content the user just chose
- *   to replace. Kept simple on purpose (no file-system guessing).
- * - without a confirm (a new file) nothing but the writer tab is touched — a tab on a since-deleted file keeps its
- *   unsaved content.
+ * Files are written under the typed name. resolveOverwrite records whether the
+ * server treats a case variant as the same file or as a separate file.
+ * Confirmed overwrites only close tabs on that resolved file; unconfirmed writes
+ * keep other tabs. Callers without an observation retain the legacy case match.
  */
 type TabLike = { id: string; name?: string; path?: string };
 
-/** Is this tab open on the file `{path, name}`? Exact path, name compared case-insensitively (see above). */
-export const isTabOnFile = (aTab: TabLike, aFile: { path: string; name: string }) =>
-    (aTab.path ?? '') === aFile.path && (aTab.name ?? '').toLowerCase() === aFile.name.toLowerCase();
+/** Confirmed overwrites accept case aliases; ordinary saves must keep distinct file names distinct. */
+export const isTabOnFile = (aTab: TabLike, aFile: { path: string; name: string }, exactName = false) => {
+    // An empty path is a retained draft, never a root file.
+    if (!aTab.path || !aFile.path) return false;
+    const tabPath = aTab.path + (aTab.name ?? '');
+    const targetPath = aFile.path + aFile.name;
+    return isSameFilePath(tabPath, targetPath, exactName);
+};
 
 /**
  * After a write:

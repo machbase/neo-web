@@ -1,8 +1,13 @@
-import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Toast } from '@/design-system/components';
 import { useAbortController } from '@/hooks/useAbortController';
+import { saveBoardFile } from '@/utils/boardFileSave';
+import type { OverwriteDecision } from '@/utils/fileExistence';
+import { applyBoardSaveResult } from '@/utils/boardSaveResult';
+import { isTabOnFile } from '@/utils/boardAfterOverwrite';
 import type { BoardInfo } from './boardModel';
-import { isTazBoardSaved, saveTazBoard } from './boardDocuments';
+import {isBoardSaved} from '@/utils/boardSaveStatus';
+import {subscribeFileOperations, getFileOperationVersion} from '@/api/repository/fileWriteQueue';
 
 export function useBoardSave({
     board,
@@ -10,9 +15,13 @@ export function useBoardSave({
     applySaveResult,
     onSavedBoard,
     onFileSaved,
+    getSaveBoards,
 }: UseBoardSaveParams) {
+    useSyncExternalStore(subscribeFileOperations, getFileOperationVersion, getFileOperationVersion);
     const [isSaveAsOpen, setIsSaveAsOpen] = useState(false);
-    const { createSignal, abort } = useAbortController();
+    const { createSignal, releaseSignal, isCurrentLifetime, abort } = useAbortController();
+    const currentBoard = useRef(board);
+    currentBoard.current = board;
 
     useLayoutEffect(() => abort, [abort, board.id]);
 
@@ -25,6 +34,7 @@ export function useBoardSave({
         }
 
         const signal = createSignal();
+        const before = destination?.before ?? (destination && getSaveBoards ? new Map(getSaveBoards().map(info => [info.id, info])) : undefined);
         const boardToSave: BoardInfo = destination
             ? {
                   ...board,
@@ -32,34 +42,92 @@ export function useBoardSave({
                   name: destination.fileName,
               }
             : board;
-        const savedBoard = await saveTazBoard(boardToSave);
+        // The dialog's intent survives neither Cancel nor a newer save. Unlike
+        // the pre-write owner check, this remains valid after a normal rebind.
+        const canFinishSave = () => isCurrentLifetime(signal) && !signal.aborted && (destination?.canWrite?.() ?? true);
+        const canWrite = () => isCurrentLifetime(signal) && (!destination || (
+            canFinishSave() &&
+            currentBoard.current.id === board.id && currentBoard.current.name === board.name && currentBoard.current.path === board.path
+        ));
+        try {
+            let overwritten = !!destination?.overwritten;
+            let latestAction = true;
+            let failureReason: string | undefined;
+            const success = await saveBoardFile({
+                board: boardToSave,
+                saveAs: !!destination,
+                beforeWrite: async () => {
+                    if (!canWrite()) return false;
+                    if (!destination) return true;
+                    if (signal.aborted) return false;
+                    if (destination.prepare) {
+                        const decision = await destination.prepare();
+                        if (decision.status !== 'none' && decision.status !== 'confirmed') return false;
+                        overwritten = decision.status === 'confirmed';
+                    }
+                    return canWrite();
+                },
+                onFailure: reason => {failureReason = reason;},
+                canApply: () => isCurrentLifetime(signal),
+                canWrite,
+                getSaveBoards,
+                onRead: loaded => {
+                    const actualOwner = onSavedBoard(loaded, { overwritten: false, acknowledgementOnly: true });
+                    if (isCurrentLifetime(signal) && isTabOnFile(currentBoard.current, loaded, true)) {
+                        applySaveResult(actualOwner || applyBoardSaveResult(currentBoard.current, 'taz', loaded));
+                    }
+                },
+                onSuccess: (savedBoard, context) => {
+                    latestAction = context.isLatestAction;
+                    if (!canFinishSave() || !latestAction) {
+                        const acknowledged = isTabOnFile(currentBoard.current, savedBoard, true)
+                            ? applyBoardSaveResult(currentBoard.current, 'taz', savedBoard) : savedBoard;
+                        const actualOwner = onSavedBoard(acknowledged, { overwritten: false, acknowledgementOnly: true });
+                        if (isCurrentLifetime(signal) && isTabOnFile(currentBoard.current, savedBoard, true)) applySaveResult(actualOwner || acknowledged);
+                        return;
+                    }
+                    const acknowledged = {
+                        ...applyBoardSaveResult(currentBoard.current, 'taz', savedBoard),
+                        name: savedBoard.name, path: savedBoard.path,
+                    };
+                    const actualOwner = onSavedBoard(acknowledged, {
+                        overwritten, isSaving: context.isSaving,
+                        ...(destination ? {saveAs: true, owner: board, before} : {}),
+                    });
+                    applySaveResult(actualOwner || acknowledged);
+                },
+                onUncertain: (target = boardToSave) => {
+                    const unknownFile = { ...boardToSave, name: target.name, path: target.path, savedCode: false as const };
+                    const unknownBoard = isTabOnFile(currentBoard.current, unknownFile, true)
+                        ? applyBoardSaveResult(currentBoard.current, 'taz', unknownFile) : unknownFile;
+                    const actualOwner = onSavedBoard(unknownBoard, { overwritten: false, acknowledgementOnly: true });
+                    if (isCurrentLifetime(signal) && isTabOnFile(currentBoard.current, unknownBoard, true)) applySaveResult(actualOwner || unknownBoard);
+                },
+            });
+            if (!success || !canFinishSave() || !latestAction) {
+                if (!success && !signal.aborted && canWrite()) Toast.error(failureReason ?? SAVE_ERROR_MESSAGE);
+                return false;
+            }
+            Toast.success(SAVE_SUCCESS_MESSAGE, {
+                testId: 'tag-analyzer-save-success-toast',
+            });
 
-        if (!savedBoard) {
+            if (destination) {
+                try {
+                    await onFileSaved(destination.directoryPath, destination.fileName, canFinishSave);
+                } catch {
+                    if (canFinishSave()) Toast.error(FILE_TREE_REFRESH_ERROR_MESSAGE);
+                }
+            }
+            return canFinishSave();
+        } catch {
+            if (!isCurrentLifetime(signal)) return false;
             if (!signal.aborted) Toast.error(SAVE_ERROR_MESSAGE);
             return false;
+        } finally {
+            releaseSignal(signal);
         }
-        if (signal.aborted) return false;
-
-        applySaveResult(savedBoard);
-        // r15: other tabs on the file are closed only after a confirmed overwrite (Save As), never on Ctrl+S
-        onSavedBoard(savedBoard, { overwritten: !!destination?.overwritten });
-        Toast.success(SAVE_SUCCESS_MESSAGE, {
-            testId: 'tag-analyzer-save-success-toast',
-        });
-
-        if (destination) {
-            try {
-                await onFileSaved(
-                    destination.directoryPath,
-                    destination.fileName,
-                );
-            } catch {
-                Toast.error(FILE_TREE_REFRESH_ERROR_MESSAGE);
-            }
-        }
-
-        return !signal.aborted;
-    }, [applySaveResult, board, createSignal, onFileSaved, onSavedBoard]);
+    }, [applySaveResult, board, createSignal, isCurrentLifetime, onFileSaved, onSavedBoard, releaseSignal, getSaveBoards]);
 
     useEffect(() => {
         if (!isActive) {
@@ -91,15 +159,15 @@ export function useBoardSave({
     }, [isActive, save]);
 
     const saveAs = useCallback(
-        (directoryPath: string, fileName: string, overwritten?: boolean) =>
-            save({ directoryPath, fileName, overwritten }),
+        (directoryPath: string, fileName: string, overwritten?: boolean, before?: ReadonlyMap<string, BoardInfo>, prepare?: () => Promise<OverwriteDecision>, canWrite?: () => boolean) =>
+            save({ directoryPath, fileName, overwritten, before, prepare, canWrite }),
         [save],
     );
     const openSaveAs = useCallback(() => setIsSaveAsOpen(true), []);
     const closeSaveAs = useCallback(() => setIsSaveAsOpen(false), []);
 
     return {
-        hasUnsavedChanges: !isTazBoardSaved(board),
+        hasUnsavedChanges: !isBoardSaved(board),
         isSaveAsOpen,
         save,
         saveAs,
@@ -119,12 +187,26 @@ type SaveDestination = {
     directoryPath: string;
     fileName: string;
     overwritten?: boolean;
+    before?: ReadonlyMap<string, BoardInfo>;
+    prepare?: () => Promise<OverwriteDecision>;
+    canWrite?: () => boolean;
 };
 
 type UseBoardSaveParams = {
     board: BoardInfo;
     isActive: boolean;
     applySaveResult: (savedBoard: BoardInfo) => void;
-    onSavedBoard: (savedBoard: BoardInfo, opts: { overwritten: boolean }) => void;
-    onFileSaved: (directoryPath: string, fileName: string) => Promise<void>;
+    onSavedBoard: (savedBoard: BoardInfo, opts: SavedBoardOptions) => BoardInfo | void;
+    getSaveBoards?: () => BoardInfo[];
+    onFileSaved: (directoryPath: string, fileName: string, canApply?: () => boolean) => Promise<void>;
+};
+
+
+export type SavedBoardOptions = {
+    overwritten: boolean;
+    acknowledgementOnly?: boolean;
+    isSaving?: (board: {id: string}) => boolean;
+    saveAs?: boolean;
+    owner?: Pick<BoardInfo, 'id' | 'name' | 'path'>;
+    before?: ReadonlyMap<string, BoardInfo>;
 };

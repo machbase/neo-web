@@ -10,6 +10,8 @@ export default function TagAnalyzer({ info }: { info: BoardInfo }) {
         rollupTableList,
         handleFileSaved,
         updateSavedBoard: handleSavedBoard,
+        updateRuntimeBoard,
+        getSaveBoards,
     } = useTagAnalyzerAppState(info);
 
     if (isLoading) return null;
@@ -26,6 +28,8 @@ export default function TagAnalyzer({ info }: { info: BoardInfo }) {
                     isActiveTab={sIsActiveTab}
                     rollupTableList={rollupTableList}
                     onSavedBoard={handleSavedBoard}
+                    onRuntimeChange={updateRuntimeBoard}
+                    getSaveBoards={getSaveBoards}
                     onFileSaved={handleFileSaved}
                 />
             </Page>

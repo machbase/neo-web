@@ -5,6 +5,7 @@ import {
     type PanelInfo,
 } from '../panel/panelModel';
 import type { BoardInfo } from './boardModel';
+import { hasBoardContentChanged } from '@/utils/boardSaveResult';
 import { isSameRange } from '../rangeExpression/rangeArithmetic';
 import {
     type AxisKind,
@@ -20,8 +21,9 @@ export function useBoardState(boardInfo: BoardInfo) {
     useEffect(() => {
         if (sPreviousBoardInfoRef.current === boardInfo) return;
 
+        const previous = sPreviousBoardInfoRef.current;
         sPreviousBoardInfoRef.current = boardInfo;
-        setState((current) => reconcileBoardRuntimeState(current, boardInfo));
+        setState((current) => reconcileBoardRuntimeState(current, boardInfo, previous));
     }, [boardInfo]);
 
     const commands = useMemo(() => ({
@@ -108,17 +110,14 @@ export function useBoardState(boardInfo: BoardInfo) {
             ),
     }), []);
 
+    const infoForSave = useMemo(() => ({
+        ...state.info,
+        panels: state.info.panels.map(panelInfo => getPanelInfoForSave(panelInfo, state.panelRanges[panelInfo.key])),
+    }), [state.info, state.panelRanges]);
+
     return {
         state,
-        infoForSave: {
-            ...state.info,
-            panels: state.info.panels.map((panelInfo) =>
-                getPanelInfoForSave(
-                    panelInfo,
-                    state.panelRanges[panelInfo.key],
-                ),
-            ),
-        },
+        infoForSave,
         commands,
     };
 }
@@ -165,12 +164,13 @@ function createBoardRuntimeState(
 function reconcileBoardRuntimeState(
     state: BoardRuntimeState,
     boardInfo: BoardInfo,
+    previousInfo: BoardInfo,
 ): BoardRuntimeState {
     const sIncomingSavedCode = boardInfo.savedCode;
     if (
         boardInfo.id === state.info.id &&
-        typeof sIncomingSavedCode === 'string' &&
-        sIncomingSavedCode === state.info.savedCode
+        ((typeof sIncomingSavedCode === 'string' && sIncomingSavedCode === state.info.savedCode) ||
+            !hasBoardContentChanged(boardInfo, previousInfo))
     ) {
         return {
             ...state,

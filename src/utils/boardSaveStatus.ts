@@ -1,3 +1,4 @@
+import {hasPendingBoardSave, hasPendingFileWrite, isFileSnapshotCurrent} from '@/api/repository/fileWriteQueue';
 import { isValidJSON } from '@/utils';
 import { isTazBoardSaved as isTagAnalyzerBoardSaved } from '@/components/tagAnalyzer/persistence/tazDocumentService';
 
@@ -8,7 +9,7 @@ const ALWAYS_SAVED_TYPES = ['appStore', 'appView', 'DBTable', 'camera', 'blackbo
  * Determine whether a board (tab) has unsaved changes.
  * Returns true if the board is saved (no changes), false if unsaved.
  */
-export const isBoardSaved = (board: any): boolean => {
+export const isBoardContentSaved = (board: any): boolean => {
     if (ALWAYS_SAVED_TYPES.includes(board.type)) return true;
 
     switch (board.type) {
@@ -67,4 +68,13 @@ export const isBoardSaved = (board: any): boolean => {
         default:
             return board.code === board.savedCode;
     }
+};
+
+/** The comparison remains pure for editor reconciliation. A rendered saved
+ * indicator additionally requires that no tracked operation can change it. */
+export const isBoardSaved = (board: any): boolean => {
+    const fileTypes = ['sql','tql','json','csv','md','html','txt','css','js','wrk','dsh','taz'];
+    if (fileTypes.includes(board.type) && (hasPendingBoardSave(board.id) ||
+        board.path && (hasPendingFileWrite(board.path + board.name) || !isFileSnapshotCurrent(board, board.path + board.name)))) return false;
+    return isBoardContentSaved(board);
 };

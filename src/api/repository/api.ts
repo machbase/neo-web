@@ -7,7 +7,8 @@ import { findDatabaseByName, LEGACY_DATABASE } from '@/utils/currentDatabaseStat
 import { DATABASE_PERMISSION } from '@/components/side/DBExplorer/utils';
 import type { BackupRequest } from '@/components/database/backup/backupPayload';
 import { buildFilesUrl } from '@/utils/filePath';
-import { cancelPendingFileWrites, queueFileWrite } from './fileWriteQueue';
+import { queueFileWrite, type FileWriteOptions } from './fileWriteQueue';
+import {deleteFile} from './fileTree';
 import { sqlIdentifierPath, sqlQueryUrl, sqlString } from '@/utils/queryText';
 
 
@@ -24,16 +25,13 @@ const getReferenceList = () => {
     });
 };
 
-const postFileList = (aContents: any, aDir: string, aFileName: string) => {
+const postFileList = (aContents: any, aDir: string, aFileName: string, options?: FileWriteOptions) => {
     const path = `${aDir}/${aFileName}`;
-    return queueFileWrite(path, () => request({ method: 'POST', url: buildFilesUrl(path), data: aContents }));
+    return queueFileWrite(path, context => request({ method: 'POST', url: buildFilesUrl(path), data: aContents,
+        canRetryFileRequest: context.canRetry }), options);
 };
 const deleteFileList = (aDir: string, aFileName: string) => {
-    cancelPendingFileWrites(`${aDir}/${aFileName}`);
-    return request({
-        method: 'DELETE',
-        url: buildFilesUrl(`${aDir}/${aFileName}`),
-    });
+    return deleteFile(aDir, aFileName);
 };
 
 const getLicense = () => {

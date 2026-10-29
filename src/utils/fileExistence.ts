@@ -1,25 +1,34 @@
+import {getUnknownFileIdentityPaths} from '@/api/repository/fileWriteQueue';
 import { getFiles } from '@/api/repository/fileTree';
 import { getFileList } from '@/api/repository/api';
 import { getFileRequestFailure } from '@/utils/fileRequestResult';
 import { extractionExtension } from '@/utils';
 import { toDirPath } from '@/utils/filePath';
+import { getFileLookupKey, rememberDirectoryIdentity, rememberFileIdentity, rememberUnresolvedFileIdentity } from './fileIdentity';
 
 export type ExistingEntry = { name: string; isDir: boolean };
 
+const matchingEntries = (children: Parameters<typeof findExistingEntry>[0], name: string) =>
+    (children ?? []).filter(child => !child?.virtual && typeof child?.name === 'string' && getFileLookupKey(child.name) === getFileLookupKey(name));
+
 /**
- * Find an entry with the same name, compared case-INSENSITIVELY, and return the server's real name.
+ * Find a candidate by case/Unicode spelling and return the server's real name.
  * The server leaves name case to the file system: on macOS/Windows installs `A.sql` overwrites `a.sql`,
  * on Linux they are distinct. Comparing without case loses nothing on any of them (Linux only gets one
  * extra question) — issue-1544 r12. An exact match wins when both exist (Linux).
+ * Unicode equivalents are candidates too; resolveOverwrite probes the typed path
+ * before recording identity, so distinct NFC/NFD files never share a baseline.
  */
 export const findExistingEntry = (aChildren: { name: string; isDir?: boolean; type?: string; virtual?: boolean }[] | undefined | null, aName: string): ExistingEntry | null => {
     if (!Array.isArray(aChildren) || !aName) return null;
-    const sKey = aName.toLowerCase();
+    const sKey = getFileLookupKey(aName);
     // r15: a virtual item (sample placeholder, not on disk) is not an existing entry — nothing there to overwrite
     const sReal = aChildren.filter((aChild) => !aChild?.virtual);
     const sHit =
         sReal.find((aChild) => aChild?.name === aName) ??
-        sReal.find((aChild) => typeof aChild?.name === 'string' && aChild.name.toLowerCase() === sKey);
+        // Prefer the original Unicode spelling when that file exists separately.
+        sReal.find((aChild) => typeof aChild?.name === 'string' && aChild.name.toLowerCase() === aName.toLowerCase()) ??
+        sReal.find((aChild) => typeof aChild?.name === 'string' && getFileLookupKey(aChild.name) === sKey);
     if (!sHit) return null;
     return { name: sHit.name, isDir: !!sHit.isDir || sHit.type === 'dir' };
 };
@@ -86,6 +95,31 @@ export const cloneReplaceMessage = (aExistingName: string) =>
  */
 export type OverwriteDecision = { status: 'none' | 'cancel' | 'confirmed' } | { status: 'folder' | 'failed'; reason: string };
 
+/** The folder endpoint echoes the requested spelling. Parent listings supply
+ * the actual names; exact matches keep case-sensitive sibling folders distinct.
+ * The caller has already verified that the requested full folder exists. */
+const resolveDirectoryIdentity = async (directory: string, canObserve: () => boolean): Promise<{path: string; uncertain: boolean} | {reason: string}> => {
+    let actual = '/', uncertain = false;
+    for (const segment of directory.split('/').filter(Boolean)) {
+        if (!canObserve()) return {reason: 'File lookup cancelled.'};
+        const parent = await readTargetDir(actual);
+        if (!parent.ok) return {reason: parent.reason};
+        if (parent.dir.missing) return {reason: missingFolderReason(actual)};
+        const candidates = matchingEntries(parent.dir.children, segment);
+        if (!candidates.some(entry => entry.name === segment) && candidates.length > 1) {
+            // The complete requested directory was read successfully, but the API
+            // gives no physical id to choose between several equivalent names.
+            actual += segment + '/';
+            uncertain = true;
+            continue;
+        }
+        const entry = findExistingEntry(parent.dir.children, segment);
+        if (!entry?.isDir) return {reason: `Failed to identify the folder '${directory}'.`};
+        actual += entry.name + '/';
+    }
+    return {path: actual, uncertain};
+};
+
 /**
  * The shared "save here?" check of every file save/create path: unfiltered re-query right before saving,
  * case-insensitive name match, and `aAsk(existingRealName)` (a ConfirmModal-backed promise) only for an existing file.
@@ -95,14 +129,60 @@ export type OverwriteDecision = { status: 'none' | 'cancel' | 'confirmed' } | { 
  * - 'folder'    a folder has that name → do not save
  * - 'failed'    the lookup failed / the folder does not exist → do not save
  */
-export const resolveOverwrite = async (aDir: string, aName: string, aAsk: (aName: string) => Promise<boolean>): Promise<OverwriteDecision> => {
-    const sDir = await readTargetDir(aDir);
-    if (!sDir.ok) return { status: 'failed', reason: sDir.reason };
-    if (sDir.dir.missing) return { status: 'failed', reason: missingFolderReason(aDir) };
-    const sEntry = findExistingEntry(sDir.dir.children, aName);
-    if (!sEntry) return { status: 'none' };
-    if (sEntry.isDir) return { status: 'folder', reason: `A folder named '${sEntry.name}' already exists.` };
-    return (await aAsk(sEntry.name)) ? { status: 'confirmed' } : { status: 'cancel' };
+type TargetInspection = {decision: OverwriteDecision; existingName?: string; publish?: () => void};
+
+/** Observation has no approval/UI side effect. Failed or stale observations
+ * never publish file identity into the current login's resolver. */
+const inspectFileTarget = async (aDir: string, aName: string, canObserve: () => boolean): Promise<TargetInspection> => {
+    if (!canObserve()) return {decision: {status: 'cancel'}};
+    const dir = await readTargetDir(aDir);
+    if (!canObserve()) return {decision: {status: 'cancel'}};
+    if (!dir.ok) return {decision: {status: 'failed', reason: dir.reason}};
+    if (dir.dir.missing) return {decision: {status: 'failed', reason: missingFolderReason(aDir)}};
+    const directory = await resolveDirectoryIdentity(aDir, canObserve);
+    if (!canObserve()) return {decision: {status: 'cancel'}};
+    if ('reason' in directory) return {decision: {status: 'failed', reason: directory.reason}};
+    const children = dir.dir.children;
+    const path = toDirPath(aDir), entry = findExistingEntry(children, aName);
+    const publishDirectory = () => {
+        if (!directory.uncertain) rememberDirectoryIdentity(aDir, directory.path);
+        else rememberUnresolvedFileIdentity(path + aName);
+    };
+    if (!entry) return {decision: {status: 'none'}, publish: publishDirectory};
+    if (entry.isDir) return {decision: {status: 'folder', reason: `A folder named '${entry.name}' already exists.`}, publish: () => {
+        if (!directory.uncertain && entry.name === aName) {
+            publishDirectory(); rememberDirectoryIdentity(path + aName, directory.path + entry.name);
+        }
+    }};
+    let actualName = aName, uncertain = directory.uncertain;
+    if (entry.name !== aName) {
+        const response: any = await getFiles(path + aName, {rawText: true});
+        if (!canObserve()) return {decision: {status: 'cancel'}};
+        if (response?.status !== 404) {
+            const failure = getFileRequestFailure(response, 'Failed to identify the target file.');
+            if (failure) return {decision: {status: 'failed', reason: failure.reason}};
+            if (matchingEntries(children, aName).length > 1) uncertain = true;
+            else actualName = entry.name;
+        }
+    }
+    return {decision: {status: 'confirmed'}, existingName: uncertain ? aName : entry.name, publish: () => {
+        publishDirectory();
+        if (uncertain) {rememberUnresolvedFileIdentity(path + aName); return;}
+        for (const child of children) if (!child.virtual && getFileLookupKey(child.name) === getFileLookupKey(aName))
+            rememberFileIdentity(path + child.name, directory.path + child.name);
+        rememberFileIdentity(path + aName, directory.path + actualName);
+    }};
+};
+export const observeFileIdentity = async (dir: string, name: string, canObserve: () => boolean = () => true): Promise<OverwriteDecision> => {
+    const inspection = await inspectFileTarget(dir, name, canObserve);
+    if (!canObserve()) return {status: 'cancel'};
+    inspection.publish?.(); return inspection.decision;
+};
+export const resolveOverwrite = async (dir: string, name: string, ask: (name: string) => Promise<boolean>, canObserve: () => boolean = () => true): Promise<OverwriteDecision> => {
+    const inspection = await inspectFileTarget(dir, name, canObserve);
+    if (!canObserve()) return {status: 'cancel'};
+    if (inspection.existingName !== undefined && (!await ask(inspection.existingName) || !canObserve())) return {status: 'cancel'};
+    inspection.publish?.(); return inspection.decision;
 };
 
 export type CloneDecision = { status: 'none' | 'cancel' | 'confirmed' } | { status: 'file' | 'failed'; reason: string };
@@ -138,4 +218,19 @@ export const resolveNewFolder = async (aDir: string, aName: string): Promise<New
     if (sDir.dir.missing) return { status: 'failed', reason: `Parent folder '${toDirPath(aDir)}' does not exist.` };
     const sHit = sDir.dir.children.find((aChild) => !aChild?.virtual && aChild?.name === aName);
     return sHit ? { status: 'exists', reason: `'${sHit.name}' already exists.` } : { status: 'none' };
+};
+
+/** Refine only related spelling candidates. This never releases an unknown
+ * physical request and never waits for an unrelated source/destination probe. */
+export const observeFileAccess = async (path: string, canObserve: () => boolean): Promise<void> => {
+    if (!getUnknownFileIdentityPaths(path).length) return;
+    const observe = async (target: string) => {
+        const separator = target.lastIndexOf('/');
+        await observeFileIdentity(target.slice(0, separator + 1), target.slice(separator + 1), canObserve);
+    };
+    await observe(path);
+    for (const target of getUnknownFileIdentityPaths(path)) {
+        if (!canObserve()) return;
+        await observe(target);
+    }
 };

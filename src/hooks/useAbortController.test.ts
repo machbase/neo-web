@@ -48,3 +48,49 @@ it('explicit abort retains its existing cancel-all contract', () => {
     expect(first.aborted).toBe(true);
     expect(second.aborted).toBe(true);
 });
+
+it('reports pending owners until their latest request finishes or is aborted', () => {
+    const { result } = renderHook(useAbortController);
+    expect(result.current.hasPendingRequest('tab')).toBe(false);
+    const older = result.current.createSignal('tab');
+    const newer = result.current.createSignal('tab');
+    result.current.releaseSignal(older, 'tab');
+    expect(result.current.hasPendingRequest('tab')).toBe(true);
+    result.current.releaseSignal(newer, 'tab');
+    expect(result.current.hasPendingRequest('tab')).toBe(false);
+    result.current.createSignal('other');
+    act(() => result.current.abort());
+    expect(result.current.hasPendingRequest('other')).toBe(false);
+});
+
+it('keeps a superseded successful write in the current lifetime until it finishes', () => {
+    const { result } = renderHook(useAbortController);
+    const older = result.current.createSignal('tab');
+    const newer = result.current.createSignal('tab');
+    expect(older.aborted).toBe(true);
+    expect(result.current.isCurrentLifetime(older)).toBe(true);
+    result.current.releaseSignal(newer, 'tab');
+    expect(result.current.isCurrentLifetime(older)).toBe(true);
+    result.current.releaseSignal(older, 'tab');
+    expect(result.current.isCurrentLifetime(older)).toBe(false);
+});
+
+it('explicit abort invalidates both superseded and current writes, then permits a new lifetime', () => {
+    const { result } = renderHook(useAbortController);
+    const older = result.current.createSignal('tab');
+    const newer = result.current.createSignal('tab');
+    act(() => result.current.abort());
+    expect(result.current.isCurrentLifetime(older)).toBe(false);
+    expect(result.current.isCurrentLifetime(newer)).toBe(false);
+    const next = result.current.createSignal('tab');
+    expect(result.current.isCurrentLifetime(next)).toBe(true);
+});
+
+it('unmount invalidates superseded writes as well as the latest request', () => {
+    const { result, unmount } = renderHook(useAbortController);
+    const older = result.current.createSignal('tab');
+    const newer = result.current.createSignal('tab');
+    unmount();
+    expect(result.current.isCurrentLifetime(older)).toBe(false);
+    expect(result.current.isCurrentLifetime(newer)).toBe(false);
+});

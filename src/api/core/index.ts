@@ -4,6 +4,18 @@ import { isImage } from '@/utils';
 import { Toast } from '@/design-system/components';
 import { parseArrayJsonLosslessly } from '@/utils/arrayValue';
 import { RASTER_IMAGE_EXTENSIONS } from '@/utils/fileName';
+import { getRequestSession } from './requestSession';
+
+declare module 'axios' {
+    interface AxiosRequestConfig<D = any> {
+        /** Pure file/owner guard, checked again before authentication replay. */
+        canRetryFileRequest?: () => boolean;
+    }
+}
+
+const assertCurrentSession = (session: number) => {
+    if (session !== getRequestSession()) throw new axios.CanceledError('Login session changed.');
+};
 
 // Define custom type for headers
 interface CustomHeaders {
@@ -22,6 +34,8 @@ const request = axios.create({
 // Request interceptor
 request.interceptors.request.use(
     (config: any) => {
+        config.loginSession ??= getRequestSession();
+        assertCurrentSession(config.loginSession);
         const sHeaders = config.headers as CustomHeaders;
         const sUrlSplit = config.url?.split('?');
         const sFileOption = sUrlSplit[0].indexOf('/api/files');
@@ -123,8 +137,10 @@ request.interceptors.request.use(
         return config;
     },
     (error: AxiosError) => {
-        return Promise.reject(error);
-    }
+        throw error;
+    },
+    // Capture the login before another action can log out in the same turn.
+    { synchronous: true }
 );
 const isJsonString = (aString: string) => {
     try {
@@ -136,7 +152,7 @@ const isJsonString = (aString: string) => {
 };
 const sTqlFilePattern = /^\/api\/tql\/.*\.tql/;
 // Singleton reLogin promise to prevent concurrent refresh calls
-let reLoginPromise: Promise<any> | null = null;
+let reLoginPromise: { session: number; promise: Promise<any> } | null = null;
 // Prevent duplicate session-expired toasts
 let isSessionExpired = false;
 let isUserInitiatedLogout = false;
@@ -158,10 +174,12 @@ export const showSessionExpiredToast = (message: string) => {
 };
 
 export const executeReLogin = async (): Promise<any> => {
-    if (reLoginPromise) return reLoginPromise;
+    const session = getRequestSession();
+    if (reLoginPromise?.session === session) return reLoginPromise.promise;
 
-    reLoginPromise = reLogin()
+    const promise = reLogin()
         .then((res: any) => {
+            assertCurrentSession(session);
             if (res?.success) {
                 localStorage.setItem('accessToken', res.accessToken);
                 localStorage.setItem('refreshToken', res.refreshToken);
@@ -169,10 +187,11 @@ export const executeReLogin = async (): Promise<any> => {
             return res;
         })
         .finally(() => {
-            reLoginPromise = null;
+            if (reLoginPromise?.promise === promise) reLoginPromise = null;
         });
 
-    return reLoginPromise;
+    reLoginPromise = { session, promise };
+    return promise;
 };
 
 // Response interceptor
@@ -201,27 +220,38 @@ request.interceptors.response.use(
 
         let sData;
         if (error.response && error.response.status === 401) {
+            const session = error.config.loginSession;
+            const canRetry = () => session === getRequestSession() && (error.config.canRetryFileRequest?.() ?? true);
+            // The server has finished this request. Cancel its authentication
+            // retry on logout without discarding the original completion response.
+            if (!canRetry()) return error.response;
             if (error.response.config.url !== `/api/relogin`) {
-                const sRefresh: any = await executeReLogin();
+                let sRefresh: any;
+                try { sRefresh = await executeReLogin(); }
+                catch (refreshError) {
+                    if (!canRetry()) return error.response;
+                    throw refreshError;
+                }
+                if (!canRetry()) return error.response;
 
                 if (sRefresh?.success) {
                     if (error.response.config.url !== `/api/login`) {
                         sData = request(error.config);
                     } else {
-                        return error;
+                        return error.response;
                     }
                 } else {
                     showSessionExpiredToast('Session expired. Please log in again.');
                     if (!isUserInitiatedLogout) window.dispatchEvent(new Event('logoutEvent'));
-                    return error;
+                    return error.response;
                 }
             } else {
-                return error;
+                return error.response;
             }
             if (sData) {
                 return sData;
             }
-            return error;
+            return error.response;
         }
         if (error.response && error.response.status !== 401) {
             return error.response;

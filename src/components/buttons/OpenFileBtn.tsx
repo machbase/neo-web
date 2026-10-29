@@ -1,11 +1,9 @@
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { GBoardListType, gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { extractionExtension, getId } from '@/utils';
-import { getFiles } from '@/api/repository/fileTree';
-import { CheckDataCompatibility } from '@/utils/CheckDataCompatibility';
+import { loadBoardFromFile } from '@/components/side/FileExplorer/loadBoardFromFile';
 import './OpenFileBtn.scss';
 import { Button } from '@/design-system/components';
-import { loadTazBoard } from '@/components/tagAnalyzer/persistence/tazDocumentService';
 
 export const OpenFileBtn = ({
     pType,
@@ -45,42 +43,13 @@ export const OpenFileBtn = ({
         if (sExistBoard) {
             setSelectedTab(sExistBoard.id as string);
         } else {
-            const sFileExtension = extractionExtension(sFileName);
-            const sContentResult: any = await getFiles(`${sFilePath}/${sFileName}`);
-            if (typeof sContentResult === 'string') {
-                let sTmpBoard: any = { id: sTmpId, name: sFileName, type: sFileExtension, path: sFilePath, savedCode: sContentResult, code: '' };
-                if (sFileExtension === 'dsh') {
-                    const sTmpData: any = CheckDataCompatibility(sContentResult, sFileExtension);
-                    sTmpBoard = {
-                        ...sTmpData,
-                        id: sTmpId,
-                        name: sFileName,
-                        type: sFileExtension,
-                        path: sFilePath,
-                        savedCode: JSON.stringify(JSON.parse(sContentResult).dashboard),
-                    };
-                } else if (sFileExtension === 'taz') {
-                    try {
-                        sTmpBoard = loadTazBoard(JSON.parse(sContentResult), sTmpId, sFileName, sFilePath);
-                    } catch (error) {
-                        pErrorCallback?.(
-                            error instanceof Error
-                                ? error.message
-                                : 'Failed to load TAZ file.',
-                        );
-                        return;
-                    }
-                } else {
-                    sTmpBoard.code = sContentResult;
-                }
-                setBoardList([...sBoardList, sTmpBoard]);
-                setSelectedTab(sTmpId);
-                return;
-            } else {
-                pErrorCallback &&
-                    pErrorCallback(sContentResult?.data ? (sContentResult as any).data?.reason ?? (sContentResult as any).data : (sContentResult?.statusText as string));
+            const sLoaded = await loadBoardFromFile({ path: sFilePath, name: sFileName }, sTmpId);
+            if (sLoaded.error !== undefined) {
+                pErrorCallback?.(sLoaded.error);
                 return;
             }
+            setBoardList(boards => [...boards, sLoaded.board]);
+            setSelectedTab(sTmpId);
         }
     };
 

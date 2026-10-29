@@ -40,3 +40,10 @@ if (typeof (global as any).ResizeObserver === 'undefined') {
         disconnect() {}
     };
 }
+
+// Each test has an isolated simulated server. Logout in production intentionally
+// preserves live/unknown physical reservations across login generations.
+afterEach(() => {
+    const {resetFileOperationsForTests} = jest.requireActual('./src/api/repository/fileWriteQueue');
+    resetFileOperationsForTests();
+});
