@@ -11,11 +11,12 @@ import { getFileRequestFailure } from '@/utils/fileRequestResult';
  * serializing it back: the file's own layout is lost, and a document a few thousand levels deep
  * overflows the call stack doing so (#1553).
  */
-export const getFiles = (aPath: string, aOptions?: { rawText?: boolean }): Promise<AxiosResponse<ResFileListType>> => {
+export const getFiles = (aPath: string, aOptions?: { rawText?: boolean; canRetryFileRequest?: () => boolean }): Promise<AxiosResponse<ResFileListType>> => {
     return request({
         method: 'GET',
         url: buildFilesUrl(aPath),
         ...(aOptions?.rawText ? { transformResponse: [(aData: unknown) => aData] } : {}),
+        ...(aOptions?.canRetryFileRequest ? {canRetryFileRequest: aOptions.canRetryFileRequest} : {}),
     });
 };
 

@@ -26,9 +26,13 @@ import { gWsLog } from '@/recoil/websocket';
 import { FileModal } from './FileModal';
 import {useFileMutationTabs} from '@/hooks/useFileMoveTabs';
 import {getRequestSession} from '@/api/core/requestSession';
+import {useFileTreeRead} from '@/hooks/useFileTreeRefresh';
+import {useAbortController} from '@/hooks/useAbortController';
 
 export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
     const fileMutations = useFileMutationTabs();
+    const readTree = useFileTreeRead();
+    const treeRequests = useAbortController();
     const sParedData: FileTreeType = {
         depth: 0,
         dirs: [],
@@ -63,7 +67,6 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
     const setConsoleList = useSetRecoilState<any>(gWsLog);
     const [sSideSizes, setSideSizes] = useState<any>(['15%', '85%']);
     const [sDeleteFileList, setDeleteFileList] = useRecoilState(gDeleteFileList);
-    const [sIsFetch, setIsFetch] = useState<boolean>(false);
     const [sIsFileModal, setIsFileModal] = useState<boolean>(false);
     const DeleteFileTree = useSetRecoilState(gDeleteFileTree);
     const ReplaceTree = useSetRecoilState(gReplaceTree);
@@ -111,20 +114,34 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
 
         return array.slice(0, array.length - 1);
     }
+    const beginTreeRead = () => {
+        // Root refresh and folder navigation share one view. A newer navigation
+        // cancels the older intent without cancelling any file save/read.
+        treeRequests.abort();
+        const signal = treeRequests.createSignal();
+        const session = getRequestSession();
+        setLoadFileTree(false);
+        return {signal, canApply: () => !signal.aborted && session === getRequestSession()};
+    };
     const getFileTree = async () => {
+        const {signal, canApply} = beginTreeRead();
         setLoadFileTree(true);
         try {
-            const sReturn: any = await getFiles('/');
-            const sFailure = getFileRequestFailure(sReturn, 'Failed to load the file tree.');
-            if (sFailure || !sReturn?.data) {
-                // keep the previous tree; tell the user why
-                Toast.error(sFailure?.reason ?? 'Failed to load the file tree.', { testId: 'file-explorer-error-toast', id: 'file-explorer-refresh' });
-                return;
-            }
-            const sParedData = fileTreeParser(sReturn.data, '/', 0, '0');
-            setFileTree(JSON.parse(JSON.stringify(sParedData)));
+            await readTree(async (_previous, isCurrent) => {
+                const response: any = await getFiles('/', {canRetryFileRequest: isCurrent});
+                if (!isCurrent()) return;
+                const failure = getFileRequestFailure(response, 'Failed to load the file tree.');
+                if (failure || !response?.data) {
+                    Toast.error(failure?.reason ?? 'Failed to load the file tree.', {testId:'file-explorer-error-toast', id:'file-explorer-refresh'});
+                    return;
+                }
+                return fileTreeParser(response.data, '/', 0, '0');
+            }, {canApply, retry:false});
+        } catch {
+            if (canApply()) Toast.error('Failed to load the file tree.', {testId:'file-explorer-error-toast', id:'file-explorer-refresh'});
         } finally {
-            setLoadFileTree(false);
+            if (canApply()) setLoadFileTree(false);
+            treeRequests.releaseSignal(signal);
         }
     };
 
@@ -155,32 +172,28 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
 
     const onFetchDir = async (aSelectedDir: FileTreeType, aIsOpen: boolean) => {
         closeContextMenu();
-        if (!sIsFetch) {
-            setIsFetch(true);
-            let sReturn: any = null;
-            let sParedData = null;
-
-            if (aIsOpen) {
-                sReturn = await getFiles(`${aSelectedDir.path}${aSelectedDir.name}/`);
-                const sFailure = getFileRequestFailure(sReturn, 'Failed to open the folder.');
-                if (sFailure || !sReturn?.success) {
-                    Toast.error(sFailure?.reason ?? 'Failed to open the folder.', { testId: 'file-explorer-error-toast', id: 'file-explorer-fetch-dir' });
-                    setIsFetch(false);
-                    return;
+        const {signal, canApply} = beginTreeRead();
+        try {
+            await readTree(async (current, isCurrent) => {
+                let parsed: FileTreeType | null = null;
+                if (aIsOpen) {
+                    const response: any = await getFiles(`${aSelectedDir.path}${aSelectedDir.name}/`, {canRetryFileRequest: isCurrent});
+                    if (!isCurrent()) return;
+                    const failure = getFileRequestFailure(response, 'Failed to open the folder.');
+                    if (failure || !response?.success) {
+                        Toast.error(failure?.reason ?? 'Failed to open the folder.', {testId:'file-explorer-error-toast', id:'file-explorer-fetch-dir'});
+                        return;
+                    }
+                    parsed = fileTreeParser(response.data, `${aSelectedDir.path}${aSelectedDir.name}/`, aSelectedDir.depth, aSelectedDir.name);
+                    if (aSelectedDir.parentId === 'apps') parsed.readOnly = aSelectedDir.readOnly;
+                    parsed.isOpen = true;
                 }
-                sParedData = fileTreeParser(sReturn.data, `${aSelectedDir.path}${aSelectedDir.name}/`, aSelectedDir.depth, aSelectedDir.name);
-            } else {
-                sParedData = aSelectedDir;
-            }
-
-            if (aSelectedDir.parentId === 'apps') sParedData.readOnly = aSelectedDir.readOnly;
-
-            sParedData.isOpen = aIsOpen;
-            const sTmpDir = findDir(sFileTree as any, sParedData, aSelectedDir);
-            const sResult = JSON.parse(JSON.stringify(sFileTree));
-            sResult.dirs = sTmpDir;
-            setFileTree(JSON.parse(JSON.stringify(sResult)));
-            setIsFetch(false);
+                return {...current, dirs:findDir(current as FileTreeType, parsed, aSelectedDir)};
+            }, {canApply});
+        } catch {
+            if (canApply()) Toast.error('Failed to open the folder.', {testId:'file-explorer-error-toast', id:'file-explorer-fetch-dir'});
+        } finally {
+            treeRequests.releaseSignal(signal);
         }
     };
 
@@ -189,10 +202,10 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
         setFileTree(JSON.parse(JSON.stringify(sResultRoot)));
     };
 
-    const findDir = (aOriginDir: FileTreeType, aParedData: FileTreeType, aTargetDir: FileTreeType): FileTreeType[] => {
+    const findDir = (aOriginDir: FileTreeType, aParedData: FileTreeType | null, aTargetDir: FileTreeType): FileTreeType[] => {
         return aOriginDir.dirs.map((aDir: FileTreeType) => {
-            if (aDir.name === aTargetDir.name && aDir.depth === aTargetDir.depth && aDir.path === aTargetDir.path) return { ...aParedData, path: aTargetDir.path };
-            else if (aParedData.path.includes(aDir.name)) {
+            if (aDir.name === aTargetDir.name && aDir.depth === aTargetDir.depth && aDir.path === aTargetDir.path) return aParedData ? { ...aParedData, path: aTargetDir.path } : {...aDir, isOpen:false};
+            else if (aTargetDir.path.includes(aDir.name)) {
                 return { ...aDir, dirs: findDir(aDir, aParedData, aTargetDir) };
             } else return aDir;
         });
