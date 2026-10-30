@@ -139,7 +139,7 @@
     flex: 1;
     background: transparent;
     border: none;
-    color: t.$text-primary;
+    color: t.$field-text;
     font-family: inherit;
     outline: none;
     width: 100%;
@@ -170,7 +170,7 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    color: t.$text-tertiary;
+    color: t.$field-icon;
 }
 
 .input-helper-text {

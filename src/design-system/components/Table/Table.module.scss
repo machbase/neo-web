@@ -29,13 +29,13 @@
     font-size: 14px;
     font-weight: 600;
     font-family: initial;
-    color: var(--neo-text-disabled, #818181);
+    color: var(--neo-table-header-text, var(--neo-text-disabled, #818181));
 
     th {
         min-width: 20px;
         padding: 4px;
         padding-left: 8px;
-        background-color: var(--neo-bg-elevated, rgb(44, 44, 44));
+        background-color: var(--neo-table-header-bg, var(--neo-bg-elevated, rgb(44, 44, 44)));
     }
 
     &-action {
@@ -45,7 +45,7 @@
 
 // Table body
 .table-body {
-    color: t.$text-secondary;
+    color: t.$table-text;
     text-align: left;
     font-size: 13px;
 
@@ -96,13 +96,13 @@
     text-align: left;
     font-weight: 600;
     font-family: initial;
-    color: var(--neo-text-disabled, #818181);
+    color: var(--neo-table-header-text, var(--neo-text-disabled, #818181));
 
     th {
         min-width: 10px;
         padding: 4px;
         padding-left: 8px;
-        background-color: var(--neo-bg-elevated, rgb(44, 44, 44));
+        background-color: var(--neo-table-header-bg, var(--neo-bg-elevated, rgb(44, 44, 44)));
     }
 
     .row-num {
@@ -120,7 +120,7 @@
 
 // Scroll table body (editable mode)
 .scroll-table-body {
-    color: t.$text-secondary;
+    color: t.$table-text;
     text-align: left;
     font-size: 13px;
     contain: layout style;
@@ -312,7 +312,7 @@
 :global {
     .result-body-tr {
         &.dark-odd {
-            background-color: var(--neo-bg-elevated, rgb(43, 43, 43));
+            background-color: var(--neo-table-stripe-bg, var(--neo-bg-elevated, rgb(43, 43, 43)));
         }
     }
 

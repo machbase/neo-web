@@ -17,10 +17,10 @@
 .modal {
     display: flex;
     flex-direction: column;
-    background-color: var(--neo-bg-elevated, #2a2a2a);
+    background-color: var(--neo-dialog-bg, var(--neo-bg-elevated, #2a2a2a));
     border: 1px solid t.$modal-border;
     border-radius: calc(8px * var(--neo-radius-scale, 1));
-    color: t.$text-primary;
+    color: t.$dialog-text;
     cursor: default;
 
     // Where focus lands when the dialog opens without an autoFocus field: out of the layout and unseen.
@@ -80,11 +80,11 @@
         align-items: center;
         font-size: t.$font-size-lg;
         font-weight: 600;
-        color: t.$text-primary;
+        color: t.$dialog-text;
 
         &__sub {
             font-size: t.$font-size-base;
-            color: t.$text-secondary;
+            color: t.$dialog-text-muted;
         }
     }
 
@@ -94,7 +94,7 @@
         padding: t.$spacing-16 t.$spacing-32;
         overflow-y: auto;
         font-size: t.$font-size-base;
-        color: var(--neo-text-secondary, rgba(255, 255, 255, 0.7));
+        color: var(--neo-dialog-text-muted, var(--neo-text-secondary, rgba(255, 255, 255, 0.7)));
         display: flex;
         flex-direction: column;
         gap: t.$modal-body-content-gap;
@@ -132,7 +132,7 @@
         padding: 0;
         background: transparent;
         border: none;
-        color: t.$text-secondary;
+        color: t.$dialog-text-muted;
         cursor: pointer;
         border-radius: t.$border-radius-sm;
         transition: t.$transition-default;

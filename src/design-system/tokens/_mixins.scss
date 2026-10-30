@@ -137,8 +137,8 @@
  * Provides consistent border, background, and transition effects
  */
 @mixin interactive-field-base {
-    background-color: var(--neo-bg-elevated, #2a2a2a);
-    border: 1px solid var(--neo-border-color-light, #3e3e3e);
+    background-color: var(--neo-field-bg, var(--neo-bg-elevated, #2a2a2a));
+    border: 1px solid var(--neo-field-border, var(--neo-border-color-light, #3e3e3e));
     border-radius: br.$border-radius-base;
     transition: border-color 0.3s ease;
 }

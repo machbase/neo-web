@@ -231,3 +231,20 @@ $console-body-bg: themed(console-body-bg, $bg-tab-active);
 $console-text: themed(console-text, $text-inherited);
 $console-text-muted: themed(console-text-muted, $text-secondary);
 $console-icon: themed(console-icon, $text-disabled);
+
+// Tables (result grids, column lists)
+$table-header-bg: themed(table-header-bg, $bg-elevated);
+$table-header-text: themed(table-header-text, $text-disabled);
+$table-text: themed(table-text, $text-secondary);
+$table-stripe-bg: themed(table-stripe-bg, $bg-elevated);
+
+// Input fields (inputs, dropdowns, comboboxes)
+$field-bg: themed(field-bg, $bg-elevated);
+$field-border: themed(field-border, $border-color-light);
+$field-text: themed(field-text, $text-primary);
+$field-icon: themed(field-icon, $text-tertiary);
+
+// Dialogs
+$dialog-bg: themed(dialog-bg, $bg-elevated);
+$dialog-text: themed(dialog-text, $text-primary);
+$dialog-text-muted: themed(dialog-text-muted, $text-secondary);
