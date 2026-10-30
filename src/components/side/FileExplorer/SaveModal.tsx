@@ -16,7 +16,7 @@ import { Toast } from '@/design-system/components';
 import { Home, TreeFolder, Delete, Download, Play, Search, Save, Close, ArrowLeft, ArrowRight, TbFolderPlus, FolderOpen } from '@/assets/icons/Icon';
 import icons from '@/utils/icons';
 import EnterCallback from '@/hooks/useEnter';
-import { TreeFetchDrilling } from '@/utils/UpdateTree';
+import { useFileTreeRefresh } from '@/hooks/useFileTreeRefresh';
 import { validateName } from '@/utils/fileName';
 import { getTypedFileList, resolveOverwrite, type OverwriteDecision } from '@/utils/fileExistence';
 import { useOverwritePrompt } from '@/components/modal/useOverwritePrompt';
@@ -33,6 +33,7 @@ export interface SaveModalProps {
 
 export const SaveModal = (props: SaveModalProps) => {
     const fileMutations = useFileMutationTabs();
+    const refreshFileTree = useFileTreeRefresh();
     const { setIsOpen, pIsSave } = props;
     const sLocalSaveRequests = useAbortController();
     const sSaveRequests = props.saveRequests ?? sLocalSaveRequests;
@@ -255,8 +256,7 @@ export const SaveModal = (props: SaveModalProps) => {
             // A file is saved before refreshing the explorer; a slow listing
             // must not postpone its tab metadata or later replace new tabs.
             handleClose();
-            const sDrillRes = await TreeFetchDrilling(sFileTree, sPath + sFileName, true);
-            if (!sSignal.aborted) setFileTree(JSON.parse(JSON.stringify(sDrillRes.tree)));
+            await refreshFileTree(sPath + sFileName, () => !sSignal.aborted && sSaveRequests.isCurrentLifetime(sSignal));
         } catch {
             if (!sSignal.aborted) Toast.error('save file fail retry please');
         } finally {

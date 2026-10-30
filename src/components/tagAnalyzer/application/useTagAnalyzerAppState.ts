@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useRecoilValue, useSetRecoilState, useRecoilCallback, type RecoilState } from 'recoil';
+import { useRecoilValue, useSetRecoilState, useRecoilCallback } from 'recoil';
 import { Toast } from '@/design-system/components';
-import { TreeFetchDrilling } from '@/utils/UpdateTree';
-import { gFileTree } from '@/recoil/fileTree';
+import { useFileTreeRefresh } from '@/hooks/useFileTreeRefresh';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { applyFileSaveResult, applySaveAsResult, hasBoardContentChanged } from '@/utils/boardSaveResult';
 import { hasPendingBoardSave } from '@/utils/boardFileSave';
@@ -11,12 +10,10 @@ import type { BoardInfo } from '../board/boardModel';
 import { tableMetadataApi } from '../api/tableMetadataApi';
 import type { RollupTableMap } from '../api/rollupMetadata';
 import { useLatestAsyncRequest } from '../hooks/useLatestAsyncRequest';
-import {getRequestSession} from '@/api/core/requestSession';
 
 export function useTagAnalyzerAppState(info: BoardInfo) {
     const selectedTab = useRecoilValue(gSelectedTab);
-    const fileTree = useRecoilValue(gFileTree);
-    const setFileTree = useSetRecoilState(gFileTree);
+    const refreshFileTree = useFileTreeRefresh();
     const updateBoardList = useSetRecoilState(gBoardList);
     const [rollupTableList, setRollupTableList] = useState<RollupTableMap>();
     const isActiveTab = selectedTab === info.id;
@@ -64,18 +61,9 @@ export function useTagAnalyzerAppState(info: BoardInfo) {
     }, []);
 
     const handleFileSaved = useCallback(
-        async (directoryPath: string, fileName: string, canApply: () => boolean = () => true): Promise<void> => {
-            const session = getRequestSession();
-            const isCurrent = () => session === getRequestSession() && canApply();
-            if (!isCurrent()) return;
-            const updatedTree = await refreshTazFileTreeAfterSave(
-                fileTree,
-                directoryPath,
-                fileName,
-            );
-            if (isCurrent() && updatedTree) setFileTree(updatedTree);
-        },
-        [fileTree, setFileTree],
+        (directoryPath: string, fileName: string, canApply?: () => boolean) =>
+            refreshFileTree(`${directoryPath}${fileName}`, canApply),
+        [refreshFileTree],
     );
 
     return {
@@ -92,23 +80,3 @@ export function useTagAnalyzerAppState(info: BoardInfo) {
 // -------------------- Local --------------------
 
 const EMPTY_ROLLUP_TABLE_LIST: RollupTableMap = {};
-
-type FileTreeState = typeof gFileTree extends RecoilState<infer Value>
-    ? Value
-    : never;
-
-async function refreshTazFileTreeAfterSave(
-    fileTree: FileTreeState,
-    directoryPath: string,
-    fileName: string,
-): Promise<FileTreeState | undefined> {
-    const updatedTreeResult = await TreeFetchDrilling(
-        fileTree,
-        `${directoryPath}${fileName}`,
-        true,
-    );
-
-    return updatedTreeResult?.tree
-        ? JSON.parse(JSON.stringify(updatedTreeResult.tree))
-        : undefined;
-}

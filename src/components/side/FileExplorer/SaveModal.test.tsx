@@ -561,3 +561,26 @@ it.each(['wrk', 'dsh'].flatMap(type => ['cancel', 'logout'].map(action => [type,
     expect(sLatestBoards).toEqual(action === 'logout' ? [next] : [source]);
     cancelAllPendingFileWrites();
 });
+
+import React from 'react';
+import {gFileTree} from '@/recoil/fileTree';
+it('closed-dialog tree refresh preserves a newer successful listing', async () => {
+ jest.clearAllMocks();cancelAllPendingFileWrites();
+ mockListing([],[]);postFileList.mockResolvedValue({success:true});
+ const newTree={name:'/',files:[{name:'b.sql'},{name:'c.sql'}],dirs:[]};
+ let release!:(value:any)=>void;
+ const {TreeFetchDrilling}=jest.requireMock('@/utils/UpdateTree');
+ TreeFetchDrilling.mockImplementation((...args:any[])=>jest.requireActual('@/utils/UpdateTree').TreeFetchDrilling(...args));
+ let firstRead=true;let afterPost=false;postFileList.mockImplementation(async()=>{afterPost=true;return {success:true}});
+ getFileList.mockImplementation(()=>{if(afterPost&&firstRead){firstRead=false;return new Promise(resolve=>{release=resolve;});}return Promise.resolve({success:true,data:{isDir:true,name:'/',children:afterPost?[{name:'b.sql',type:'.sql'},{name:'c.sql',type:'.sql'}]:[]}});});
+ let tree:any,setTree:any;
+ function Shared(){const requests=useAbortController();const[open,setOpen]=React.useState(true);[tree,setTree]=useRecoilState(gFileTree);return <>{open?<SaveModal pIsSave setIsOpen={setOpen} saveRequests={requests}/>:<span>closed</span>}<BoardSpy/></>;}
+ render(<RecoilRoot initializeState={({set})=>{set(gBoardList,[SQL_TAB] as any);set(gSelectedTab,SQL_TAB.id);set(gFileTree,{name:'/',files:[],dirs:[]} as any);}}><Shared/></RecoilRoot>);
+ await screen.findByDisplayValue('q.sql');typeName('q.sql','b.sql');await clickApply();
+ await screen.findByText('closed');await waitFor(()=>expect(release).toBeDefined());
+ act(()=>setTree(newTree));expect(tree).toEqual(newTree);
+ await act(async()=>release({success:true,data:{isDir:true,name:'/',children:[{name:'b.sql',type:'.sql',lastModifiedUnixMillis:0}]}}));
+ expect(tree.files.map((file:any)=>file.name)).toEqual(['b.sql','c.sql']);
+ expect(sLatestBoards[0].name).toBe('b.sql');
+
+});

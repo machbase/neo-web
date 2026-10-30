@@ -99,3 +99,39 @@ test.each(['created', 'deleted'])('cancelled TAZ post-save lookup preserves same
  expect(currentTree).toEqual(newTree);expect(state.isSaveAsOpen).toBe(true);expect(screen.getByTestId('tag-analyzer-save-as-file-name-input')).toHaveValue('c.taz');
  expect(live.find((b:any)=>b.id==='draft').code).toBe('KEEP DRAFT');expect(disk.has('b.taz')).toBe(true);expect(disk.has('peer.sql')).toBe(change==='created');
 });
+
+import {useSetRecoilState} from 'recoil';
+import {gDeleteFileTree} from '@/recoil/fileTree';
+import {deleteFile as deletePhysicalFile} from '@/api/repository/fileTree';
+import {getFileRequestFailure} from '@/utils/fileRequestResult';
+let removeListedPeer:any;
+function DeletePublisher(){removeListedPeer=useSetRecoilState(gDeleteFileTree);return null;}
+test('live accepted TAZ tree refresh cannot restore a separately deleted file',async()=>{
+ let releaseRead!:()=>void,releaseDelete!:()=>void;
+ const readGate=new Promise<void>(r=>releaseRead=r),deleteGate=new Promise<void>(r=>releaseDelete=r);
+ let held=false,deleteSent=false;const disk=new Map<string,any>([['peer.sql','SELECT KEEP']]);
+ const root=()=>({success:true,data:{name:'/',isDir:true,gitClone:false,children:[...disk.keys()].map(name=>({name,isDir:false,type:'.'+name.split('.').at(-1),lastModifiedUnixMillis:1,size:1,gitClone:false,virtual:false}))}});
+ jest.mocked(request).mockReset().mockImplementation(async(c:any)=>{
+  if(c.method==='POST'){disk.set('b.taz',c.data);return {success:true} as any;}
+  if(c.method==='DELETE'){deleteSent=true;await deleteGate;disk.delete('peer.sql');return {success:true} as any;}
+  if(c.method==='GET'){
+   const path=c.url.split('?')[0];if(path.endsWith('/')){
+    const result=root();if(disk.has('b.taz')&&!held){held=true;await readGate;}return result as any;
+   }
+   const name=decodeURIComponent(path.split('/').at(-1));return disk.get(name)??{status:404,headers:{},data:{success:false,reason:'not found'}} as any;
+  }
+  return {success:true} as any;
+ });
+ const initialTree:any={depth:0,dirs:[],files:[{id:'peer.sql',name:'peer.sql',path:'/',depth:1,type:0,parentId:'0'}],id:'0',name:'0',type:1,path:'/'};
+ render(<RecoilRoot initializeState={({set})=>{set(gBoardList,[owner,draft]);set(gSelectedTab,'owner');set(gFileTree,initialTree)}}><SessionShell/><DeletePublisher/></RecoilRoot>);
+ let deleting!:Promise<any>;
+ act(()=>{deleting=deletePhysicalFile('/','peer.sql').then(result=>{if(!getFileRequestFailure(result))removeListedPeer({path:'/',name:'peer.sql',depth:1,type:0});});});
+ await waitFor(()=>expect(deleteSent).toBe(true));
+ fireEvent.click(screen.getByRole('button',{name:'Open Save As'}));await screen.findByTestId('tag-analyzer-save-as-file-name-input');
+ fireEvent.change(screen.getByTestId('tag-analyzer-save-as-file-name-input'),{target:{value:'b.taz'}});fireEvent.click(screen.getByTestId('tag-analyzer-save-as-submit-button'));await waitFor(()=>expect(held).toBe(true));
+ await act(async()=>{releaseDelete();await deleting;});
+ expect(currentTree.files.map((f:any)=>f.name)).not.toContain('peer.sql');expect(disk.has('peer.sql')).toBe(false);
+ await act(async()=>{releaseRead();for(let i=0;i<100;i++)await Promise.resolve();});
+ expect(state.isSaveAsOpen).toBe(false);expect(live.find((b:any)=>b.id==='owner').name).toBe('b.taz');expect(disk.has('peer.sql')).toBe(false);
+ expect(currentTree.files.map((f:any)=>f.name)).not.toContain('peer.sql');
+});
