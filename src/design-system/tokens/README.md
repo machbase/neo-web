@@ -585,6 +585,26 @@ theme. The choice is kept per user and per browser (localStorage `neo.theme.<use
 so a reload paints in the theme from its first frame. A theme whose package was uninstalled (or
 that was deleted from its package's list) falls back to Dark; the Theme dialog then forgets it.
 
+### Parts of the screen
+
+Some parts have colours of their own (`_colors.scss`, *Areas*): the GNB (`gnb-*`), the tab bar
+(`tabbar-*`), the side panel (`side-*`), the console (`console-*`), tables (`table-*`), input
+fields (`field-*`) and dialogs (`dialog-*`); menus (`menu-*`) and tooltips (`tooltip-*`) had theirs
+already. A theme that sets a part's tokens changes that part alone — the theme builder colours the
+screen part by part this way, so its Frame no longer moves the side panel.
+
+- Each falls back to the shared token the part drew with before (`$side-bg: themed(side-bg,
+  $bg-panel)`), so no theme and every theme made before look as they did.
+- A call site keeps its own fallback: text a part inherits from the page falls back to the page
+  colour (`$text-inherited`, index.css `:root`), a site that drew text-secondary in the side panel
+  keeps it under `th.themed(side-text, c.$text-secondary)`, and a literal fallback stays inside
+  (`var(--neo-table-header-bg, var(--neo-bg-elevated, rgb(44, 44, 44)))`).
+- Components inside a part take its colours through hooks the part sets for its subtree: the icon
+  button's `--ghost-icon` / `--ghost-icon-hover` (GNB, side panel, console), the Page wrapper's
+  `--page-bg` (the console's log body). The dark island resets the part tokens and the hooks.
+- Where each token is drawn is measured (`impactmap.mjs` in the regress measurer, the theme
+  builder's `impact.json`); `areaTokens.test.ts` keeps the fallbacks and the island resets whole.
+
 ### In the code
 
 - A token: `color: t.$text-primary;` — follows the theme.
