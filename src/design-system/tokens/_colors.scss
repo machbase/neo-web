@@ -192,3 +192,42 @@ $log-table: themed(log-table, $btn-delete);
 $kv-table: themed(kv-table, $btn-status);
 $vol-table: themed(vol-table, $warning-main);
 $etc-table: themed(etc-table, #ffdc72);
+
+// ============================================
+// Areas
+// ============================================
+// One part of the screen's own colours. Each falls back to the system token that part drew with
+// before, so a theme that sets none of them looks as it did and the dark screen does not change;
+// a theme that sets one changes that part alone (the theme builder colours the screen part by
+// part this way — Frame no longer moves the side panel, say).
+//
+// Text a part inherits from the page keeps the page's own fallback (index.css :root), which is
+// not text-primary's dark default.
+$text-inherited: var(--neo-text-primary, rgba(255, 255, 255, 0.87));
+
+// The GNB — the icon column on the left
+$gnb-bg: themed(gnb-bg, $bg-primary);
+$gnb-icon: themed(gnb-icon, $text-disabled);
+$gnb-icon-active: themed(gnb-icon-active, $text-primary);
+$gnb-marker: themed(gnb-marker, $primary-base);
+
+// The tab bar above the editors
+$tabbar-bg: themed(tabbar-bg, $bg-primary);
+$tabbar-text: themed(tabbar-text, $text-primary);
+$tabbar-text-inactive: themed(tabbar-text-inactive, $text-tertiary);
+$tabbar-marker: themed(tabbar-marker, $primary-base);
+
+// The side panel (explorer, DB explorer, packages, …) and its section headers
+$side-bg: themed(side-bg, $bg-panel);
+$side-header-bg: themed(side-header-bg, $bg-header);
+$side-text: themed(side-text, $text-inherited);
+$side-text-muted: themed(side-text-muted, $text-disabled);
+$side-icon: themed(side-icon, $text-disabled);
+$side-active-bg: themed(side-active-bg, $bg-hover-block);
+
+// The console at the bottom
+$console-bg: themed(console-bg, $bg-primary);
+$console-body-bg: themed(console-body-bg, $bg-tab-active);
+$console-text: themed(console-text, $text-inherited);
+$console-text-muted: themed(console-text-muted, $text-secondary);
+$console-icon: themed(console-icon, $text-disabled);

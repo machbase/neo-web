@@ -29,7 +29,7 @@ $explorer-narrow-bp: 220px;
 
 .db-explorer-search-wrap {
     flex-shrink: 0;
-    background-color: t.$bg-panel;
+    background-color: t.$side-bg;
 }
 
 .db-explorer-search {
@@ -65,7 +65,7 @@ $explorer-narrow-bp: 220px;
     display: flex;
     flex-shrink: 0;
     align-items: center;
-    color: t.$text-disabled;
+    color: t.$side-icon;
 }
 
 .db-explorer-search-input {
@@ -224,7 +224,7 @@ $explorer-narrow-bp: 220px;
     border: none;
     border-radius: t.$border-radius-base;
     background: transparent;
-    color: t.$text-disabled;
+    color: t.$side-icon;
     opacity: 0.4;
     cursor: pointer;
     transition: background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;

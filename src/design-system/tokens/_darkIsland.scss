@@ -106,4 +106,27 @@
     --neo-shadow-md: initial;
     --neo-shadow-lg: initial;
     --neo-shadow-xl: initial;
+    --neo-gnb-bg: initial;
+    --neo-gnb-icon: initial;
+    --neo-gnb-icon-active: initial;
+    --neo-gnb-marker: initial;
+    --neo-tabbar-bg: initial;
+    --neo-tabbar-text: initial;
+    --neo-tabbar-text-inactive: initial;
+    --neo-tabbar-marker: initial;
+    --neo-side-bg: initial;
+    --neo-side-header-bg: initial;
+    --neo-side-text: initial;
+    --neo-side-text-muted: initial;
+    --neo-side-icon: initial;
+    --neo-side-active-bg: initial;
+    --neo-console-bg: initial;
+    --neo-console-body-bg: initial;
+    --neo-console-text: initial;
+    --neo-console-text-muted: initial;
+    --neo-console-icon: initial;
+    // hooks the parts of the screen set for the components in them (an island draws dark)
+    --ghost-icon: initial;
+    --ghost-icon-hover: initial;
+    --page-bg: initial;
 }

@@ -13,9 +13,9 @@
     cursor: pointer;
     border: 1px solid transparent;
     outline: none;
-    border-top: 2px solid t.$bg-primary;
+    border-top: 2px solid t.$tabbar-bg;
     border-radius: 0;
-    background-color: t.$bg-primary;
+    background-color: t.$tabbar-bg;
 
     &:active,
     &:focus {
@@ -75,10 +75,10 @@
     }
     span {
         padding-left: 8px;
-        color: t.$text-tertiary;
+        color: t.$tabbar-text-inactive;
     }
     svg {
-        color: t.$text-tertiary;
+        color: t.$tabbar-text-inactive;
     }
     .tab_close {
         padding-left: 4px !important;
@@ -98,7 +98,7 @@
 
 .tab_select {
     background-color: t.$bg-tab-active;
-    border-top: 1px solid t.$primary-base;
+    border-top: 1px solid t.$tabbar-marker;
     border-left: t.$border-default;
     border-right: t.$border-default;
     border-bottom: 1px solid t.$bg-tab-active;
@@ -108,7 +108,7 @@
     z-index: $tab-select-style-idx;
     svg,
     span {
-        color: t.$text-primary;
+        color: t.$tabbar-text;
     }
     .round_right_wrap {
         width: 15px;
@@ -123,7 +123,7 @@
             width: 15px;
             height: 15px;
             border-radius: 0 0 80% 0;
-            background-color: t.$bg-primary;
+            background-color: t.$tabbar-bg;
             position: absolute;
             bottom: 0;
             left: 0px;
@@ -144,7 +144,7 @@
             width: 15px;
             height: 15px;
             border-radius: 0 0 0 80%;
-            background-color: t.$bg-primary;
+            background-color: t.$tabbar-bg;
             position: absolute;
             bottom: 0;
             right: 0;
@@ -168,13 +168,13 @@
         }
         svg,
         span {
-            color: t.$text-primary;
+            color: t.$tabbar-text;
         }
     }
 }
 .tab_none_select_drag_over {
     svg,
     span {
-        color: t.$text-primary !important;
+        color: t.$tabbar-text !important;
     }
 }

@@ -6,7 +6,9 @@
     align-items: center;
     height: 100%;
     width: 52px;
-    background-color: var(--gnb-bg, t.$bg-primary);
+    background-color: var(--gnb-bg, t.$gnb-bg);
+    --ghost-icon: #{t.$gnb-icon};
+    --ghost-icon-hover: #{t.$gnb-icon-active};
     // border-right: solid 0.5px t.$border-color-default;
     overflow-y: auto;
     overflow-x: hidden;
@@ -53,7 +55,7 @@
     transition: border-color 0.2s ease;
 
     &--selected {
-        border-left-color: var(--gnb-item-selected-border, t.$primary-base);
+        border-left-color: var(--gnb-item-selected-border, t.$gnb-marker);
     }
 }
 
@@ -75,7 +77,7 @@
     border-radius: calc(6px * var(--neo-radius-scale, 1));
 
     &:hover {
-        color: var(--gnb-item-hover-color, t.$text-primary);
+        color: var(--gnb-item-hover-color, t.$gnb-icon-active);
         background-color: var(--gnb-item-hover-bg, var(--neo-bg-hover, rgba(255, 255, 255, 0.08)));
     }
 
@@ -89,15 +91,15 @@
 .gnb__item__wrapper--selected {
     opacity: 1;
     .gnb__item {
-        color: var(--gnb-item-selected-color, t.$text-primary);
+        color: var(--gnb-item-selected-color, t.$gnb-icon-active);
         opacity: inherit;
         .gnb__item__icon {
             opacity: inherit;
             svg {
-                fill: var(--gnb-item-selected-color, t.$text-primary);
+                fill: var(--gnb-item-selected-color, t.$gnb-icon-active);
                 opacity: inherit;
                 path {
-                    fill: var(--gnb-item-selected-color, t.$text-primary);
+                    fill: var(--gnb-item-selected-color, t.$gnb-icon-active);
                     opacity: inherit;
                 }
             }

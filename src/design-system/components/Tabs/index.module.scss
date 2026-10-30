@@ -8,7 +8,7 @@
 }
 
 .tabs__header {
-    background-color: t.$bg-primary;
+    background-color: t.$tabbar-bg;
     height: 40px;
     display: flex;
     position: relative;
@@ -71,10 +71,10 @@
     gap: t.$spacing-6;
     padding: t.$spacing-8 t.$spacing-12;
     height: 100%;
-    background-color: t.$bg-primary;
+    background-color: t.$tabbar-bg;
     border: none;
-    border-top: 2px solid t.$bg-primary;
-    color: t.$text-tertiary;
+    border-top: 2px solid t.$tabbar-bg;
+    color: t.$tabbar-text-inactive;
     width: 150px;
     cursor: pointer;
     font-size: t.$font-size-sm;
@@ -86,9 +86,9 @@
     text-wrap-mode: nowrap;
 
     &--selected {
-        color: t.$text-primary;
+        color: t.$tabbar-text;
         background-color: t.$bg-tab-active;
-        border-top: 1px solid t.$primary-base;
+        border-top: 1px solid t.$tabbar-marker;
     }
 
     // Sub tab variant - underline style

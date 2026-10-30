@@ -3,7 +3,7 @@
 // count chip next to a section title — encodes how many credentials of that kind exist
 .count {
     margin-left: t.$spacing-6;
-    color: t.$text-muted;
+    color: t.themed(side-text-muted, t.$text-muted);
     font-variant-numeric: tabular-nums;
 }
 
@@ -17,7 +17,7 @@
     margin-left: auto;
     padding-left: t.$spacing-8;
     padding-right: 11px;
-    color: t.$text-muted;
+    color: t.themed(side-text-muted, t.$text-muted);
     font-size: 11px;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
@@ -50,6 +50,6 @@
 
 .empty {
     padding: t.$spacing-12 t.$spacing-16;
-    color: t.$text-muted;
+    color: t.themed(side-text-muted, t.$text-muted);
     font-size: 12px;
 }

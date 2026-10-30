@@ -787,7 +787,7 @@ const FileDiv = ({
 };
 
 const DND_BG = 'var(--neo-bg-active, #3e3e3e)';
-const ROW_ACTIVE_BG = 'var(--neo-bg-hover-block, rgba(255, 255, 255, 0.13))';
+const ROW_ACTIVE_BG = 'var(--neo-side-active-bg, var(--neo-bg-hover-block, rgba(255, 255, 255, 0.13)))';
 
 const Div = styled.div<{
     depth: number;
@@ -802,7 +802,7 @@ const Div = styled.div<{
     justify-content: space-between;
     padding-left: ${(props) => props.depth * 16}px;
     // Drag-and-drop marks (the drop zone, the rows being dragged, the folder under the pointer) take
-    // bg-active so a theme shows them in its selection colour; a selected or hovered row takes bg-hover-block.
+    // bg-active so a theme shows them in its selection colour; a selected or hovered row takes the side panel's active colour (side-active-bg, else bg-hover-block).
     background-color: ${(props) => (props.isDropzone || props.isDndItem || props.isDndSection ? DND_BG : props.isSelected ? ROW_ACTIVE_BG : 'transparent')};
     word-break: break-all;
     :hover {

@@ -280,7 +280,7 @@
     white-space: pre-wrap;
     text-overflow: ellipsis;
     word-break: break-word;
-    background-color: t.$bg-tab-active;
+    background-color: var(--page-bg, t.$bg-tab-active);
 
     .page-badge {
         margin-left: 4px;

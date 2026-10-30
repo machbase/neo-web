@@ -10,8 +10,11 @@ $version-accent: var(--neo-primary-light, #4199ff);
     display: flex;
     flex-direction: column;
     height: 100%;
-    background-color: c.$bg-panel;
+    background-color: c.$side-bg;
     border-left: solid 0.5px c.$border-color-default;
+    // the panel's own text and icon colours (tokens/_colors.scss, Areas)
+    color: c.$side-text;
+    --ghost-icon: #{c.$side-icon};
 }
 
 .sideVersion {
@@ -30,7 +33,7 @@ $version-accent: var(--neo-primary-light, #4199ff);
         min-width: 0;
         border: none;
         background: transparent;
-        color: c.$text-secondary;
+        color: th.themed(side-text, c.$text-secondary);
         cursor: pointer;
         display: flex;
         align-items: center;
@@ -63,7 +66,7 @@ $version-accent: var(--neo-primary-light, #4199ff);
 
     .sideVersionNum {
         font-family: 'D2Coding', monospace;
-        color: c.$text-disabled;
+        color: c.$side-text-muted;
     }
 
     // up-to-date: quiet check + "latest" in info blue (no filled chip)
@@ -144,11 +147,11 @@ $version-accent: var(--neo-primary-light, #4199ff);
         cursor: pointer;
 
         &:hover {
-            background-color: c.$bg-hover-block;
+            background-color: c.$side-active-bg;
         }
 
         &.active {
-            background-color: c.$bg-hover-block;
+            background-color: c.$side-active-bg;
         }
     }
 }
@@ -161,7 +164,7 @@ $version-accent: var(--neo-primary-light, #4199ff);
     display: flex;
     align-items: center;
     font-size: 13px;
-    background-color: c.$bg-header;
+    background-color: c.$side-header-bg;
     border-bottom: 0.5px solid c.$border-color-default;
     // border-top: 0.5px solid c.$border-color-default;
     white-space: nowrap;
@@ -276,11 +279,11 @@ $version-accent: var(--neo-primary-light, #4199ff);
     min-width: 0;
 
     &:hover {
-        background-color: c.$bg-hover-block;
+        background-color: c.$side-active-bg;
     }
 
     &.active {
-        background-color: c.$bg-hover-block;
+        background-color: c.$side-active-bg;
     }
 
     .itemContent {
@@ -475,9 +478,9 @@ $version-accent: var(--neo-primary-light, #4199ff);
     height: 22px;
     min-width: 0;
     padding: 0 11px 0 8px;
-    background-color: c.$bg-header;
+    background-color: c.$side-header-bg;
     border-bottom: 0.5px solid c.$border-color-default;
-    color: c.$text-secondary;
+    color: th.themed(side-text, c.$text-secondary);
     font-size: 12px;
     white-space: nowrap;
 }
@@ -498,11 +501,11 @@ $version-accent: var(--neo-primary-light, #4199ff);
 .sideLoadErrorReason {
     font-family: 'D2Coding', monospace;
     font-size: 11px;
-    color: c.$text-tertiary;
+    color: th.themed(side-text-muted, c.$text-tertiary);
 }
 
 .sideLoadErrorTime {
-    color: c.$text-tertiary;
+    color: th.themed(side-text-muted, c.$text-tertiary);
 }
 
 // A <button>, so the global `button { border-radius: 8px }` in src/index.css reaches it —
