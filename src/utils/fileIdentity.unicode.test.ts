@@ -5,6 +5,8 @@ import { applyFileSaveResult } from './boardSaveResult';
 import { isBoardSaved } from './boardSaveStatus';
 import { getFileIdentity, hasFileIdentity, forgetFileIdentities } from './fileIdentity';
 import { resolveOverwrite } from './fileExistence';
+import {applyFileReadResult, invalidateFileSaveResult} from './boardSaveResult';
+import {loadBoardFromFile} from '@/components/side/FileExplorer/loadBoardFromFile';
 
 jest.mock('@/api/core', () => ({ __esModule: true, default: jest.fn() }));
 
@@ -76,4 +78,72 @@ it('clears observed Unicode aliases after a mutation using either spelling', asy
     forgetFileIdentities('/' + alias);
     expect(hasFileIdentity('/' + alias)).toBe(false);
     expect(hasFileIdentity('/' + name)).toBe(false);
+});
+
+// Native spelling behavior remains in E2E. The owner's lifetime and terminal
+// write-result cross-product exercises the existing queue and save callbacks here.
+describe('delayed Unicode save matrix moved from E2E', () => {
+    let serial = 0;
+    const spellings = [['가.sql', '가.sql'.normalize('NFD')], ['café.SQL', 'café.SQL'.normalize('NFD')],
+        ['σ.sql', 'ς.sql'], ['ß.sql', 'SS.sql'], ['ſ.sql', 's.sql']];
+    for (const [sourceName, peerName] of spellings) for (const sameFile of [false, true]) {
+        for (const closeOwner of [false, true]) for (const rejectedAfterWrite of [false, true]) for (const stage of ['before-write', 'after-write']) {
+            it(`${sourceName}: same=${sameFile}, close=${closeOwner}, rejected=${rejectedAfterWrite}, ${stage}`, async () => {
+                const prefix = `matrix-${++serial}-`, name = prefix + sourceName, peer = prefix + peerName;
+                const sourcePath = '/' + name, peerPath = '/' + peer;
+                const canonical = (path: string) => sameFile && path === peerPath ? sourcePath : path;
+                const disk = new Map([[sourcePath, 'OLD'], ...sameFile ? [] : [[peerPath, 'PEER_OLD']] as [string, string][]]);
+                const peerOld = sameFile ? 'OLD' : 'PEER_OLD';
+                let boards: any[] = [
+                    {id: 'owner', type: 'sql', path: '/', name, code: 'FIRST', savedCode: 'OLD'},
+                    {id: 'peer', type: 'sql', path: '/', name: peer, code: peerOld, savedCode: peerOld},
+                    {id: 'draft', type: 'sql', path: '', name: 'SQL', code: 'KEEP_DRAFT', savedCode: ''},
+                ];
+                let release!: () => void, entered!: () => void, first = true, rejectPeer = true;
+                const gate = new Promise<void>(resolve => {release = resolve;}), started = new Promise<void>(resolve => {entered = resolve;});
+                const posts: string[] = [];
+                jest.mocked(request).mockImplementation(async (config: any) => {
+                    const path = decodeURIComponent(config.url.replace('/api/files', ''));
+                    if (config.method === 'GET' && path === '/') return {success: true, data: {isDir: true, children: [...disk.keys()].map(path => ({name: path.slice(1)}))}} as any;
+                    if (config.method === 'GET') return (disk.get(canonical(path)) ?? {status: 404, headers: {}, data: {reason: 'missing'}}) as any;
+                    posts.push(path);
+                    if (first) {
+                        first = false;
+                        if (stage === 'after-write') disk.set(canonical(path), config.data);
+                        entered(); await gate;
+                        if (stage === 'before-write') disk.set(canonical(path), config.data);
+                        return (rejectedAfterWrite ? {status: 500, headers: {}, data: {success: false, reason: 'terminal rejection after write'}} : {success: true}) as any;
+                    }
+                    if (rejectPeer) return {status: 500, headers: {}, data: {success: false, reason: 'peer rejected'}} as any;
+                    disk.set(canonical(path), config.data); return {success: true} as any;
+                });
+                const save = (board: any) => saveBoardFile({board, getSaveBoards: () => boards,
+                    onSuccess: submitted => {boards = applyFileSaveResult(boards, board, 'sql', submitted);},
+                    onRead: loaded => {boards = applyFileReadResult(boards, loaded);},
+                    onUncertain: (target = board) => {boards = invalidateFileSaveResult(boards, target);},
+                });
+                const saving = save(boards[0]); await started;
+                if (closeOwner) boards = boards.filter(board => board.id !== 'owner');
+                const followup = save(boards.find(board => board.id === 'peer'));
+                release();
+                expect(await saving).toBe(!rejectedAfterWrite);
+                expect(await followup).toBe(false);
+                const current = boards.find(board => board.id === 'peer');
+                expect(current.code).toBe(peerOld);
+                expect(isBoardSaved(current)).toBe(!sameFile);
+                expect(disk.get(sourcePath)).toBe('FIRST');
+                expect(disk.get(canonical(peerPath))).toBe(sameFile ? 'FIRST' : 'PEER_OLD');
+                expect(boards.find(board => board.id === 'draft')).toMatchObject({path: '', code: 'KEEP_DRAFT', savedCode: ''});
+                expect(boards.some(board => board.id === 'owner')).toBe(!closeOwner);
+                const reopened = await loadBoardFromFile({path: '/', name}, 'reopened');
+                expect(reopened.board).toMatchObject({code: 'FIRST', savedCode: 'FIRST'});
+                rejectPeer = false; current.code = 'NEXT';
+                expect(await save(current)).toBe(true);
+                expect(isBoardSaved(boards.find(board => board.id === 'peer'))).toBe(true);
+                expect(disk.get(sourcePath)).toBe(sameFile ? 'NEXT' : 'FIRST');
+                expect(disk.get(canonical(peerPath))).toBe('NEXT');
+                expect(posts).toEqual([sourcePath, peerPath, peerPath]);
+            });
+        }
+    }
 });
