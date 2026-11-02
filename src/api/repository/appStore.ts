@@ -19,20 +19,19 @@ export const getPkgsSync = () => {
     });
 };
 
-// issue #1438 — the hub publishes two files.
+// THE CATALOG IS packages.json, AND ONLY packages.json.
 //
-//   packages.json      non-experiment packages ONLY. The LEGACY VIEW: builds that
-//                      predate the experiment gate read this and nothing else, so a
-//                      package still under validation can never reach them.
-//   packages-all.json  every package, each carrying its `experiment` flag.
+// The hub also publishes packages-all.json, which adds packages still under
+// validation (tagged `experiment: true`). This client used to read that file and
+// hide the tagged entries unless the server ran in experiment mode. It no longer
+// does: what is not released is not in the catalog. packages.json is exactly that
+// list — the hub's sync writes an entry there only when it is not `experiment` —
+// so the rule is enforced by WHICH FILE is read, the same online and offline, with
+// no per-card flag to reconcile against the local sources.
 //
-// This client reads packages-all.json and filters locally. That is deliberately ONE
-// fetch rather than a merge of both files: raw.githubusercontent caches each file
-// independently (max-age=300), so merging would let a package in transition appear
-// in both responses (duplicate card, duplicate React key) or in neither (card
-// silently missing) for up to five minutes.
+// A package missing from the hub catalog can still be installed from an archive
+// placed on the server; that path never consults the hub.
 const PKG_HUB_URL = 'https://raw.githubusercontent.com/machbase/neo-pkg-hub/main/packages.json';
-const PKG_HUB_ALL_URL = 'https://raw.githubusercontent.com/machbase/neo-pkg-hub/main/packages-all.json';
 
 // issue #1452 — offline hardening of the hub leg.
 //
@@ -45,8 +44,7 @@ export const HUB_FETCH_TIMEOUT_MS = 4000;
  * How long the hub leg stays "known down" after a complete failure.
  *
  * The App Store re-runs the whole catalog build on a 500ms search debounce, so
- * without this every keystroke would pay the abort deadline twice (all + legacy
- * fallback) before the local sources could render. The window is deliberately
+ * without this every keystroke would pay the abort deadline before the local sources could render. The window is deliberately
  * much longer than the debounce and shorter than a plausible "I plugged the
  * network back in" gap; a manual Refresh clears it outright via
  * `resetPkgHubBackoff`.
@@ -106,11 +104,6 @@ export interface PkgHubEntry {
     // The top-level `version`/`released_at` above stay as a mirror of the latest
     // entry for transition-window compatibility with the pre-versions[] code path.
     versions?: PkgVersionInfo[];
-    // issue #1438: catalog visibility gate. Only ever true in packages-all.json.
-    // The legacy view publishes it as `false` on every entry (its entry schema is
-    // identical by design), and a hub that predates the gate omits it entirely —
-    // both are falsy, which the checks below read as "always visible".
-    experiment?: boolean;
 }
 
 /**
@@ -142,7 +135,6 @@ export const mapHubEntry = (entry: PkgHubEntry): APP_INFO => {
         latest_version: entry.version ?? versions[0]?.version ?? '',
         published_at: entry.released_at ?? entry.pushed_at ?? '',
         versions,
-        experiment: entry.experiment,
         github: {
             organization: entry.github.organization,
             repo: entry.github.repo,
@@ -176,59 +168,26 @@ const fetchHubEntries = async (url: string): Promise<PkgHubEntry[]> => {
 };
 
 /**
- * Fetch package list from neo-pkg-hub.
+ * Fetch package list from neo-pkg-hub (packages.json — see the note at the top).
  *
- * Reads packages-all.json (every package + `experiment` flag) and falls back to the
- * legacy packages.json when that file is missing — a hub that has not rolled the new
- * file out yet, or a rollback, must not take the whole catalog down. The fallback
- * degrades safely: the legacy view contains no gated package at all, so everything it
- * returns is visible, which is exactly what a client without the flag would show.
- *
- * STILL REJECTS when both sources fail — but rejection no longer means "the catalog
- * is empty". `buildCatalog` (components/side/AppStore/catalog.ts) treats this leg as
- * one settled source among three and renders the local archive + installed packages
- * without it. Callers must not fall back to clearing the list (issue #1452).
+ * STILL REJECTS when the hub cannot be read — but rejection no longer means "the
+ * catalog is empty". `buildCatalog` (components/side/AppStore/catalog.ts) treats this
+ * leg as one settled source among three and renders the local archive + installed
+ * packages without it. Callers must not fall back to clearing the list (issue #1452).
  */
 export const fetchPkgHubList = async (): Promise<APP_INFO[]> => {
     if (isPkgHubBackedOff()) throw new Error(HUB_BACKOFF_MESSAGE);
     let entries: PkgHubEntry[];
     try {
-        entries = await fetchHubEntries(PKG_HUB_ALL_URL);
-    } catch {
-        try {
-            entries = await fetchHubEntries(PKG_HUB_URL);
-        } catch (e) {
-            // Both urls are gone: assume the host is unreachable rather than that
-            // two files vanished, and stop hammering it until the window closes.
-            hubBackoffUntil = Date.now() + HUB_FAILURE_BACKOFF_MS;
-            throw e;
-        }
+        entries = await fetchHubEntries(PKG_HUB_URL);
+    } catch (e) {
+        // Assume the host is unreachable and stop hammering it until the window closes.
+        hubBackoffUntil = Date.now() + HUB_FAILURE_BACKOFF_MS;
+        throw e;
     }
     hubBackoffUntil = 0; // reachable again
     return entries.map(mapHubEntry);
 };
-
-/**
- * Catalog visibility gate (issue #1438). An `experiment` package is listed only
- * while the server's experiment mode is on — unless it is already installed.
- *
- * The installed exemption is not cosmetic. `allPkgs` is derived from the hub list
- * alone: installed packages are hub entries tagged with `installed_frontend`, and
- * the `installed` bucket of SEARCH_RES is always left empty. Dropping the entry
- * would therefore erase the card outright, stranding a package that is still
- * installed and running with no uninstall or stop control anywhere in the UI.
- */
-export const filterExperimentPkgs = (pkgs: APP_INFO[], experimentOn: boolean): APP_INFO[] =>
-    pkgs.filter((p) => !p.experiment || experimentOn || !!p.installed_frontend);
-
-/**
- * True for a card that survives the gate only because the package is already
- * installed. Such a card must stay removable but must not invite further change:
- * the package was pulled back for revalidation, so offering its newer unvalidated
- * versions to a non-experiment user defeats the point of pulling it back.
- */
-export const isGrandfatheredPkg = (pkg: APP_INFO | undefined | null, experimentOn: boolean): boolean =>
-    !!pkg?.experiment && !experimentOn && !!pkg?.installed_frontend;
 /** Install & Uninstall pkg */
 export const getCommandPkgs = (command: INSTALL | UNINSTALL, name: string) => {
     return request({
@@ -272,11 +231,6 @@ export interface APP_INFO {
     // single element for the old single-version shape). Drives eligibility +
     // the version-selection picker.
     versions?: PkgVersionInfo[];
-    // issue #1438: catalog visibility gate, sourced from the hub entry. Falsy for
-    // everything read via the legacy packages.json fallback (`false` there, or
-    // undefined on a pre-gate hub). Consumed by `filterExperimentPkgs` and
-    // `isGrandfatheredPkg`.
-    experiment?: boolean;
     installed_version?: string;
     installed_frontend?: boolean;
     // Mirror of manifest.packageService — only populated for installed packages

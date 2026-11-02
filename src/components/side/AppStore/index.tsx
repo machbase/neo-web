@@ -8,7 +8,6 @@ import { gSearchPkgs, gPossiblePkgs, gSearchPkgName, gPkgHealth, gCatalogStatus,
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { AppList } from './item';
 import useDebounce from '@/hooks/useDebounce';
-import { useExperiment } from '@/hooks/useExperiment';
 import { Side, Button } from '@/design-system/components';
 import { checkPkgHealth } from './pkgLifecycle';
 import { buildCatalog } from './catalog';
@@ -40,12 +39,12 @@ export const AppStoreSide = () => {
     // is empty for that whole window — showing the bar from mount is both honest
     // ("the catalog is on its way") and avoids it flashing in half a second later.
     const [sCatalogLoading, setCatalogLoading] = useState<boolean>(true);
-    // Only the LATEST build may clear the flag. Search debounce and Refresh can
-    // overlap, and without this an earlier build finishing second would switch the
-    // bar off while the newer one is still running.
+    // Only the LATEST build may write anything — the list, the warnings, the status
+    // or the loading flag. Search debounce and Refresh can overlap, and each build
+    // lands twice (local, then hub), so an earlier build finishing second would
+    // otherwise overwrite a newer list or switch the bar off under it.
     const buildTokenRef = useRef<number>(0);
     const sideIframeRef = useRef<HTMLIFrameElement>(null);
-    const { getExperiment } = useExperiment();
 
     // THE PILL SWITCHER, AND WHAT THE PANEL IS SHOWING BECAUSE OF IT.
     // `activeView === null` is the catalog; anything else is that package's own
@@ -98,12 +97,21 @@ export const AppStoreSide = () => {
     const pkgsSearch = async () => {
         setSearchPkgName(sSearchTxt);
         const token = ++buildTokenRef.current;
+        const isLatest = () => buildTokenRef.current === token;
         setCatalogLoading(true);
         try {
             const { pkgs, mode, hubError, lastSyncAt, scanWarnings } = await buildCatalog({
                 search: sSearchTxt,
-                experimentOn: getExperiment(),
+                // LOCAL FIRST: installed packages and server archives are on screen
+                // the moment the scan answers. The status is left alone here — the
+                // hub has not answered yet, so there is nothing true to say about it.
+                onLocal: (local) => {
+                    if (!isLatest()) return;
+                    setCatalogScanWarnings(local.scanWarnings);
+                    setPkgs({ installed: [], exact: [], possibles: local.pkgs, broken: [] });
+                },
             });
+            if (!isLatest()) return;
             setCatalogStatus({ mode, hubError, lastSyncAt });
             // issue #1452: written on EVERY build, including the empty case — a
             // rescan that finds the directories cleaned up must clear the list, not
@@ -116,7 +124,7 @@ export const AppStoreSide = () => {
         } finally {
             // `finally`, so a build that somehow throws cannot leave the bar
             // spinning forever over a list that is not coming.
-            if (buildTokenRef.current === token) setCatalogLoading(false);
+            if (isLatest()) setCatalogLoading(false);
         }
     };
 

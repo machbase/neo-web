@@ -10,7 +10,7 @@
 //
 // The catalog is now the name-keyed union of three independent sources:
 //
-//   hub        raw.githubusercontent packages-all.json   — may be unreachable
+//   hub        raw.githubusercontent packages.json       — may be unreachable
 //   local      the archive zips, scanned server-side     — offline install source
 //   installed  /public/{name}/ + package.json            — ground truth on disk
 //
@@ -19,14 +19,15 @@
 // one /public listing, not a rescan. See the cache block in onpremCatalog.ts for
 // who invalidates it.
 //
-// They are collected with `Promise.allSettled`, so ANY subset can fail and the
-// remaining ones still produce a usable catalog. `buildCatalog` never rejects.
+// All three start together and each settles on its own, so ANY subset can fail
+// and the remaining ones still produce a usable catalog. `buildCatalog` never
+// rejects. The LOCAL legs land first — see `buildCatalog` for the two passes.
 //
 // The `installed` leg is a directory listing of a plain web root, so it is the
 // one leg that can name things that are not packages. See `PKG_NAME_PREFIX`.
 //
 // Who owns what after the merge:
-//   display metadata (description/icon/docs/experiment) → hub wins, local fills in
+//   display metadata (description/icon/docs)            → hub wins, local fills in
 //   installed_* flags                                   → /public + manifest ONLY
 //   versions[]                                          → hub ∪ local
 //
@@ -35,14 +36,13 @@
 // the merge is how the panel silently reverted to online-only behaviour after
 // every install/uninstall.
 
-import { fetchPkgHubList, filterExperimentPkgs, mapHubEntry, type APP_GITHUB, type APP_INFO, type PkgHubEntry } from '@/api/repository/appStore';
+import { fetchPkgHubList, mapHubEntry, type APP_GITHUB, type APP_INFO, type PkgHubEntry } from '@/api/repository/appStore';
 import {
     emptyGithub,
     fetchLocalArchiveEntries,
     getInstalledDirs,
     getInstalledIcons,
     getLastArchiveScanErrors,
-    isLocalOnlyMode,
     type InstalledDirInfo,
     type LocalArchiveScanError,
 } from '@/api/repository/onpremCatalog';
@@ -55,19 +55,29 @@ import { classifyInstalledDir, isStrayRemovable, isStrayVerdict } from './strayD
 export interface BuildCatalogOptions {
     /** Current search box text. Empty/omitted ⇒ full catalog. */
     search?: string;
-    /** Server experiment mode (from `useExperiment().getExperiment()`). */
-    experimentOn: boolean;
+    /**
+     * Called ONCE, before the hub has answered, with the catalog the local legs
+     * alone produce — installed packages, server archives, stray directories.
+     * Optional: a caller that only wants the finished list leaves it out.
+     */
+    onLocal?: (local: LocalCatalogResult) => void;
+}
+
+/** The first landing of a build: everything this server can say without the hub. */
+export interface LocalCatalogResult {
+    pkgs: APP_INFO[];
+    scanWarnings: LocalArchiveScanError[];
 }
 
 export interface CatalogResult {
-    /** Cards to render, already experiment-gated and search-filtered. */
+    /** Cards to render, search-filtered: installed, archived here, hub-only, strays last. */
     pkgs: APP_INFO[];
     /**
      * How this build got its hub data — see `CatalogMode`.
      *
      * `online` is decided by the fetch alone, never by `navigator.onLine`, which
      * describes the LAN and not whether raw.githubusercontent is reachable from
-     * behind an air gap. `localOnly` means the fetch was never attempted.
+     * a closed network.
      */
     mode: CatalogMode;
     /** Failure message from the hub leg. Only ever set in `offline`. */
@@ -255,10 +265,6 @@ export const mergeVersions = (hubVersions?: PkgVersionInfo[], localVersions?: Pk
  *
  * Display metadata comes from the hub when the hub knows the package, because
  * the hub is live and the archive's package.json is frozen at packaging time.
- * `experiment` in
- * particular MUST follow the hub: a package pulled back for revalidation after
- * the archive was cut still carries `experiment: false` in the zip, and trusting
- * that would re-expose exactly the package the hub just withdrew.
  *
  * `latest_version` is recomputed over the union — a local-only card's value is
  * merely "the newest version that happens to sit in the archive directory".
@@ -277,7 +283,6 @@ export const mergeCards = (hub?: APP_INFO, local?: APP_INFO): APP_INFO => {
         icon: hub?.icon ?? local?.icon,
         docs: hub?.docs ?? local?.docs,
         published_at: hub?.published_at || local?.published_at || '',
-        experiment: hub ? hub.experiment : local?.experiment,
         github,
         versions,
         latest_version: versions[0]?.version ?? hub?.latest_version ?? local?.latest_version ?? '',
@@ -326,87 +331,31 @@ export const installedIconOf = (name: string, installedIcons?: Record<string, st
     installedIcons ? (installedIcons[name] ?? '') : undefined;
 
 /**
- * Assemble the App Store catalog from every source that answers.
- *
- * NEVER REJECTS. Each leg degrades on its own: no hub → `mode: 'offline'` with the
- * local archive and the installed packages still listed; no archives on disk →
- * the historical online catalog; no `/public/` listing → nothing shows as
- * installed but the catalog still renders.
- *
- * ---------------------------------------------------------------------------
- * THE LOCAL LEG RUNS FIRST, AND THAT ORDERING IS THE FEATURE (issue #1452)
- * ---------------------------------------------------------------------------
- * The three legs used to go out together under one `Promise.allSettled`. They
- * cannot any more: the local scan is what CARRIES the `localOnly` policy flag, and
- * the entire point of local-only mode is that NO REQUEST LEAVES THE MACHINE. A
- * hub fetch started in parallel and discarded afterwards would still have been
- * sent — the packets are what the customer is air-gapping, not the pixels.
- *
- * So: scan, read the policy, and only then decide whether the hub leg happens at
- * all. The cost is one serialized round trip, and it is usually zero — the scan is
- * cached module-side (`fetchLocalArchiveEntries`), so every build after the first
- * resolves from memory. Even a cold first build must pay it rather than leak.
- *
- * The `/public/` listing is same-origin and unconditional, so it still starts
- * immediately and is awaited at the end.
+ * What one pass of {@link buildCatalog} merges. The hub list is empty on the first
+ * pass, which is the whole difference between the two.
  */
-export const buildCatalog = async ({ search = '', experimentOn }: BuildCatalogOptions): Promise<CatalogResult> => {
-    // Same origin, never external, and needed in every mode — no reason to wait.
-    const installedPromise = listInstalledNames();
+interface CatalogLegs {
+    hubPkgs: APP_INFO[];
+    localPkgs: APP_INFO[];
+    installedNames: Set<string>;
+    installedDirs: Record<string, InstalledDirInfo>;
+    installedIcons: Record<string, string> | undefined;
+    /** `readManifest`, memoised per build so the two passes read each file once. */
+    manifestOf: (name: string) => Promise<PkgManifest | null>;
+}
 
-    // LEG 1 — the local archive scan, which also answers "am I allowed to ask the
-    // hub?". A scan that throws (documented never-throw, but this function
-    // promises never to reject) leaves the default: online.
-    let localPkgs: APP_INFO[] = [];
-    let localOnly = false;
-    // Icon file names of the installed copies, read by the same scan (issue #1452).
-    // `undefined` all the way through when the scan did not answer — the icon chain
-    // reads that as "unknown" and keeps its historical guess.
-    let installedIcons: Record<string, string> | undefined;
-    // What each `/public/` directory's own package.json says, plus whether it is a
-    // git clone (issue #1452) — the input to `classifyInstalledDir`. Empty whenever
-    // the scan did not say, and an empty map classifies every directory as
-    // `unclaimed`, i.e. exactly the behaviour that predates stray cards.
-    let installedDirs: Record<string, InstalledDirInfo> = {};
-    // Per-file problems the SAME scan filed (issue #1452). Read here, next to the
-    // other side channels and under the same "only after awaiting the scan" rule,
-    // and carried out on the result so a component can hold it in state — see
-    // `CatalogResult.scanWarnings`.
-    let scanWarnings: LocalArchiveScanError[] = [];
-    try {
-        localPkgs = await fetchLocalArchiveEntries();
-        localOnly = isLocalOnlyMode();
-        installedIcons = getInstalledIcons();
-        installedDirs = getInstalledDirs();
-        scanWarnings = getLastArchiveScanErrors() ?? [];
-    } catch {
-        /* no local archives, and no policy — fall through to the hub */
-    }
+/**
+ * Backed by something on THIS server — an installed tree or an archive.
+ *
+ * These cards are listed FIRST, and that is what makes two passes safe: the hub's
+ * cards can then only land below them, so the second pass never moves a card the
+ * user is already reading (or about to click). The one thing it does push down is
+ * the stray block, which is kept last on purpose (see `assembleCatalog`).
+ */
+const isLocalCard = (card: APP_INFO): boolean => !!card.installed_frontend || !!card.versions?.some((v) => v.source === 'local');
 
-    // LEG 2 — the hub, IF the policy allows it. Note there is no `fetchPkgHubList`
-    // call on the localOnly path at all: not a call whose result is dropped, not a
-    // call behind a filter. That is the deliverable.
-    let hubPkgs: APP_INFO[] = [];
-    let hubError: string | undefined;
-    let mode: CatalogMode;
-    if (localOnly) {
-        mode = 'localOnly';
-    } else {
-        try {
-            hubPkgs = await fetchPkgHubList();
-            mode = 'online';
-            lastHubSyncAt = Date.now();
-        } catch (reason) {
-            hubError = errorMessage(reason);
-            mode = 'offline';
-        }
-    }
-
-    // LEG 3 — the /public/ listing. `listInstalledNames` swallows its own errors.
-    const installedNames: Set<string> = await installedPromise;
-
-    // Name-keyed union. Hub order is preserved (it is the catalog's usual
-    // ordering); local-only packages follow, then installed-only ones.
+/** One merge of whatever legs have answered so far. Never rejects. */
+const assembleCatalog = async ({ hubPkgs, localPkgs, installedNames, installedDirs, installedIcons, manifestOf }: CatalogLegs): Promise<APP_INFO[]> => {
     const hubByName = new Map<string, APP_INFO>();
     for (const pkg of hubPkgs) if (pkg?.name) hubByName.set(pkg.name, pkg);
     const localByName = new Map<string, APP_INFO>();
@@ -469,10 +418,7 @@ export const buildCatalog = async ({ search = '', experimentOn }: BuildCatalogOp
             // knows about is annotated exactly as before even if it is one day
             // published under a name that does not start with `neo-pkg`.
             if (!known && !isPkgDirName(name)) return;
-            // `readManifest` is documented never-throw, but this whole function
-            // promises never to reject and a regression in it must not be able to
-            // blank the panel again — that is the bug being fixed.
-            const manifest = await readManifest(name).catch(() => null);
+            const manifest = await manifestOf(name);
             if (known) {
                 Object.assign(known, installedFields(manifest, name, installedIcons));
                 return;
@@ -512,30 +458,123 @@ export const buildCatalog = async ({ search = '', experimentOn }: BuildCatalogOp
     // Sorted by DIRECTORY, which is what distinguishes them on screen.
     const strayCards = strays.sort((a, b) => (a.stray?.dir ?? '').localeCompare(b.stray?.dir ?? ''));
 
-    // issue #1438: gate before the search filter so CATALOG and SEARCH RESULTS agree.
-    const gated = filterExperimentPkgs([...cards.values(), ...strayCards], experimentOn);
+    // THE ORDER, top to bottom (by user decision):
+    //   1. installed        by name — what this server is running
+    //   2. archived here    by name — installable from a file on this server
+    //   3. hub-only         in the hub's own order
+    //   4. strays           by directory — the cards with a problem go below
+    //                       everything that works
+    // 1 and 2 are both local, so neither moves when the hub's answer lands (see
+    // `isLocalCard`); only the strays get pushed down by it.
+    const all = [...cards.values()];
+    const byName = (a: APP_INFO, b: APP_INFO) => a.name.localeCompare(b.name);
+    const installed = all.filter((card) => !!card.installed_frontend).sort(byName);
+    const archived = all.filter((card) => !card.installed_frontend && isLocalCard(card)).sort(byName);
+    return [...installed, ...archived, ...all.filter((card) => !isLocalCard(card)), ...strayCards];
+};
+
+/** The search box, applied to a finished list. */
+const filterBySearch = (pkgs: APP_INFO[], search: string): APP_INFO[] => {
     const q = search.toLowerCase();
-    const pkgs = q
-        ? gated.filter(
-              (p) =>
-                  p.name.toLowerCase().includes(q) ||
-                  (p.github?.description ?? '').toLowerCase().includes(q) ||
-                  // A stray card is identified on screen by its DIRECTORY, which is
-                  // also the name the user saw in the file explorer — so it has to
-                  // be searchable. No other card has one, so nothing else changes.
-                  (p.stray?.dir ?? '').toLowerCase().includes(q)
-          )
-        : gated;
+    if (!q) return pkgs;
+    return pkgs.filter(
+        (p) =>
+            p.name.toLowerCase().includes(q) ||
+            (p.github?.description ?? '').toLowerCase().includes(q) ||
+            // A stray card is identified on screen by its DIRECTORY, which is also
+            // the name the user saw in the file explorer — so it has to be
+            // searchable. No other card has one, so nothing else changes.
+            (p.stray?.dir ?? '').toLowerCase().includes(q)
+    );
+};
+
+/**
+ * Assemble the App Store catalog from every source that answers.
+ *
+ * NEVER REJECTS. Each leg degrades on its own: no hub → `mode: 'offline'` with the
+ * local archive and the installed packages still listed; no archives on disk →
+ * the plain hub catalog; no `/public/` listing → nothing shows as installed but the
+ * catalog still renders.
+ *
+ * TWO PASSES, LOCAL FIRST. All three legs start at once. As soon as the two LOCAL
+ * ones (the archive scan and the `/public/` listing) have answered, the catalog
+ * they produce on their own goes to `onLocal`; the hub's answer is merged in after
+ * that and returned. On a closed network the hub leg can hang until its abort
+ * deadline, and the panel used to stay blank for that long — installed packages
+ * included, although their controls never needed the hub.
+ *
+ * That wait is also the only thing the old `localOnly` policy file bought (it
+ * skipped the hub leg outright). With local cards on screen first the wait is
+ * invisible, so the hub is always asked and `mode` says whether it answered.
+ */
+export const buildCatalog = async ({ search = '', onLocal }: BuildCatalogOptions = {}): Promise<CatalogResult> => {
+    // All three legs start NOW. The hub promise is settled into a value up front so
+    // nothing below can turn its failure into a rejection.
+    const installedPromise = listInstalledNames();
+    const hubPromise = fetchPkgHubList().then(
+        (pkgs): { pkgs?: APP_INFO[]; error?: string } => ({ pkgs }),
+        (reason): { pkgs?: APP_INFO[]; error?: string } => ({ error: errorMessage(reason) })
+    );
+
+    // The local archive scan. A scan that throws (documented never-throw, but this
+    // function promises never to reject) leaves every side channel at its default.
+    let localPkgs: APP_INFO[] = [];
+    // Icon file names of the installed copies, read by the same scan (issue #1452).
+    // `undefined` all the way through when the scan did not answer — the icon chain
+    // reads that as "unknown" and keeps its historical guess.
+    let installedIcons: Record<string, string> | undefined;
+    // What each `/public/` directory's own package.json says, plus whether it is a
+    // git clone (issue #1452) — the input to `classifyInstalledDir`. Empty whenever
+    // the scan did not say, and an empty map classifies every directory as
+    // `unclaimed`, i.e. exactly the behaviour that predates stray cards.
+    let installedDirs: Record<string, InstalledDirInfo> = {};
+    // Per-file problems the SAME scan filed (issue #1452), carried out on the result
+    // so a component can hold them in state — see `CatalogResult.scanWarnings`.
+    let scanWarnings: LocalArchiveScanError[] = [];
+    try {
+        localPkgs = await fetchLocalArchiveEntries();
+        installedIcons = getInstalledIcons();
+        installedDirs = getInstalledDirs();
+        scanWarnings = getLastArchiveScanErrors() ?? [];
+    } catch {
+        /* no local archives — the other legs still answer */
+    }
+    // `listInstalledNames` swallows its own errors.
+    const installedNames: Set<string> = await installedPromise;
+
+    const manifests = new Map<string, Promise<PkgManifest | null>>();
+    const manifestOf = (name: string): Promise<PkgManifest | null> => {
+        let pending = manifests.get(name);
+        if (!pending) {
+            // `readManifest` is documented never-throw, but this whole function
+            // promises never to reject and a regression in it must not be able to
+            // blank the panel again — that is the bug being fixed.
+            pending = readManifest(name).catch(() => null);
+            manifests.set(name, pending);
+        }
+        return pending;
+    };
+    const legs = { localPkgs, installedNames, installedDirs, installedIcons, manifestOf };
+
+    // PASS 1 — what this server can say on its own.
+    if (onLocal) {
+        const local = filterBySearch(await assembleCatalog({ ...legs, hubPkgs: [] }), search);
+        try {
+            onLocal({ pkgs: local, scanWarnings });
+        } catch {
+            /* a throwing callback must not cost the caller the finished catalog */
+        }
+    }
+
+    // PASS 2 — with whatever the hub said.
+    const hub = await hubPromise;
+    const mode: CatalogMode = hub.pkgs ? 'online' : 'offline';
+    if (hub.pkgs) lastHubSyncAt = Date.now();
+    const pkgs = filterBySearch(await assembleCatalog({ ...legs, hubPkgs: hub.pkgs ?? [] }), search);
 
     // `scanWarnings` is the ARCHIVE SCAN'S list and nothing else — passed straight
     // through, in the scan's own order. No `/public/` directory contributes to it:
     // a stray one has a card instead, and a `foreign` one is ignored (see the
-    // verdict branch above).
-    return {
-        pkgs,
-        mode,
-        hubError,
-        lastSyncAt: lastHubSyncAt,
-        scanWarnings,
-    };
+    // verdict branch in `assembleCatalog`).
+    return { pkgs, mode, hubError: hub.error, lastSyncAt: lastHubSyncAt, scanWarnings };
 };

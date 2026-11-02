@@ -125,7 +125,8 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
         if (sExistBoard) {
             setSelectedTab(sExistBoard.id as string);
         } else {
-            const sContentResult: any = await getFiles(`${file.path}${file.name}`);
+            // As stored: the tab shows and saves the file's own text, never a re-serialized copy of it.
+            const sContentResult: any = await getFiles(`${file.path}${file.name}`, { rawText: true });
             const sFileExtension = extractionExtension(file.id);
             if (axios.isAxiosError(sContentResult)) return;
             if (sContentResult?.hasOwnProperty('headers') || sContentResult?.hasOwnProperty('reason') || sContentResult?.data?.hasOwnProperty('reason')) {

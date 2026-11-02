@@ -35,25 +35,11 @@ export interface PkgIconProps {
     /** Whether `/public/{pName}/` exists on this server. */
     pInstalled?: boolean;
     /**
-     * May `pIcon` (a remote URL) be requested at all? issue #1452.
-     *
-     * A PROP, NOT A RECOIL READ, ON PURPOSE. This is a leaf component with its own
-     * test suite and two call sites that size it differently; reaching into
-     * `gCatalogStatus` from here would drag a store into every render of it and
-     * force a RecoilRoot around each of those tests for one boolean. The call sites
-     * (`item.tsx`, `info.tsx`) already read the catalog status, so they pass the
-     * answer down.
-     *
-     * Defaults to `true` — the pre-#1452 behaviour — so nothing that does not know
-     * about local-only mode changes.
-     */
-    pAllowRemote?: boolean;
-    /**
      * The installed copy's icon FILE NAME (`APP_INFO.installed_icon`), e.g.
      * `icon.svg`. issue #1452.
      *
-     * A PROP FOR THE SAME REASON AS `pAllowRemote`: the value is a field on the
-     * card the call site already holds, and this stays a store-free leaf.
+     * A PROP, NOT A RECOIL READ: the value is a field on the card the call site
+     * already holds, and this stays a store-free leaf.
      *
      * Three-valued — `''` means "the scan looked and there is no icon", which is
      * NOT the same as `undefined` ("nobody looked"). See `pkgIconSources`, which
@@ -64,11 +50,8 @@ export interface PkgIconProps {
     className: string;
 }
 
-export const PkgIcon = ({ pName, pIcon, pInstalled, pAllowRemote = true, pInstalledIcon, className }: PkgIconProps) => {
-    const sources = useMemo(
-        () => pkgIconSources(pName, pIcon, pInstalled, pAllowRemote, pInstalledIcon),
-        [pName, pIcon, pInstalled, pAllowRemote, pInstalledIcon]
-    );
+export const PkgIcon = ({ pName, pIcon, pInstalled, pInstalledIcon, className }: PkgIconProps) => {
+    const sources = useMemo(() => pkgIconSources(pName, pIcon, pInstalled, pInstalledIcon), [pName, pIcon, pInstalled, pInstalledIcon]);
     const key = sources.join('|');
 
     // Render-time reset instead of a useEffect: when the component is reused for a

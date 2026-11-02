@@ -18,14 +18,64 @@ import { runScript } from '../script';
 import type { LifecycleContext, StepResult } from '../types';
 
 /**
- * Staging root for the extraction, deliberately OUTSIDE `/work/public/`.
+ * Staging root for the extraction — a SIBLING OF THE DESTINATION, inside
+ * `/work/public/`. It used to be `/work/.pkg-staging-`, at the root of `/work`,
+ * and that one directory level is what broke every Docker install.
  *
- * `/public/` is statically served AND is what the catalog scans for installed
- * packages (`children.filter(isDir)`), so a half-written tree parked there would
- * be advertised as an installed package. The dot prefix additionally keeps it
- * unobtrusive in the file explorer during the (visible) extraction window.
+ * ---------------------------------------------------------------------------
+ * WHY IT MOVED: `rename(2)` CANNOT CROSS A MOUNT POINT
+ * ---------------------------------------------------------------------------
+ * The install path finishes with `renameSync(staging/root, dest)`. A rename is a
+ * directory-entry operation, so the kernel refuses one whose two ends live on
+ * different filesystems — EXDEV, unconditionally, no matter how ordinary the
+ * paths look.
+ *
+ * On a normal host `/work` and `/work/public` are the same filesystem and nobody
+ * ever notices. In a container they routinely are NOT: the package directory is
+ * a bind mount or a volume (`VOLUME ["/file"]` in machbase-neo.Dockerfile) while
+ * the root of `/work` is the image's own overlay. MEASURED in a reporter's
+ * container, three renames run back to back:
+ *
+ *   write a file directly into /work/public                  OK
+ *   rename /work/.staging/x       -> /work/public/x          FAIL   ← the old path
+ *   rename /work/public/.staging/x -> /work/public/x         OK     ← this path
+ *
+ * Staging beside the destination means the rename is always WITHIN ONE
+ * DIRECTORY, so there is no mount boundary left for it to trip over.
+ *
+ * THE ERROR THAT REPORTS THIS IS A LIE — do not trust it, and do not re-diagnose
+ * from it. The JSH runtime masks the errno twice: `engine/fs.go`'s `Rename`
+ * turns ANY `os.Rename` failure into `fs.ErrInvalid`, and `/lib/fs.js`'s
+ * `renameSync` catch block builds a hardcoded
+ * `ENOENT: no such file or directory, rename '<from>' -> '<to>'`. So EXDEV
+ * arrives dressed as a missing file, and the first hours of this investigation
+ * went looking for a path that was never missing.
+ *
+ * ---------------------------------------------------------------------------
+ * WHY BEING INSIDE `/public/` IS SAFE (the old comment said it was not)
+ * ---------------------------------------------------------------------------
+ * The claim it made — "a half-written tree parked there would be advertised as
+ * an installed package" — does not survive contact with the code that does the
+ * advertising. Every reader of that directory ignores this one:
+ *
+ *   `scanArchives`     `archiveKind(".pkg-staging-<name>")` is "" (no archive
+ *                      extension) so the entry is skipped before it is opened.
+ *   `scanInstalled`    keys `names` / `dirs` only off a readable
+ *                      `<dir>/package.json`. The staged manifest sits one level
+ *                      DEEPER (`<staging>/<root>/package.json`), so the staging
+ *                      directory itself has none and is never recorded — which
+ *                      also keeps it out of `classifyInstalledDir` (strayDirs).
+ *   `isPkgInstalled`   matches `c.name === appName`; the staging directory is
+ *                      named `.pkg-staging-<appName>` and cannot collide.
+ *   `/api/files`       does not list dot entries at all (measured, v8.5.10-snapshot).
+ *
+ * What IS true is that `/public/` is statically served, so the half-written tree
+ * is briefly reachable by URL. It is a dot directory, it exists only for the
+ * seconds an extraction takes, and `purgeStaging()` removes it on success and on
+ * every abort. That is the price of an install that works in a container, and it
+ * is worth paying.
  */
-export const ARCHIVE_STAGING_PREFIX = '/work/.pkg-staging-';
+export const ARCHIVE_STAGING_PREFIX = '/work/public/.pkg-staging-';
 
 /**
  * The extraction script, run by TQL `SCRIPT("js", …)` on the server.
@@ -58,14 +108,16 @@ export const ARCHIVE_STAGING_PREFIX = '/work/.pkg-staging-';
  *
  * Order of operations matters. `fsProbe.isPkgInstalled` only checks that
  * `/public/<appName>` exists — it cannot tell a finished install from a
- * half-extracted one. So everything happens in staging and the switch into
- * `/work/public/` is the very last step: until it runs there is nothing at the
- * destination to misread, and once it runs the tree is already complete.
+ * half-extracted one. So everything happens in staging (a dot directory the
+ * probe and both scans ignore — see {@link ARCHIVE_STAGING_PREFIX}) and the
+ * switch to `<appName>` is the very last step: until it runs there is nothing at
+ * the destination to misread, and once it runs the tree is already complete.
  *
  * TWO MODES, `force` PICKS ONE — the same word `stepPkgCopy(ctx, { force: true })`
  * uses, meaning "the destination is already populated, proceed anyway":
  *
- *   install (no force)  dest must NOT exist; `renameSync(root, dest)` — atomic.
+ *   install (no force)  dest must NOT exist; `renameSync(root, dest)` — atomic,
+ *                       with a copy fallback if the runtime refuses the rename.
  *   update  (force)     dest is KEPT and the staged tree is copied OVER it.
  *
  * WHY UPDATE IS NOT ATOMIC — do not "fix" it back into rm -rf + rename. The old
@@ -270,7 +322,7 @@ if (!fs.statSync(root).isDirectory()) abort("archive root '" + roots[0] + "' is 
 // cgi-bin/package.json and frontend/package.json, which describe sub-projects.
 var pkgPath = root + "/package.json";
 if (!fs.existsSync(pkgPath)) abort("archive is missing package.json");
-// toText for the same reason readLocalOnlyFlag needs it: this runtime may answer
+// toText for the same reason the catalog scan needs it: this runtime may answer
 // with an ArrayBuffer even for "utf8", and String(arrayBuffer) is
 // "[object ArrayBuffer]", which JSON.parse rejects. It is a no-op on a string.
 // package.json is the ONE file this script is allowed to read as text.
@@ -301,9 +353,50 @@ $.yield("verified " + pkg.name + "@" + pkg.version);
 //    silently deciding for it is how the config-deleting bug happened.
 //    UPDATE (force): merge over dest, never delete it. See the doc comment.
 if (!force && fs.existsSync(dest)) abort("destination already exists: " + dest + " (update, not install)");
+
+// THE INSTALL SWITCH, WITH A FALLBACK — belt and braces for one hostile case.
+//
+// Staging is a sibling of dest now (see ARCHIVE_STAGING_PREFIX), so the rename
+// no longer crosses a mount point and EXDEV is off the table. This fallback is
+// for what that move does NOT cover: a runtime that refuses THIS rename for some
+// other reason a container can invent. It costs one catch and reuses the writer
+// the update path has always used, and the alternative is the failure this whole
+// change exists to stop.
+//
+// THE CLEANUP IS NOT OPTIONAL. mergeTree is not atomic, and we are on the
+// install path, where \`dest\` was proven NOT to exist two lines up — so a copy
+// that dies halfway leaves a PARTIAL tree at a path \`isPkgInstalled\` reads as a
+// finished install. Removing it is safe precisely because nothing of the user's
+// was ever there; on the update path (force) no fallback runs and dest is never
+// touched by this block.
+function installByRename() {
+    try {
+        fs.renameSync(root, dest);
+        return null;
+    } catch (e) {
+        return e && e.message ? e.message : String(e);
+    }
+}
+
 try {
-    if (force) mergeTree(root, dest);
-    else fs.renameSync(root, dest);
+    if (force) {
+        mergeTree(root, dest);
+    } else {
+        var renameError = installByRename();
+        if (renameError !== null) {
+            $.yield("rename refused (" + renameError + "), copying instead");
+            try {
+                mergeTree(root, dest);
+            } catch (copyError) {
+                try {
+                    if (fs.existsSync(dest)) fs.rmSync(dest, { recursive: true, force: true });
+                } catch (cleanupError) {
+                    // best effort: the copy failure below is the reason that matters
+                }
+                throw copyError;
+            }
+        }
+    }
 } catch (e) {
     abort("failed to install into " + dest + ": " + (e && e.message ? e.message : e));
 }

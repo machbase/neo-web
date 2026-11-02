@@ -7,6 +7,8 @@
  *   without a render key React bails out of the state update and the panel stays as it was.
  * - Dashboard auto-refresh ticks (boardTimeMinMax.autoRefresh) must NOT re-query these panels, while
  *   visualization TQL panels keep auto-refreshing as before.
+ * - A JSON text result is indented, unless it is nested too deeply to print back — then the raw text
+ *   is shown instead of the panel failing to render (#1553).
  */
 import { render, screen, waitFor } from '@testing-library/react';
 import LineChart from './LineChart';
@@ -139,5 +141,25 @@ describe('TQL sink panel refresh policy', () => {
         rerender(chart('id-1', { min: 1000, max: 2000, autoRefresh: true }));
 
         await waitFor(() => expect(mockGetTqlScripts.mock.calls.length).toBeGreaterThan(sFetchesBefore));
+    });
+});
+
+describe('TQL text sink panel with a JSON result', () => {
+    const textResponse = (aBody: string) => ({ status: 200, headers: { 'content-type': 'text/plain' }, data: aBody });
+    const sinkText = () => document.querySelector('pre')?.textContent;
+
+    beforeEach(() => mockGetTqlScripts.mockReset());
+
+    it('indents a JSON result', async () => {
+        mockGetTqlScripts.mockResolvedValue(textResponse('{"a":[1]}'));
+        render(chart('id-1', { min: 1000, max: 2000 }));
+        await waitFor(() => expect(sinkText()).toBe(JSON.stringify({ a: [1] }, null, 4)));
+    });
+
+    it('shows a JSON result nested too deeply to indent as the raw text', async () => {
+        const sDeep = '['.repeat(8000) + ']'.repeat(8000);
+        mockGetTqlScripts.mockResolvedValue(textResponse(sDeep));
+        render(chart('id-1', { min: 1000, max: 2000 }));
+        await waitFor(() => expect(sinkText()).toBe(sDeep));
     });
 });

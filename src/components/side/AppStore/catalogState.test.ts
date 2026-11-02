@@ -23,14 +23,6 @@ describe('resolveCatalogState', () => {
         expect(resolveCatalogState({ mode: 'offline' }, 3)).toBe('offline');
         expect(resolveCatalogState({ mode: 'offline' }, 0)).toBe('failed');
     });
-
-    // The card count decides offline-vs-failed ONLY for a hub that was asked and
-    // did not answer. An air-gapped server with an empty archive directory is
-    // configured, not broken, so it must not fall through to `failed`.
-    test('localOnly is its own state at ANY card count — never "failed"', () => {
-        expect(resolveCatalogState({ mode: 'localOnly' }, 5)).toBe('localOnly');
-        expect(resolveCatalogState({ mode: 'localOnly' }, 0)).toBe('localOnly');
-    });
 });
 
 describe('formatLastSync', () => {
@@ -45,27 +37,16 @@ describe('formatLastSync', () => {
     });
 });
 
-// The tooltip is the only place the explanation can live now, so the three states
+// The tooltip is the only place the explanation can live now, so the two states
 // have to stay tellable apart in text alone.
 describe('formatCatalogTooltip', () => {
     test('each state produces its own sentence, and none repeats another', () => {
-        const localOnly = formatCatalogTooltip('localOnly', { mode: 'localOnly' });
         const offline = formatCatalogTooltip('offline', { mode: 'offline', lastSyncAt: LAST_SYNC });
         const failed = formatCatalogTooltip('failed', { mode: 'offline' });
 
-        expect(new Set([localOnly, offline, failed]).size).toBe(3);
-        expect(localOnly).toContain(CATALOG_STATUS_LABEL.localOnly);
+        expect(new Set([offline, failed]).size).toBe(2);
         expect(offline).toContain(CATALOG_STATUS_LABEL.offline);
         expect(failed).toContain(CATALOG_STATUS_LABEL.failed);
-    });
-
-    test('localOnly names the config file and borrows none of the failure vocabulary', () => {
-        const text = formatCatalogTooltip('localOnly', { mode: 'localOnly', hubError: 'getaddrinfo ENOTFOUND' });
-
-        expect(text).toContain('/public/.pkg-conf.json');
-        expect(text).not.toMatch(/unreachable|could not be reached|unavailable|failed|error/i);
-        // Nothing was attempted, so nothing can be re-attempted.
-        expect(text).not.toMatch(/refresh/i);
     });
 
     test('the failure states carry the hub error when there is one and point at Refresh', () => {
