@@ -36,8 +36,8 @@ export const useFileTreeRead = () => {
  * existing loaders through the same publication check. */
 export const useFileTreeRefresh = () => {
     const readTree = useFileTreeRead();
-    return useCallback((path: string, canApply?: () => boolean) => readTree(async previous => {
-        const result = await TreeFetchDrilling(previous, path, true);
+    return useCallback((path: string, canApply?: () => boolean) => readTree(async (previous, isCurrent) => {
+        const result = await TreeFetchDrilling(previous, path, true, isCurrent);
         return result?.tree;
     }, {canApply}), [readTree]);
 };

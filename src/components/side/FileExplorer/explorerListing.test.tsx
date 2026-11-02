@@ -84,3 +84,29 @@ test.each(['before-save','save-success','save-failure','retry-failure','new-navi
   expect(tree.files.map((file:any)=>file.name)).toEqual(mode==='save-failure'?['a.sql']:['a.sql','b.sql']);
   expect(disk.get('b.sql')).toBe(mode==='save-failure'?undefined:owner.code);
  });
+
+test('fresh root response after a Save As publication must not silently lose newly discovered folders',async()=>{
+ jest.clearAllMocks();
+ const disk=new Map([['a.sql','SELECT ORIGINAL;']]);let roots=0,release!:()=>void,externalFolder=false,heldResponse:any;
+ const entry=(name:string,isDir=false)=>({name,isDir,type:isDir?'dir':'.sql',lastModifiedUnixMillis:1,gitClone:false,virtual:false});
+ const root=()=>({success:true,data:{name:'/',isDir:true,gitClone:false,children:[entry('target',true),...(externalFolder?[entry('fresh-external',true)]:[]),...[...disk.keys()].map(n=>entry(n))]}});
+ jest.mocked(request).mockImplementation(async(config:any)=>{
+  if(config.method==='POST'){disk.set('b.sql',config.data);return {success:true} as any;}
+  if(config.method==='GET'&&config.url.split('?')[0]==='/api/files/'){
+   roots++;if(roots===2)return new Promise(resolve=>{release=()=>{heldResponse=root();resolve(heldResponse);};});
+   return root() as any;
+  }
+  return disk.get(decodeURIComponent(config.url.split('/').at(-1))) as any;
+ });
+ render(<RecoilRoot initializeState={({set})=>{set(gBoardList,[owner,draft]);set(gSelectedTab,'owner')}}><App/></RecoilRoot>);
+ await screen.findByTestId('file-tree-item-%2Fa.sql');
+ fireEvent.click(screen.getByTestId('file-explorer-refresh'));await waitFor(()=>expect(release).toBeDefined());
+ fireEvent.click(screen.getByText('Open Save As'));await screen.findByDisplayValue('a.sql');fireEvent.change(screen.getByTestId('file-name-input'),{target:{value:'b.sql'}});fireEvent.click(screen.getByTestId('apply'));
+ await waitFor(()=>expect(tree.files.map((f:any)=>f.name)).toContain('b.sql'));
+ externalFolder=true;
+ await act(async()=>release());
+ expect(heldResponse.data.children.map((n:any)=>n.name)).toContain('fresh-external');
+ expect(disk.get('b.sql')).toBe('SELECT DRAFT;');expect(boards[0].name).toBe('b.sql');expect(boards[1]).toEqual(draft);
+ const hasFreshFolder = tree.dirs.some((f:any)=>f.name === 'fresh-external');
+ expect(hasFreshFolder).toBe(true);
+});

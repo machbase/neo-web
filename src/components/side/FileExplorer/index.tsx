@@ -136,7 +136,7 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
                     return;
                 }
                 return fileTreeParser(response.data, '/', 0, '0');
-            }, {canApply, retry:false});
+            }, {canApply});
         } catch {
             if (canApply()) Toast.error('Failed to load the file tree.', {testId:'file-explorer-error-toast', id:'file-explorer-refresh'});
         } finally {

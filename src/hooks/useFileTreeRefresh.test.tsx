@@ -20,7 +20,7 @@ it('re-reads after another publisher changes the tree instead of publishing old 
     act(() => {refreshing = result.current.refresh('/b.sql');});
     act(() => result.current.state[1](latest));
     await act(async () => {release({tree:stale}); await refreshing;});
-    expect(TreeFetchDrilling).toHaveBeenNthCalledWith(2, latest, '/b.sql', true);
+    expect(TreeFetchDrilling).toHaveBeenNthCalledWith(2, latest, '/b.sql', true, expect.any(Function));
     expect(result.current.state[0]).toEqual(current);
 });
 

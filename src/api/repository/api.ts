@@ -13,10 +13,11 @@ import {deleteFile} from './fileTree';
 import { sqlIdentifierPath, sqlQueryUrl, sqlString } from '@/utils/queryText';
 
 
-const getFileList = (aFilter: string, aDir: string, aName: string) => {
+const getFileList = (aFilter: string, aDir: string, aName: string, options?: {canRetryFileRequest?: () => boolean}) => {
     return request({
         method: 'GET',
         url: buildFilesUrl(aName ? `${aDir}/${aName}` : aDir, aFilter),
+        ...(options?.canRetryFileRequest ? {canRetryFileRequest: options.canRetryFileRequest} : {}),
     });
 };
 const getReferenceList = () => {

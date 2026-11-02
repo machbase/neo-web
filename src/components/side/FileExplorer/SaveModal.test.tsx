@@ -226,7 +226,7 @@ describe('SaveModal — overwrite check', () => {
         await waitFor(() => expect(postFileList).toHaveBeenCalledTimes(1));
         expect((postFileList as jest.Mock).mock.calls[0][2]).toBe('A.sql');
         expect(recordRecentFile).toHaveBeenCalledWith({ name: 'A.sql', path: '/' });
-        expect(TreeFetchDrilling).toHaveBeenCalledWith(expect.anything(), '/A.sql', true);
+        expect(TreeFetchDrilling).toHaveBeenCalledWith(expect.anything(), '/A.sql', true, expect.any(Function));
         await waitFor(() => expect(sLatestBoards.map((aB) => aB.id)).toEqual(['t1']));
         expect(sLatestBoards[0]).toMatchObject({ name: 'A.sql', path: '/' });
     });
