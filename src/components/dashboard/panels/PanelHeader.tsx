@@ -15,7 +15,7 @@ import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { VariableParserForTql } from '@/utils/DashboardQueryParser';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { fetchBlockTimeMinMax } from '@/api/repository/machiot';
-import { postFileList } from '@/api/repository/api';
+import { useBoardFileSave } from '@/hooks/useBoardFileSave';
 import { calcInterval, CheckObjectKey, setUnitTime } from '@/utils/dashboardUtil';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
 import { pickBlockNameFilterValue, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
@@ -37,6 +37,7 @@ import { literalReplacement } from '@/utils/dashboardVariableText';
 
 const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pBoardInfo, pOnFullscreen, pResolvedTheme, pRefreshCycleId }: any) => {
     const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
+    const saveBoard = useBoardFileSave();
     const [sSelectedTab, setSelectedTab] = useRecoilState(gSelectedTab);
     const sRollupTableList = useRecoilValue(gRollupTableList);
     const sHeaderId = generateRandomString();
@@ -322,9 +323,9 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
         if (!sBoard) return;
         const sDashboard = { ...sBoard.dashboard, panels: aUpdatePanels(sBoard.dashboard.panels) };
         const sHasFile = sBoard.path !== '';
-        const sSaveTarget = sHasFile ? { ...sBoard, dashboard: sDashboard, savedCode: JSON.stringify(sDashboard) } : { ...sBoard, dashboard: sDashboard };
+        const sSaveTarget = { ...sBoard, dashboard: sDashboard };
         setBoardList(sBoardList.map((aItem) => (aItem.id === pBoardInfo.id ? sSaveTarget : aItem)));
-        if (sHasFile) postFileList(sSaveTarget, sSaveTarget.path, sSaveTarget.name);
+        if (sHasFile) void saveBoard(sSaveTarget);
     };
     const handleCopyPanel = (aPanelInfo: any) => {
         // The copy keeps the source's x/y/w/h and goes right after it in the panel list, so the

@@ -148,7 +148,8 @@ describe('FileExplorer failure notice', () => {
         });
 
         await waitFor(() => expect(Toast.error).toHaveBeenCalled());
-        expect(deleteFile).toHaveBeenCalledWith('/', 'keep.sql', { recursive: false });
+        expect(deleteFile).toHaveBeenCalledWith('/', 'keep.sql', expect.objectContaining({ recursive: false,
+            handlers: expect.objectContaining({onRejected: expect.any(Function)}) }));
         expect(screen.getByTestId(itemId('/keep.sql'))).toBeInTheDocument();
     });
 
@@ -171,8 +172,10 @@ describe('FileExplorer failure notice', () => {
 
         await waitFor(() => expect(deleteFile).toHaveBeenCalledTimes(2));
         const sCalls = (deleteFile as jest.Mock).mock.calls;
-        expect(sCalls).toContainEqual(['/', 'docs', { recursive: true }]);
-        expect(sCalls).toContainEqual(['/', 'keep.sql', { recursive: false }]);
+        expect(sCalls).toContainEqual(['/', 'docs', expect.objectContaining({ recursive: true,
+            handlers: expect.objectContaining({onRejected: expect.any(Function)}) })]);
+        expect(sCalls).toContainEqual(['/', 'keep.sql', expect.objectContaining({ recursive: false,
+            handlers: expect.objectContaining({onRejected: expect.any(Function)}) })]);
         sCalls.forEach((aCall) => aCall.forEach((aArg: unknown) => expect(aArg).not.toBeUndefined()));
         // only the succeeded folder reaches DeleteFileTree, and it carries type/depth (removeDir needs them)
         await waitFor(() => expect(mockDeleteFileTreeSpy).toHaveBeenCalledTimes(1));

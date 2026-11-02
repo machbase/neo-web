@@ -4,6 +4,9 @@ import { parseTazDocument } from '../persistence/tazMigrations';
 import { getOutdatedTazFormatWarning, getTazFormatVersion } from '../persistence/tazFormat';
 import { createTazBoardSnapshot } from '../persistence/tazBoardSnapshot';
 import { writeTazBoard } from '../persistence/writeTazBoard';
+import { UncertainFileWriteError } from '@/api/repository/fileWriteQueue';
+import type { FileWriteOptions, FileWriteContext } from '@/api/repository/fileWriteQueue';
+import { isSuccessfulFileWrite } from '@/utils/fileRequestResult';
 
 export { isTazBoardSaved } from '../persistence/tazBoardSnapshot';
 
@@ -30,6 +33,7 @@ export function loadTazBoard(
 
 export async function saveTazBoard(
     boardInfo: BoardInfo,
+    options?: FileWriteOptions & { onSaved?: (board: BoardInfo, context: FileWriteContext) => void | Promise<void> },
 ): Promise<BoardInfo | undefined> {
     try {
         const sSavedBoard = createTazBoardSnapshot({
@@ -38,9 +42,17 @@ export async function saveTazBoard(
             code: '',
             loadWarning: undefined,
         });
-        const sDidSave = await writeTazBoard(sSavedBoard);
+        const writeOptions = options ? {
+            ...options,
+            onResult: async (result: any, context: FileWriteContext) => {
+                await options.onResult?.(result, context);
+                if (isSuccessfulFileWrite(result)) await options.onSaved?.(sSavedBoard, context);
+            },
+        } : undefined;
+        const sDidSave = await (writeOptions ? writeTazBoard(sSavedBoard, writeOptions) : writeTazBoard(sSavedBoard));
         return sDidSave ? sSavedBoard : undefined;
-    } catch {
+    } catch (error) {
+        if (error instanceof UncertainFileWriteError) throw error;
         return undefined;
     }
 }

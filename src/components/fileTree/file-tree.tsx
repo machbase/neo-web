@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import styled from '@emotion/styled';
 import icons from '@/utils/icons';
 import { FileTreeType, FileType, sortDir, sortFile } from '@/utils/fileTreeParser';
-import { useRecoilState, useSetRecoilState } from 'recoil';
-import { GBoardListType, gBoardList, gSelectedTab } from '@/recoil/recoil';
+import { useRecoilState, useSetRecoilState, useRecoilCallback } from 'recoil';
+import { getRequestSession } from '@/api/core/requestSession';
+import { isSameFilePath } from '@/utils/fileIdentity';
+import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { gDeleteFileList, gFileTree, gRecentDirectory, gRenameFile } from '@/recoil/fileTree';
 import { extractionExtension } from '@/utils';
 import { getFileNameAndExtension, getFileNameOnly } from '@/utils/fileNameUtils';
@@ -12,11 +14,12 @@ import { ErrorBoundary } from '@/design-system/components/ErrorBoundary';
 import { postFileList } from '@/api/repository/api';
 import { findItemByUniqueKey, findParentDirByUniqueKey } from '@/utils/file-manager';
 import useThrottle from '@/hooks/useThrottle';
+import { useFileMutationTabs } from '@/hooks/useFileMoveTabs';
 import { moveFile } from '@/api/repository/fileTree';
 import { resolveCloneTarget } from '@/utils/fileExistence';
 import { useClonePrompt } from '@/components/modal/useOverwritePrompt';
 import { isTypingName, validateName } from '@/utils/fileName';
-import { computeMovedBoardPath, isInDropSection, isMultiSelectClick } from './fileTreePath';
+import { isInDropSection, isMultiSelectClick } from './fileTreePath';
 import { getFileRequestFailure } from '@/utils/fileRequestResult';
 import { Toast } from '@/design-system/components';
 import { Tooltip } from 'react-tooltip';
@@ -37,12 +40,12 @@ interface FileTreeProps {
 const FileTreeKeyList = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter'];
 
 export const FileTree = (props: FileTreeProps) => {
-    const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
+    const moveTabs = useFileMutationTabs();
     const setRecentDirectory = useSetRecoilState(gRecentDirectory);
     const [sEnterItem, setEnterItem] = useState<any>(null);
     const [sDeleteFileList, setDeleteFileList] = useRecoilState(gDeleteFileList);
     const [sIsDnd, setIsDnd] = useState<boolean>(false);
-    const [sFileTree] = useRecoilState(gFileTree);
+    const getFileTree = useRecoilCallback(({snapshot}) => () => snapshot.getLoadable(gFileTree).getValue(), []);
     const [sIsDropZone, setIsDropZone] = useState<boolean>(false);
     const sTreeRef = useRef<any>(null);
     const [sKeyItem, setKeyItem] = useState<string>('');
@@ -104,6 +107,8 @@ export const FileTree = (props: FileTreeProps) => {
                     ? aDir.depth + 1 === sEnterItem.depth && aDir.path + aDir.name + '/' === sEnterItem.path
                     : aDir.depth === sEnterItem.depth && aDir.name === sEnterItem.name && aDir.path === sEnterItem.path
             ) {
+                // A newer listing may already contain the completed move.
+                if (aDir.files.some((file: FileType) => isSameFilePath(file.path + file.name, aAddTargetPath + aParedData.name))) return aDir;
                 return {
                     ...aDir,
                     files: [
@@ -150,6 +155,7 @@ export const FileTree = (props: FileTreeProps) => {
                     ? aDir.depth + 1 === sEnterItem.depth && aDir.path + aDir.name + '/' === sEnterItem.path
                     : aDir.depth === sEnterItem.depth && aDir.name === sEnterItem.name && aDir.path === sEnterItem.path
             ) {
+                if (aDir.dirs.some((dir: FileTreeType) => isSameFilePath(dir.path + dir.name, aAddTargetPath + aParedData.name))) return aDir;
                 const sTmp = {
                     ...aDir,
                     dirs: [
@@ -254,10 +260,13 @@ export const FileTree = (props: FileTreeProps) => {
         if (getFileNameOnly(aFile.name) === aName) return;
         const sOldName = aFile.path + aFile.name;
         const sCurName = aFile.path + aName + sExpand;
-        const sRenameResult: any = await moveFile(sOldName, sCurName);
+        const handlers = moveTabs(sOldName);
+        const sRenameResult: any = await moveFile(sOldName, sCurName, {...handlers, onMoved: async context => {
+            await handlers.onMoved?.(context);
+            if (context.isCurrent()) props.onRename(aFile, aName + sExpand);
+        }});
         const sFailure = getFileRequestFailure(sRenameResult, 'Failed to rename.');
-        if (!sFailure) props.onRename(aFile, aName + sExpand);
-        else Toast.error(sFailure.reason, { testId: 'file-explorer-error-toast', id: 'file-explorer-rename' });
+        if (sFailure) Toast.error(sFailure.reason, { testId: 'file-explorer-error-toast', id: 'file-explorer-rename' });
     };
     const handleDragOver: any = () => {
         const sTargetItem = findItemByUniqueKey(props.rootDir, sDragOverItem);
@@ -300,66 +309,50 @@ export const FileTree = (props: FileTreeProps) => {
             }
 
             (async () => {
-                const moveResult: any = [];
                 const sFailReasons: string[] = [];
 
-                for (const aItem of sParsedList) {
+                const session = getRequestSession();
+                const isCurrent = () => session === getRequestSession();
+                let preceding: Promise<void> = Promise.resolve();
+                // Like multiDelete, register the whole gesture now. Queued items
+                // retain this login and cannot become new-login operations later.
+                const pending = sParsedList.map((aItem: any) => {
                     const sOldPath = aItem.path + aItem.name;
                     const sDestinationPath = sIsDropZone ? '/' + aItem.name : sEnterItem.path + (sEnterItem.type === 0 ? '' : sEnterItem.name + '/') + aItem.name;
-                    const aResult: any = await moveFile(sOldPath, sDestinationPath);
-                    const sFailure = getFileRequestFailure(aResult, 'Failed to move.');
-                    if (!sFailure) moveResult.push(aItem);
-                    else sFailReasons.push(`${aItem.name}: ${sFailure.reason}`);
-                }
-                if (sFailReasons.length > 0) Toast.error(sFailReasons.join('\n'), { testId: 'file-explorer-error-toast', id: 'file-explorer-move' });
-                if (moveResult.length > 0) {
-                    let sTestRoot = JSON.parse(JSON.stringify(sFileTree));
-                    // remove
-                    moveResult.map((aDeleteItem: any) => {
-                        if (aDeleteItem.type === 0) sTestRoot = removeFile(sTestRoot, aDeleteItem);
-                        else sTestRoot = removeDir(sTestRoot, aDeleteItem);
-                    });
-                    // add
-                    moveResult.map((aAddItem: any) => {
+                    const wait = preceding, handlers = moveTabs(sOldPath);
+                    const moving = moveFile(sOldPath, sDestinationPath, {...handlers,
+                        prepare: async (context, paths) => {
+                            await handlers.prepare?.(context, paths);
+                            context.scope.capture();
+                            await wait;
+                        },
+                    }).then((aResult: any) => {
+                        if (!isCurrent()) return;
+                        const sFailure = getFileRequestFailure(aResult, 'Failed to move.');
+                        if (sFailure) {sFailReasons.push(`${aItem.name}: ${sFailure.reason}`); return;}
+                        // Apply each completed move to today's tree, keeping
+                        // unrelated file changes made while this gesture waited.
+                        let tree = JSON.parse(JSON.stringify(getFileTree()));
+                        tree = aItem.type === 0 ? removeFile(tree, aItem) : removeDir(tree, aItem);
                         if (sAddTargetPath === '/') {
-                            if (aAddItem.type === 1) {
-                                const sDirTmp = { ...aAddItem, depth: 1, parentId: '0', path: '/' };
-                                if (aAddItem.dirs.length > 0) {
-                                    const sFixedDepthDirs = modifyDepth(sDirTmp);
-                                    sTestRoot.dirs.push(sFixedDepthDirs);
-                                } else {
-                                    sDirTmp.files = sDirTmp.files.map((aFile: any) => {
-                                        return { ...aFile, depth: sDirTmp.depth + 1, path: sDirTmp.path + sDirTmp.name + '/' };
-                                    });
-                                    sTestRoot.dirs.push(sDirTmp);
+                            if (aItem.type === 1) {
+                                if (!tree.dirs.some((dir: FileTreeType) => isSameFilePath(dir.path + dir.name, sDestinationPath))) {
+                                    const dir = {...aItem, depth: 1, parentId: '0', path: '/'};
+                                    tree.dirs.push(modifyDepth(dir));
                                 }
-                            } else {
-                                sTestRoot.files.push({ ...aAddItem, depth: 1, parentId: '0', path: '/' });
+                            } else if (!tree.files.some((file: FileType) => isSameFilePath(file.path + file.name, sDestinationPath))) {
+                                tree.files.push({...aItem, depth: 1, parentId: '0', path: '/'});
                             }
-                        } else {
-                            if (aAddItem.type === 0) sTestRoot.dirs = addTargetFile(sTestRoot, aAddItem, sAddTargetPath);
-                            else sTestRoot.dirs = addTargetDir(sTestRoot, aAddItem, sAddTargetPath);
-                        }
+                        } else if (aItem.type === 0) tree.dirs = addTargetFile(tree, aItem, sAddTargetPath);
+                        else tree.dirs = addTargetDir(tree, aItem, sAddTargetPath);
+                        props.onSetFileTree(tree);
                     });
-                    const updateBoardList = JSON.parse(JSON.stringify(sBoardList));
-                    updateBoardList.map((aBoard: any, aIdx: number) => {
-                        moveResult.map((fItem: any) => {
-                            if (aBoard.name === fItem.name && aBoard.path === fItem.path) {
-                                updateBoardList[aIdx] = { ...aBoard, path: sAddTargetPath };
-                            } else {
-                                const sNewPath = computeMovedBoardPath(aBoard.path, fItem, sAddTargetPath);
-                                if (sNewPath !== null) {
-                                    updateBoardList[aIdx] = {
-                                        ...aBoard,
-                                        path: sNewPath,
-                                    };
-                                }
-                            }
-                        });
-                    });
-                    setBoardList(updateBoardList);
-                    props.onSetFileTree(JSON.parse(JSON.stringify(sTestRoot)));
-                }
+                    preceding = moving.then(() => undefined, () => undefined);
+                    return moving;
+                });
+                await Promise.all(pending);
+                if (!isCurrent()) return;
+                if (sFailReasons.length > 0) Toast.error(sFailReasons.join('\n'), { testId: 'file-explorer-error-toast', id: 'file-explorer-move' });
                 DndClear();
             })();
         }

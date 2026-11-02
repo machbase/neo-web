@@ -24,8 +24,15 @@ import { EXTENSION_SET } from '@/utils/constants';
 import { Toast } from '@/design-system/components';
 import { gWsLog } from '@/recoil/websocket';
 import { FileModal } from './FileModal';
+import {useFileMutationTabs} from '@/hooks/useFileMoveTabs';
+import {getRequestSession} from '@/api/core/requestSession';
+import {useFileTreeRead} from '@/hooks/useFileTreeRefresh';
+import {useAbortController} from '@/hooks/useAbortController';
 
 export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
+    const fileMutations = useFileMutationTabs();
+    const readTree = useFileTreeRead();
+    const treeRequests = useAbortController();
     const sParedData: FileTreeType = {
         depth: 0,
         dirs: [],
@@ -60,7 +67,6 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
     const setConsoleList = useSetRecoilState<any>(gWsLog);
     const [sSideSizes, setSideSizes] = useState<any>(['15%', '85%']);
     const [sDeleteFileList, setDeleteFileList] = useRecoilState(gDeleteFileList);
-    const [sIsFetch, setIsFetch] = useState<boolean>(false);
     const [sIsFileModal, setIsFileModal] = useState<boolean>(false);
     const DeleteFileTree = useSetRecoilState(gDeleteFileTree);
     const ReplaceTree = useSetRecoilState(gReplaceTree);
@@ -108,20 +114,34 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
 
         return array.slice(0, array.length - 1);
     }
+    const beginTreeRead = () => {
+        // Root refresh and folder navigation share one view. A newer navigation
+        // cancels the older intent without cancelling any file save/read.
+        treeRequests.abort();
+        const signal = treeRequests.createSignal();
+        const session = getRequestSession();
+        setLoadFileTree(false);
+        return {signal, canApply: () => !signal.aborted && session === getRequestSession()};
+    };
     const getFileTree = async () => {
+        const {signal, canApply} = beginTreeRead();
         setLoadFileTree(true);
         try {
-            const sReturn: any = await getFiles('/');
-            const sFailure = getFileRequestFailure(sReturn, 'Failed to load the file tree.');
-            if (sFailure || !sReturn?.data) {
-                // keep the previous tree; tell the user why
-                Toast.error(sFailure?.reason ?? 'Failed to load the file tree.', { testId: 'file-explorer-error-toast', id: 'file-explorer-refresh' });
-                return;
-            }
-            const sParedData = fileTreeParser(sReturn.data, '/', 0, '0');
-            setFileTree(JSON.parse(JSON.stringify(sParedData)));
+            await readTree(async (_previous, isCurrent) => {
+                const response: any = await getFiles('/', {canRetryFileRequest: isCurrent});
+                if (!isCurrent()) return;
+                const failure = getFileRequestFailure(response, 'Failed to load the file tree.');
+                if (failure || !response?.data) {
+                    Toast.error(failure?.reason ?? 'Failed to load the file tree.', {testId:'file-explorer-error-toast', id:'file-explorer-refresh'});
+                    return;
+                }
+                return fileTreeParser(response.data, '/', 0, '0');
+            }, {canApply});
+        } catch {
+            if (canApply()) Toast.error('Failed to load the file tree.', {testId:'file-explorer-error-toast', id:'file-explorer-refresh'});
         } finally {
-            setLoadFileTree(false);
+            if (canApply()) setLoadFileTree(false);
+            treeRequests.releaseSignal(signal);
         }
     };
 
@@ -139,7 +159,7 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
             }
 
             pGetInfo();
-            setBoardList([...sBoardList, sLoaded.board]);
+            setBoardList(boards => [...boards, sLoaded.board]);
             setSelectedTab(sTmpId);
         }
         recordRecentFile(file);
@@ -152,53 +172,40 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
 
     const onFetchDir = async (aSelectedDir: FileTreeType, aIsOpen: boolean) => {
         closeContextMenu();
-        if (!sIsFetch) {
-            setIsFetch(true);
-            let sReturn: any = null;
-            let sParedData = null;
-
-            if (aIsOpen) {
-                sReturn = await getFiles(`${aSelectedDir.path}${aSelectedDir.name}/`);
-                const sFailure = getFileRequestFailure(sReturn, 'Failed to open the folder.');
-                if (sFailure || !sReturn?.success) {
-                    Toast.error(sFailure?.reason ?? 'Failed to open the folder.', { testId: 'file-explorer-error-toast', id: 'file-explorer-fetch-dir' });
-                    setIsFetch(false);
-                    return;
+        const {signal, canApply} = beginTreeRead();
+        try {
+            await readTree(async (current, isCurrent) => {
+                let parsed: FileTreeType | null = null;
+                if (aIsOpen) {
+                    const response: any = await getFiles(`${aSelectedDir.path}${aSelectedDir.name}/`, {canRetryFileRequest: isCurrent});
+                    if (!isCurrent()) return;
+                    const failure = getFileRequestFailure(response, 'Failed to open the folder.');
+                    if (failure || !response?.success) {
+                        Toast.error(failure?.reason ?? 'Failed to open the folder.', {testId:'file-explorer-error-toast', id:'file-explorer-fetch-dir'});
+                        return;
+                    }
+                    parsed = fileTreeParser(response.data, `${aSelectedDir.path}${aSelectedDir.name}/`, aSelectedDir.depth, aSelectedDir.name);
+                    if (aSelectedDir.parentId === 'apps') parsed.readOnly = aSelectedDir.readOnly;
+                    parsed.isOpen = true;
                 }
-                sParedData = fileTreeParser(sReturn.data, `${aSelectedDir.path}${aSelectedDir.name}/`, aSelectedDir.depth, aSelectedDir.name);
-            } else {
-                sParedData = aSelectedDir;
-            }
-
-            if (aSelectedDir.parentId === 'apps') sParedData.readOnly = aSelectedDir.readOnly;
-
-            sParedData.isOpen = aIsOpen;
-            const sTmpDir = findDir(sFileTree as any, sParedData, aSelectedDir);
-            const sResult = JSON.parse(JSON.stringify(sFileTree));
-            sResult.dirs = sTmpDir;
-            setFileTree(JSON.parse(JSON.stringify(sResult)));
-            setIsFetch(false);
+                return {...current, dirs:findDir(current as FileTreeType, parsed, aSelectedDir)};
+            }, {canApply});
+        } catch {
+            if (canApply()) Toast.error('Failed to open the folder.', {testId:'file-explorer-error-toast', id:'file-explorer-fetch-dir'});
+        } finally {
+            treeRequests.releaseSignal(signal);
         }
     };
 
     const onRename = async (aSelectedItem: any, aName: string) => {
-        const sTmpBoardList = JSON.parse(JSON.stringify(sBoardList));
-        const updateBoardList = sTmpBoardList.map((aBoard: any) => {
-            if (aBoard.name === aSelectedItem.name && aBoard.path === aSelectedItem.path) {
-                return { ...aBoard, name: aName };
-            } else if (aBoard.path.includes(aSelectedItem.path + aSelectedItem.name + '/')) {
-                return { ...aBoard, path: aBoard.path.replace(aSelectedItem.path + aSelectedItem.name, aSelectedItem.path + aName) };
-            } else return aBoard;
-        });
-        setBoardList(updateBoardList);
         const sResultRoot = renameManager(sFileTree as any, aSelectedItem.path + aSelectedItem.name + '-' + aSelectedItem.depth, aName);
         setFileTree(JSON.parse(JSON.stringify(sResultRoot)));
     };
 
-    const findDir = (aOriginDir: FileTreeType, aParedData: FileTreeType, aTargetDir: FileTreeType): FileTreeType[] => {
+    const findDir = (aOriginDir: FileTreeType, aParedData: FileTreeType | null, aTargetDir: FileTreeType): FileTreeType[] => {
         return aOriginDir.dirs.map((aDir: FileTreeType) => {
-            if (aDir.name === aTargetDir.name && aDir.depth === aTargetDir.depth && aDir.path === aTargetDir.path) return { ...aParedData, path: aTargetDir.path };
-            else if (aParedData.path.includes(aDir.name)) {
+            if (aDir.name === aTargetDir.name && aDir.depth === aTargetDir.depth && aDir.path === aTargetDir.path) return aParedData ? { ...aParedData, path: aTargetDir.path } : {...aDir, isOpen:false};
+            else if (aTargetDir.path.includes(aDir.name)) {
                 return { ...aDir, dirs: findDir(aDir, aParedData, aTargetDir) };
             } else return aDir;
         });
@@ -221,53 +228,51 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
         closeContextMenu();
     };
 
-    const multiDelete = async (aDelList: any) => {
-        const sReslutList: any = [];
+    const multiDelete = async (aDelList: any, isCurrent: () => boolean) => {
         const sFailReasons: string[] = [];
-        for (const aItem of aDelList) {
-            if (!aItem || !aItem.path || !aItem.name) continue;
-            const aResult: any = await deleteContextFile(aItem.path, aItem.name, { recursive: !!aItem.recursive });
-            const sFailure = getFileRequestFailure(aResult, 'Failed to delete.');
-            if (!sFailure) {
-                sReslutList.push(aItem);
-                DeleteFileTree(aItem);
-            } else {
-                sFailReasons.push(`${aItem.name}: ${sFailure.reason}`);
-                setConsoleList((prev: any) => [
-                    ...prev,
-                    {
-                        timestamp: new Date().getTime(),
-                        level: 'ERROR',
-                        task: '',
-                        message: sFailure.reason,
-                    },
-                ]);
-            }
-        }
-        if (sFailReasons.length > 0) Toast.error(sFailReasons.join('\n'), { testId: 'file-explorer-error-toast', id: 'file-explorer-delete' });
-        if (sReslutList && sReslutList.length > 0) {
-            let updateBoardList: any = JSON.parse(JSON.stringify(sBoardList));
-            sReslutList.map((aResult: any) => {
-                if (aResult.type === 0) {
-                    updateBoardList = updateBoardList.filter((aBoard: any) => !(aBoard.name === aResult.name && aBoard.path === aResult.path));
+        let preceding: Promise<void> = Promise.resolve();
+        // Register every target now in the existing mutation queue. Only the
+        // transmission waits for the previous item; later Saves see the intent.
+        const pending = aDelList.filter((item: any) => item?.path && item?.name).map((aItem: any) => {
+            const wait = preceding, handlers = fileMutations(aItem.path + aItem.name);
+            const deleting = deleteContextFile(aItem.path, aItem.name, {recursive: !!aItem.recursive, handlers: {
+                ...handlers,
+                prepare: async context => {
+                    await handlers.prepare?.(context);
+                    context.scope.capture();
+                    await wait;
+                },
+            }}).then((aResult: any) => {
+                if (!isCurrent()) return;
+                const sFailure = getFileRequestFailure(aResult, 'Failed to delete.');
+                if (!sFailure) {
+                    DeleteFileTree(aItem);
                 } else {
-                    updateBoardList = updateBoardList.filter((aBoard: any) => !aBoard.path.includes(aResult.path + aResult.name + '/'));
+                    sFailReasons.push(`${aItem.name}: ${sFailure.reason}`);
+                    setConsoleList((prev: any) => [
+                        ...prev,
+                        {
+                            timestamp: new Date().getTime(),
+                            level: 'ERROR',
+                            task: '',
+                            message: sFailure.reason,
+                        },
+                    ]);
                 }
             });
-
-            if (updateBoardList.length > 0) setSelectedTab(updateBoardList[0].id);
-            else {
-                const tmpId = getId();
-                updateBoardList = [{ id: tmpId, type: 'new', name: 'new', path: '', code: '', panels: [], range_bgn: '', range_end: '', sheet: [], savedCode: false }];
-                setSelectedTab(tmpId);
-            }
-            setBoardList(updateBoardList);
-        }
+            preceding = deleting.then(() => undefined, () => undefined);
+            return deleting;
+        });
+        await Promise.all(pending);
+        if (!isCurrent()) return;
+        if (sFailReasons.length > 0) Toast.error(sFailReasons.join('\n'), { testId: 'file-explorer-error-toast', id: 'file-explorer-delete' });
         // getFileTree();
         setRecentDirectory('/');
     };
 
     const handleDeleteFile = async (isRecursive: boolean) => {
+        const session = getRequestSession();
+        const isCurrent = () => session === getRequestSession();
         if (sDeleteFileList && (sDeleteFileList as any).length > 0) {
             const sDeleteList = JSON.parse(JSON.stringify(sDeleteFileList)).map((aDelFile: any) => {
                 return {
@@ -289,31 +294,14 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
                 if (!sDeleteList.some((aItem: any) => aItem.path === sContextItem.path && aItem.name === sContextItem.name)) sDeleteList.push(sContextItem);
             }
             setDeleteFileList(undefined);
-            multiDelete(sDeleteList);
+            setIsDeleteModal(false);
+            await multiDelete(sDeleteList, isCurrent);
         } else {
             if (selectedContextFile && selectedContextFile.path && selectedContextFile.name) {
-                const sResult: any = await deleteContextFile(selectedContextFile.path, selectedContextFile.name, { recursive: isRecursive });
+                const sResult: any = await deleteContextFile(selectedContextFile.path, selectedContextFile.name, { recursive: isRecursive, handlers: fileMutations(selectedContextFile.path + selectedContextFile.name) });
+                if (!isCurrent()) return;
                 const sFailure = getFileRequestFailure(sResult, 'Failed to delete.');
                 if (!sFailure) {
-                    const sTmpBoardList = JSON.parse(JSON.stringify(sBoardList));
-                    let updateBoardList: any = [];
-                    if (selectedContextFile.type === 0) {
-                        updateBoardList = sTmpBoardList.filter((aBoard: any) => !(aBoard.name === selectedContextFile.name && aBoard.path === selectedContextFile.path));
-                        if (updateBoardList.length === 0) {
-                            const tmpId = getId();
-                            setBoardList([{ id: tmpId, type: 'new', name: 'new', path: '', code: '', panels: [], range_bgn: '', range_end: '', sheet: [], savedCode: false }]);
-                            setSelectedTab(tmpId);
-                        } else setBoardList(updateBoardList);
-                        if (updateBoardList.length > 0) setSelectedTab(updateBoardList[0].id);
-                    } else {
-                        updateBoardList = sTmpBoardList.filter((cBoard: any) => !cBoard.path.includes(selectedContextFile.path + selectedContextFile.name + '/'));
-                        if (updateBoardList.length === 0) {
-                            const tmpId = getId();
-                            setBoardList([{ id: tmpId, type: 'new', name: 'new', path: '', code: '', panels: [], range_bgn: '', range_end: '', sheet: [], savedCode: false }]);
-                            setSelectedTab(tmpId);
-                        } else setBoardList(updateBoardList);
-                        if (updateBoardList.length > 0) setSelectedTab(updateBoardList[0].id);
-                    }
                     // getFileTree();
                     DeleteFileTree(selectedContextFile);
                     setRecentDirectory('/');
@@ -331,7 +319,7 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
                 }
             }
         }
-        setIsDeleteModal(false);
+        if (isCurrent()) setIsDeleteModal(false);
     };
 
     const downloadFile = async () => {

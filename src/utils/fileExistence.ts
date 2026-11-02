@@ -40,8 +40,11 @@ export const keepTypeEntries = <T extends { name: string; isDir?: boolean; type?
  * surfaced as an overwrite question at save time (r19). The folder is fetched WITHOUT the server filter and
  * narrowed here with keepTypeEntries; folders stay. The response keeps its shape (`data.children`).
  */
-export const getTypedFileList = async (aType: string, aDir: string): Promise<any> => {
-    const sRes: any = await getFileList('', aDir, '');
+export const getTypedFileList = async (aType: string, aDir: string, canRead?: () => boolean): Promise<any> => {
+    if (canRead && !canRead()) return undefined;
+    const sRes: any = await (canRead
+        ? getFileList('', aDir, '', {canRetryFileRequest: canRead})
+        : getFileList('', aDir, ''));
     if (!sRes?.data || !Array.isArray(sRes.data.children)) return sRes;
     return { ...sRes, data: { ...sRes.data, children: keepTypeEntries(sRes.data.children, aType) } };
 };
@@ -61,9 +64,13 @@ export type TargetDirResult = { ok: true; dir: TargetDir } | { ok: false; reason
  * - a file, not a folder (`GET /f.sql/` answers the file's content with 200 — measured) → error
  * - any other failure → error with the server's reason
  */
-export const readTargetDir = async (aDir: string): Promise<TargetDirResult> => {
+export const readTargetDir = async (aDir: string, canObserve?: () => boolean): Promise<TargetDirResult> => {
+    if (canObserve && !canObserve()) return {ok: false, reason: 'File lookup cancelled.'};
     const sDir = toDirPath(aDir);
-    const sRes: any = await getFiles(sDir);
+    const sRes: any = await (canObserve
+        ? getFiles(sDir, {canRetryFileRequest: canObserve})
+        : getFiles(sDir));
+    if (canObserve && !canObserve()) return {ok: false, reason: 'File lookup cancelled.'};
     if (sRes && typeof sRes === 'object' && sRes.status === 404) return { ok: true, dir: { missing: true } };
     const sFailure = getFileRequestFailure(sRes, 'Failed to read the target folder.');
     if (sFailure) return { ok: false, reason: sFailure.reason };
@@ -72,7 +79,7 @@ export const readTargetDir = async (aDir: string): Promise<TargetDirResult> => {
 };
 
 /** A file/folder POST does not create missing parent folders (measured: 500 `mkdir ...: no such file or directory`). */
-const missingFolderReason = (aDir: string) => `The folder '${toDirPath(aDir)}' does not exist.`;
+export const missingFolderReason = (aDir: string) => `The folder '${toDirPath(aDir)}' does not exist.`;
 
 /** The one clone question (r14): clone replaces the folder's contents and deletes the files in it. */
 export const cloneReplaceMessage = (aExistingName: string) =>

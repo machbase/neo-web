@@ -20,10 +20,12 @@ import {
     extractionExtension,
 } from '@/utils';
 import { validateName } from '@/utils/fileName';
-import { resolveOverwrite } from '@/utils/fileExistence';
+import type {OverwriteDecision} from '@/utils/fileExistence';
+import {resolveTrackedOverwrite} from '@/utils/fileTargetInspection';
 import { useOverwritePrompt } from '@/components/modal/useOverwritePrompt';
 import icons from '@/utils/icons';
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react';
+import type { BoardInfo } from '../board/boardModel';
 import { tazFileApi, type FileListItem } from './tazFileApi';
 import { Inline, Stack, Text } from '../ui/Presentation';
 import controls from '../ui/Controls.module.scss';
@@ -34,11 +36,13 @@ export function SaveAsModal({
     initialFileName,
     onClose,
     onSaveAs,
+    getSaveBoards,
 }: {
     initialDirectoryPath: string;
     initialFileName: string;
     onClose: () => void;
-    onSaveAs: (directoryPath: string, fileName: string, overwritten?: boolean) => Promise<boolean>;
+    onSaveAs: (directoryPath: string, fileName: string, overwritten?: boolean, before?: ReadonlyMap<string, BoardInfo>, prepare?: (canWrite: () => boolean) => Promise<OverwriteDecision>, canWrite?: () => boolean) => Promise<boolean>;
+    getSaveBoards?: () => BoardInfo[];
 }) {
     const sInitialDirectory = useRef(
         normalizeDirectoryPath(initialDirectoryPath || '/')
@@ -55,6 +59,12 @@ export function SaveAsModal({
     const [sIsDirectoryLoading, setIsDirectoryLoading] = useState(true);
     const [sIsSaving, setIsSaving] = useState(false);
     const sDirectoryRequestIdRef = useRef(0);
+    const sOpen = useRef(true);
+    const handleClose = useCallback(() => {
+        if (!sOpen.current) return;
+        sOpen.current = false;
+        onClose();
+    }, [onClose]);
     const { ask: askOverwrite, prompt: sOverwritePrompt } = useOverwritePrompt();
     const [sSaveError, setSaveError] = useState<string | undefined>(undefined);
 
@@ -64,11 +74,12 @@ export function SaveAsModal({
         closeOnError = false,
     ): Promise<void> => {
         const sRequestId = ++sDirectoryRequestIdRef.current;
+        const canRead = () => sOpen.current && sDirectoryRequestIdRef.current === sRequestId;
         setIsDirectoryLoading(true);
 
         try {
-            const sNextFileList = await tazFileApi.fetchTazFileList(directorySegments);
-            if (sDirectoryRequestIdRef.current !== sRequestId) return;
+            const sNextFileList = await tazFileApi.fetchTazFileList(directorySegments, canRead);
+            if (!canRead()) return;
 
             setSelectedDir(directorySegments);
             setSelectedFileName('');
@@ -76,16 +87,18 @@ export function SaveAsModal({
             setFileList(sNextFileList);
             setIsDirectoryLoading(false);
         } catch {
-            if (sDirectoryRequestIdRef.current !== sRequestId) return;
+            if (!canRead()) return;
             setIsDirectoryLoading(false);
             Toast.error(SAVE_AS_OPEN_ERROR_MESSAGE);
-            if (closeOnError) onClose();
+            if (closeOnError) handleClose();
         }
-    }, [onClose]);
+    }, [handleClose]);
 
     useEffect(() => {
+        sOpen.current = true;
         void openDirectory(sInitialDirectory, [], true);
         return () => {
+            sOpen.current = false;
             sDirectoryRequestIdRef.current += 1;
         };
     }, [openDirectory, sInitialDirectory]);
@@ -139,28 +152,30 @@ export function SaveAsModal({
         }
 
         const sDirectoryPath = buildDirectoryPath(sSelectedDir);
+        const before = getSaveBoards ? new Map(getSaveBoards().map(board => [board.id, board])) : undefined;
 
         // Busy BEFORE the re-query: a second click while the lookup/confirm is pending must not start a second save.
         setIsSaving(true);
         try {
-            // shared check: unfiltered re-query right before saving (the listed folder may have changed since), case-insensitive name, ConfirmModal
             setSaveError(undefined);
-            const sDecision = await resolveOverwrite(sDirectoryPath, sSaveFileName, askOverwrite);
-            if (sDecision.status === 'folder' || sDecision.status === 'failed') {
-                // in-modal error (r13), like FileModal
-                setSaveError(sDecision.reason);
+            const canSave = () => sOpen.current;
+            // The common file queue calls this when the write's turn arrives.
+            const prepare = async (canWrite: () => boolean): Promise<OverwriteDecision> => {
+                const canPrepare = () => canSave() && canWrite();
+                if (!canPrepare()) return {status: 'cancel'};
+                const decision = await resolveTrackedOverwrite(sDirectoryPath, sSaveFileName, name =>
+                    canPrepare() ? askOverwrite(name) : Promise.resolve(false), canPrepare);
+                if (!canPrepare()) return {status: 'cancel'};
+                if (decision.status === 'folder' || decision.status === 'failed') setSaveError(decision.reason);
+                return decision;
+            };
+            const sDidSave = await onSaveAs(sDirectoryPath, sSaveFileName, false, before, prepare, canSave);
+
+            if (!sDidSave || !sOpen.current) {
                 return;
             }
-            if (sDecision.status === 'cancel') return;
 
-            // r20 M1: saved under the typed name (POST, tab name); the server's file system decides about a case-only difference
-            const sDidSave = await onSaveAs(sDirectoryPath, sSaveFileName, sDecision.status === 'confirmed');
-
-            if (!sDidSave) {
-                return;
-            }
-
-            onClose();
+            handleClose();
         } finally {
             setIsSaving(false);
         }
@@ -171,7 +186,7 @@ export function SaveAsModal({
     return (
         <Modal.Root
             isOpen
-            onClose={onClose}
+            onClose={handleClose}
             size="md"
             data-testid="tag-analyzer-save-as-dialog"
         >

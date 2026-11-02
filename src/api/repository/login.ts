@@ -1,4 +1,5 @@
 import request from '../core';
+import { cancelAllPendingFileWrites } from './fileWriteQueue';
 
 export const getLogin = () => {
     return request({
@@ -8,6 +9,7 @@ export const getLogin = () => {
 };
 
 export const postLogin = (params: { loginName: string; password: string }) => {
+    cancelAllPendingFileWrites();
     return request({
         method: 'POST',
         url: '/api/login',
@@ -31,6 +33,7 @@ export const getAdminName = async () => {
 };
 
 export const logOut = async () => {
+    cancelAllPendingFileWrites();
     return await request({
         method: 'POST',
         url: '/api/logout',

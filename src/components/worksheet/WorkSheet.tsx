@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { WorkSheetEditor } from './WorkSheetEditor';
-import { useRecoilState, useSetRecoilState } from 'recoil';
+import { useSetRecoilState } from 'recoil';
 import { gBoardList } from '@/recoil/recoil';
 import { getId, isEmpty } from '@/utils';
-import { gSaveWorkSheets } from '@/recoil/workSheet';
 import { Save, SaveAs, IoPlayForwardSharp } from '@/assets/icons/Icon';
 import { FaStop } from 'react-icons/fa';
 import { Button, ErrorBoundary, ErrorCard, Page } from '@/design-system/components';
@@ -25,8 +24,7 @@ interface WorkSheetProps {
 
 export const WorkSheet = (props: WorkSheetProps) => {
     const { pIsActiveTab, pId, pSheet, pHandleSaveModalOpen, setIsSaveModal } = props;
-    const setSaveWorkSheet = useSetRecoilState(gSaveWorkSheets);
-    const [sBoardList, setBoardList] = useRecoilState(gBoardList);
+    const setBoardList = useSetRecoilState(gBoardList);
     const [sWorkSheets, setWorkSheets] = useState<any>([]);
     const [sAllRunCodeStatus, setAllRunCodeStatus] = useState<boolean>(false);
     const [sAllRunCodeList, setAllRunCodeList] = useState<boolean[]>([]);
@@ -236,10 +234,9 @@ export const WorkSheet = (props: WorkSheetProps) => {
         });
     }, [sWorkSheets]);
     const handleUpdateSheet = (aSheet: any) => {
-        setSaveWorkSheet(aSheet);
         setWorkSheets(aSheet);
-        setBoardList(
-            sBoardList.map((aItem) => {
+        setBoardList((boards) =>
+            boards.map((aItem) => {
                 return aItem.id === pId ? { ...aItem, sheet: aSheet } : aItem;
             })
         );
@@ -284,9 +281,6 @@ export const WorkSheet = (props: WorkSheetProps) => {
     }, [sAllRunCodeStatus]);
     useEffect(() => {
         setWorkSheets(!isEmpty(pSheet) ? pSheet : [sNewWrkDefaultData]);
-        return () => {
-            setSaveWorkSheet([]);
-        };
     }, []);
 
     return (
@@ -326,7 +320,7 @@ export const WorkSheet = (props: WorkSheetProps) => {
                         <span className="editor-header-divider" />
                         <Button.Group>
                             <Button size="sm" variant="ghost" isToolTip toolTipContent="Save" data-testid="save" icon={<Save size={18} />} onClick={pHandleSaveModalOpen} />
-                            <Button size="sm" variant="ghost" isToolTip toolTipContent="Save as" icon={<SaveAs size={18} />} onClick={() => setIsSaveModal(true)} />
+                            <Button size="sm" variant="ghost" isToolTip toolTipContent="Save as" data-testid="save-as" icon={<SaveAs size={18} />} onClick={() => setIsSaveModal(true)} />
                         </Button.Group>
                     </div>
                 </Page.Header>

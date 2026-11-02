@@ -16,7 +16,12 @@ jest.mock('@/api/repository/fileTree', () => ({
 }));
 
 const renderSaveAs = (aOnSaveAs: jest.Mock) =>
-    render(<SaveAsModal initialDirectoryPath="/d/" initialFileName="mine.taz" onClose={jest.fn()} onSaveAs={aOnSaveAs} />);
+    render(<SaveAsModal initialDirectoryPath="/d/" initialFileName="mine.taz" onClose={jest.fn()} onSaveAs={async (path, name, _overwritten, _before, prepare, canWrite) => {
+        // The queue grants the write a turn before running the modal's final check.
+        const decision = await prepare!(canWrite!);
+        return decision.status === 'none' || decision.status === 'confirmed'
+            ? aOnSaveAs(path, name, decision.status === 'confirmed') : false;
+    }} />);
 
 const typeAndSave = async (aName: string) => {
     fireEvent.change(await screen.findByDisplayValue('mine.taz'), { target: { value: aName } });
@@ -32,7 +37,8 @@ describe('tagAnalyzer SaveAsModal — shared overwrite check', () => {
         // the dialog's filtered listing hides b.TAZ (server filter is case-sensitive)
         (getFileList as jest.Mock).mockResolvedValue({ success: true, data: { children: [] } });
         // the unfiltered re-query shows it
-        (getFiles as jest.Mock).mockResolvedValue({ success: true, data: { isDir: true, children: [{ name: 'b.TAZ', isDir: false }] } });
+        (getFiles as jest.Mock).mockImplementation(async path => ({ success: true, data: { isDir: true,
+            children: path === '/' ? [{name: 'd', isDir: true}] : [{ name: 'b.TAZ', isDir: false }] } }));
         (postFileList as jest.Mock).mockResolvedValue({ success: true });
         sConfirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true);
     });
@@ -44,7 +50,7 @@ describe('tagAnalyzer SaveAsModal — shared overwrite check', () => {
         await typeAndSave('b.TAZ');
 
         const sDialog = await screen.findByTestId('file-overwrite-dialog');
-        expect(getFiles).toHaveBeenCalledWith('/d/');
+        expect(getFiles).toHaveBeenCalledWith('/d/', {canRetryFileRequest: expect.any(Function)});
         expect(sOnSaveAs).not.toHaveBeenCalled();
         await act(async () => {
             fireEvent.click(within(sDialog).getByTestId('cancel'));
@@ -81,7 +87,8 @@ describe('tagAnalyzer SaveAsModal — shared overwrite check', () => {
 
     it('a second click while the re-query is pending does not start a second save (busy before the lookup)', async () => {
         let sResolveLookup: (v: any) => void = () => {};
-        (getFiles as jest.Mock).mockImplementation(() => new Promise((r) => (sResolveLookup = r)));
+        (getFiles as jest.Mock).mockImplementation(path => path === '/' ? Promise.resolve({success: true, data: {isDir: true, children: [{name: 'd', isDir: true}]}})
+            : new Promise((r) => (sResolveLookup = r)));
         const sOnSaveAs = jest.fn().mockResolvedValue(true);
         renderSaveAs(sOnSaveAs);
         fireEvent.change(await screen.findByDisplayValue('mine.taz'), { target: { value: 'fresh.taz' } });
@@ -93,7 +100,7 @@ describe('tagAnalyzer SaveAsModal — shared overwrite check', () => {
         });
         await act(async () => sResolveLookup({ success: true, data: { isDir: true, children: [] } }));
         await waitFor(() => expect(sOnSaveAs).toHaveBeenCalledTimes(1));
-        expect(getFiles).toHaveBeenCalledTimes(1);
+        expect((getFiles as jest.Mock).mock.calls.filter(([path]) => path === '/d/')).toHaveLength(1);
     });
 
     it('a failed lookup saves nothing and shows the reason inside the dialog (r13)', async () => {

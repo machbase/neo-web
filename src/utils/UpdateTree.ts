@@ -17,7 +17,9 @@ export const UpdateTree = async ({ path, name }: { path: string; name: string })
     } else return undefined;
 };
 
-export const TreeFetchDrilling = async (aOriginTree: any, aFullPath: string, aIsFile?: boolean) => {
+export const TreeFetchDrilling = async (aOriginTree: any, aFullPath: string, aIsFile?: boolean, isCurrent: () => boolean = () => true) => {
+    const cancelled = () => ({tree: aOriginTree, exist: false});
+    if (!isCurrent()) return cancelled();
     const sName: string = aFullPath.split('/').at(-1) ?? '/';
     const sPath = aFullPath.replace(sName, '');
     const sDepth = sPath.split('/').length - 1;
@@ -28,7 +30,13 @@ export const TreeFetchDrilling = async (aOriginTree: any, aFullPath: string, aIs
     const sTmp = JSON.parse(JSON.stringify(aOriginTree));
     // Ensure trailing slash for directory fetch to avoid misclassification as file
     const ensureDir = (p: string) => (p.endsWith('/') ? p : p + '/');
-    const sTargetDirInfo: any = aIsFile ? { success: true } : await getFileList('', ensureDir(aFullPath), '');
+    // Keep the original operation's guard through every directory and its auth
+    // retry. A late parent response must not start work in a newer login.
+    const readDirectory = (path: string) => isCurrent()
+        ? getFileList('', ensureDir(path), '', {canRetryFileRequest: isCurrent})
+        : Promise.resolve(undefined);
+    const sTargetDirInfo: any = aIsFile ? { success: true } : await readDirectory(aFullPath);
+    if (!isCurrent()) return cancelled();
     let sAlreadyExist = false;
 
     const CheckFullPath = (aPath: string) => {
@@ -38,6 +46,7 @@ export const TreeFetchDrilling = async (aOriginTree: any, aFullPath: string, aIs
 
     const DirDrill = async (aTargetDir: any, aFullPath: string, aDepth: number) => {
         for await (const [aIdx, aDir] of aTargetDir.entries()) {
+            if (!isCurrent()) return aTargetDir;
             if (aFullPath === aDir.path + aDir.name) {
                 // If target dir fetch failed, just mark as open and keep current children
                 if (!sTargetDirInfo || !sTargetDirInfo.success || !sTargetDirInfo.data) {
@@ -53,7 +62,8 @@ export const TreeFetchDrilling = async (aOriginTree: any, aFullPath: string, aIs
                     return aTargetDir;
                 }
             } else if (CheckFullPath(aDir.path + aDir.name)) {
-                const sReslut: any = await getFileList('', ensureDir(aDir.path + aDir.name), '');
+                const sReslut: any = await readDirectory(aDir.path + aDir.name);
+                if (!isCurrent()) return aTargetDir;
                 if (sReslut.success) {
                     const sParsedRes = fileTreeParser(sReslut.data, aDir.path + aDir.name + '/', aDepth + 1, sReslut.data.name);
                     const sDirs: any = {
@@ -71,7 +81,8 @@ export const TreeFetchDrilling = async (aOriginTree: any, aFullPath: string, aIs
 
     // root path
     if (sPath === '/' && sDepth === 1 && !sParent) {
-        const sRootDirRes: any = await getFileList('', '/', '');
+        const sRootDirRes: any = await readDirectory('/');
+        if (!isCurrent()) return cancelled();
         if (sRootDirRes.success && sTargetDirInfo.success) {
             const sParsedRes = fileTreeParser(sRootDirRes.data, '/', 0, sRootDirRes.data.name);
             // DIR
@@ -107,6 +118,7 @@ export const TreeFetchDrilling = async (aOriginTree: any, aFullPath: string, aIs
         } else return { tree: aOriginTree, exist: sAlreadyExist };
     } else {
         const sResult = await DirDrill(sTmp.dirs, aFullPath, 0);
+        if (!isCurrent()) return cancelled();
         return { tree: { ...sTmp, dirs: sResult }, exist: sAlreadyExist };
     }
 

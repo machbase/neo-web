@@ -199,3 +199,12 @@ describe('getTypedFileList (r19)', () => {
         expect(await getTypedFileList('sql', '')).toBe(sFail);
     });
 });
+
+it('typed listings forward the live cancellation predicate to authentication retries',async()=>{
+    const canRead=jest.fn(()=>true);
+    (getFileList as jest.Mock).mockResolvedValue({success:true,data:{children:[]}});
+    await getTypedFileList('sql','/work/',canRead);
+    expect(getFileList).toHaveBeenLastCalledWith('','/work/','',{canRetryFileRequest:canRead});
+    (getFileList as jest.Mock).mockClear();canRead.mockReturnValue(false);
+    expect(await getTypedFileList('sql','/work/',canRead)).toBeUndefined();expect(getFileList).not.toHaveBeenCalled();
+});
