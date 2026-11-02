@@ -19,8 +19,8 @@ afterEach(()=>jest.restoreAllMocks());
 // real queue tests; the modal supplies a live, cancellable final check.
 function saveBoundary(success=true) {
     const write=jest.fn().mockResolvedValue(success);
-    const onSaveAs=jest.fn(async(path,name,_overwritten,_before,prepare)=>{
-        const decision=await prepare();
+    const onSaveAs=jest.fn(async(path,name,_overwritten,_before,prepare,canWrite)=>{
+        const decision=await prepare(canWrite);
         return decision.status==='none'||decision.status==='confirmed'?write(path,name,decision.status==='confirmed'):false;
     });
     return {write,onSaveAs};
@@ -55,5 +55,37 @@ test('captures destination contents before queueing and refuses an unmounted fin
     await waitFor(()=>expect(screen.getByTestId('tag-analyzer-save-as-submit-button')).toBeEnabled());fireEvent.click(screen.getByTestId('tag-analyzer-save-as-submit-button'));await waitFor(()=>expect(onSaveAs).toHaveBeenCalled());
     live={...original,boardTimeRange:{start:'now-3h',end:'now'}};
     const args=(onSaveAs.mock.calls[0] as unknown as any[]);expect(args[3].get(original.id)).toBe(original);expect(getFiles).not.toHaveBeenCalled();
-    view.unmount();expect(await args[4]()).toEqual({status:'cancel'});expect(getFiles).not.toHaveBeenCalled();
+    view.unmount();expect(await args[4](()=>true)).toEqual({status:'cancel'});expect(getFiles).not.toHaveBeenCalled();
+});
+
+test('cancelling a running final lookup also cancels its authentication retry',async()=>{
+    fetchFiles.mockResolvedValue([]);
+    let finish!:(value:Awaited<ReturnType<typeof getFiles>>)=>void;
+    jest.mocked(getFiles).mockImplementationOnce(()=>new Promise(resolve=>finish=resolve));
+    const {write,onSaveAs}=saveBoundary();
+    render(<SaveAsModal initialDirectoryPath="/" initialFileName="copy.taz" onClose={jest.fn()} onSaveAs={onSaveAs}/>);
+    await waitFor(()=>expect(screen.getByTestId('tag-analyzer-save-as-submit-button')).toBeEnabled());
+    fireEvent.click(screen.getByTestId('tag-analyzer-save-as-submit-button'));
+    await waitFor(()=>expect(getFiles).toHaveBeenCalledTimes(1));
+    const retry=jest.mocked(getFiles).mock.calls[0][1]?.canRetryFileRequest;
+    expect(retry).toEqual(expect.any(Function));expect(retry?.()).toBe(true);
+    fireEvent.click(screen.getByTestId('tag-analyzer-save-as-cancel-button'));
+    expect(retry?.()).toBe(false);
+    await act(async()=>finish(emptyDirectoryResponse));
+    expect(write).not.toHaveBeenCalled();expect(getFiles).toHaveBeenCalledTimes(1);
+});
+
+test('Cancel also invalidates authentication retry for a pending directory listing',async()=>{
+    let finish!:(files:FileListItem[])=>void;
+    let canRetry:(()=>boolean)|undefined;
+    fetchFiles.mockResolvedValueOnce([directory]).mockImplementationOnce((_segments,canRead)=>{
+        canRetry=canRead;return new Promise(resolve=>finish=resolve);
+    });
+    const onClose=jest.fn();render(<SaveAsModal initialDirectoryPath="/" initialFileName="copy.taz" onClose={onClose} onSaveAs={jest.fn()}/>);
+    fireEvent.click(await screen.findByTestId('tag-analyzer-save-as-item-reports'),{detail:2});
+    expect(canRetry).toEqual(expect.any(Function));expect(canRetry?.()).toBe(true);
+    fireEvent.click(screen.getByTestId('tag-analyzer-save-as-cancel-button'));
+    expect(canRetry?.()).toBe(false);
+    await act(async()=>finish([file]));
+    expect(onClose).toHaveBeenCalledTimes(1);expect(screen.queryByTestId('tag-analyzer-save-as-item-existing.taz')).toBeNull();
 });

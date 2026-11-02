@@ -32,10 +32,12 @@ const TAZ_FILE_TYPE = 'taz';
 
 async function fetchTazFileList(
     directorySegments: string[],
+    canRead?: () => boolean,
 ): Promise<FileListItem[]> {
     const response = await getTypedFileList(
         TAZ_FILE_TYPE,
         directorySegments.join('/'),
+        canRead,
     );
 
     return (response?.data?.children ?? []) as FileListItem[];

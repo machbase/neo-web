@@ -117,10 +117,19 @@ export const SaveModal = (props: SaveModalProps) => {
 
     const getFiles = async (aType: string, aPathArr?: any) => {
         const sDir = aPathArr ? aPathArr.join('/') : sSelectedDir.join('/');
-        // r19: type filter applied client-side, case-insensitive (the server ?filter= drops `X.SQL`)
-        const sData = pIsSave ? await getTypedFileList(aType, sDir) : await getFileList('', sDir, '');
-        setFileList(sData.data?.children ?? []);
-        setFilterFileList(sData.data?.children ?? []);
+        // Reuse the dialog-local controller; browsing must not abort a write
+        // owned by MainContent or a request for another tab.
+        const signal = sLocalSaveRequests.createSignal();
+        const canRead = () => sDialogOpen.current && !signal.aborted && sLocalSaveRequests.isCurrentLifetime(signal);
+        try {
+            // r19: type filter applied client-side, case-insensitive (the server ?filter= drops `X.SQL`)
+            const sData = pIsSave ? await getTypedFileList(aType, sDir, canRead) : await getFileList('', sDir, '', {canRetryFileRequest: canRead});
+            if (!canRead()) return;
+            setFileList(sData?.data?.children ?? []);
+            setFilterFileList(sData?.data?.children ?? []);
+        } finally {
+            sLocalSaveRequests.releaseSignal(signal);
+        }
     };
 
     const changeSaveFileName = (aEvent: React.ChangeEvent<HTMLInputElement>) => {
@@ -185,12 +194,8 @@ export const SaveModal = (props: SaveModalProps) => {
             if (deletePath.length > 0) {
                 deletePath.pop();
                 setDeletePath(deletePath);
-                const sData = pIsSave ? await getTypedFileList(sFileType, currentPath.join('/')) : await getFileList('', currentPath.join('/'), '');
-                setFileList(sData.data?.children ?? []);
-                setFilterFileList(sData.data.children ?? []);
-            } else {
-                getFiles(sFileType, currentPath);
             }
+            await getFiles(sFileType, currentPath);
         }
     };
 

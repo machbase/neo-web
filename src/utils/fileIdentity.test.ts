@@ -52,7 +52,7 @@ it('probes JSON aliases as raw text even when their file contents contain succes
     jest.mocked(getFiles).mockResolvedValueOnce({success:true,data:{isDir:true,children:[{name:'a.json'}]}} as any)
         .mockResolvedValueOnce('{"success":false}' as any);
     expect(await resolveOverwrite('/', 'A.JSON', async () => true)).toEqual({status:'confirmed'});
-    expect(getFiles).toHaveBeenLastCalledWith('/A.JSON',{rawText:true});
+    expect(getFiles).toHaveBeenLastCalledWith('/A.JSON',{rawText:true,canRetryFileRequest:expect.any(Function)});
     expect(isTabOnFile({id:'a',path:'/',name:'a.json'},{path:'/',name:'A.JSON'},true)).toBe(true);
 });
 

@@ -49,8 +49,9 @@ export const keepTypeEntries = <T extends { name: string; isDir?: boolean; type?
  * surfaced as an overwrite question at save time (r19). The folder is fetched WITHOUT the server filter and
  * narrowed here with keepTypeEntries; folders stay. The response keeps its shape (`data.children`).
  */
-export const getTypedFileList = async (aType: string, aDir: string): Promise<any> => {
-    const sRes: any = await getFileList('', aDir, '');
+export const getTypedFileList = async (aType: string, aDir: string, canRead: () => boolean = () => true): Promise<any> => {
+    if (!canRead()) return undefined;
+    const sRes: any = await getFileList('', aDir, '', {canRetryFileRequest: canRead});
     if (!sRes?.data || !Array.isArray(sRes.data.children)) return sRes;
     return { ...sRes, data: { ...sRes.data, children: keepTypeEntries(sRes.data.children, aType) } };
 };
@@ -70,9 +71,11 @@ export type TargetDirResult = { ok: true; dir: TargetDir } | { ok: false; reason
  * - a file, not a folder (`GET /f.sql/` answers the file's content with 200 — measured) → error
  * - any other failure → error with the server's reason
  */
-export const readTargetDir = async (aDir: string): Promise<TargetDirResult> => {
+export const readTargetDir = async (aDir: string, canObserve: () => boolean = () => true): Promise<TargetDirResult> => {
+    if (!canObserve()) return { ok: false, reason: 'File lookup cancelled.' };
     const sDir = toDirPath(aDir);
-    const sRes: any = await getFiles(sDir);
+    const sRes: any = await getFiles(sDir, {canRetryFileRequest: canObserve});
+    if (!canObserve()) return { ok: false, reason: 'File lookup cancelled.' };
     if (sRes && typeof sRes === 'object' && sRes.status === 404) return { ok: true, dir: { missing: true } };
     const sFailure = getFileRequestFailure(sRes, 'Failed to read the target folder.');
     if (sFailure) return { ok: false, reason: sFailure.reason };
@@ -102,7 +105,7 @@ const resolveDirectoryIdentity = async (directory: string, canObserve: () => boo
     let actual = '/', uncertain = false;
     for (const segment of directory.split('/').filter(Boolean)) {
         if (!canObserve()) return {reason: 'File lookup cancelled.'};
-        const parent = await readTargetDir(actual);
+        const parent = await readTargetDir(actual, canObserve);
         if (!parent.ok) return {reason: parent.reason};
         if (parent.dir.missing) return {reason: missingFolderReason(actual)};
         const candidates = matchingEntries(parent.dir.children, segment);
@@ -135,7 +138,7 @@ type TargetInspection = {decision: OverwriteDecision; existingName?: string; pub
  * never publish file identity into the current login's resolver. */
 const inspectFileTarget = async (aDir: string, aName: string, canObserve: () => boolean): Promise<TargetInspection> => {
     if (!canObserve()) return {decision: {status: 'cancel'}};
-    const dir = await readTargetDir(aDir);
+    const dir = await readTargetDir(aDir, canObserve);
     if (!canObserve()) return {decision: {status: 'cancel'}};
     if (!dir.ok) return {decision: {status: 'failed', reason: dir.reason}};
     if (dir.dir.missing) return {decision: {status: 'failed', reason: missingFolderReason(aDir)}};
@@ -156,7 +159,7 @@ const inspectFileTarget = async (aDir: string, aName: string, canObserve: () => 
     }};
     let actualName = aName, uncertain = directory.uncertain;
     if (entry.name !== aName) {
-        const response: any = await getFiles(path + aName, {rawText: true});
+        const response: any = await getFiles(path + aName, {rawText: true, canRetryFileRequest: canObserve});
         if (!canObserve()) return {decision: {status: 'cancel'}};
         if (response?.status !== 404) {
             const failure = getFileRequestFailure(response, 'Failed to identify the target file.');

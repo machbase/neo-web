@@ -396,3 +396,24 @@ it('keeps later TAZ edits and invalidates only the file whose response was lost'
     expect(hook.applySaveResult).toHaveBeenCalledWith({...later, savedCode: false});
     expect(hook.onSavedBoard).toHaveBeenCalledWith({...later, savedCode: false}, {overwritten: false, acknowledgementOnly: true});
 });
+
+it('passes its live canWrite into Save As preparation when the source moves',async()=>{
+    const gate=createDeferred<void>();
+    let canPrepare:(()=>boolean)|undefined;
+    const prepare=jest.fn(async(canWrite:()=>boolean)=>{
+        canPrepare=canWrite;await gate.promise;return {status:'none' as const};
+    });
+    jest.spyOn(boardSave,'saveBoardFile').mockImplementation(async options=>{
+        await options.beforeWrite?.();return false;
+    });
+    const board=createBoard(),hook=renderBoardSave(board);
+    let saving!:Promise<boolean>;
+    try {
+        act(()=>{saving=hook.result.current.saveAs('/','copy.taz',false,undefined,prepare,()=>true);});
+        await waitFor(()=>expect(prepare).toHaveBeenCalledTimes(1));
+        expect(canPrepare).toEqual(expect.any(Function));expect(canPrepare?.()).toBe(true);
+        hook.rerender({currentBoard:{...board,path:'/moved/'},active:true});
+        expect(canPrepare?.()).toBe(false);
+    } finally {await act(async()=>{gate.resolve();await saving;});}
+    expect(hook.applySaveResult).not.toHaveBeenCalled();expect(hook.onSavedBoard).not.toHaveBeenCalled();
+});

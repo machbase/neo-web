@@ -55,7 +55,7 @@ describe('readTargetDir (r20 — the one lookup)', () => {
     it('queries the folder (normalised to /p/) and returns its children', async () => {
         (getFiles as jest.Mock).mockResolvedValue(dirOf([{ name: 'n', isDir: true }]));
         expect(await readTargetDir('p')).toEqual({ ok: true, dir: { missing: false, children: [{ name: 'n', isDir: true }] } });
-        expect(getFiles).toHaveBeenCalledWith('/p/');
+        expect(getFiles).toHaveBeenCalledWith('/p/', {canRetryFileRequest: expect.any(Function)});
     });
     it('404 → missing (the caller decides), other failures → reason', async () => {
         (getFiles as jest.Mock).mockResolvedValue(NOT_FOUND);
@@ -75,7 +75,7 @@ describe('resolveOverwrite (shared check)', () => {
         (getFiles as jest.Mock).mockImplementation((path: string) => Promise.resolve(dirOf(path === '/' ? [{name:'d',isDir:true}] : [{ name: 'X.DSH', isDir: false }])));
         const sAsk = jest.fn().mockResolvedValue(false);
         expect(await resolveOverwrite('/d', 'X.DSH', sAsk)).toEqual({ status: 'cancel' });
-        expect(getFiles).toHaveBeenCalledWith('/d/');
+        expect(getFiles).toHaveBeenCalledWith('/d/', {canRetryFileRequest: expect.any(Function)});
         expect(sAsk).toHaveBeenCalledWith('X.DSH');
     });
     it('confirmed / none / folder / failed — confirmed carries no substitute name (r20: the typed name is written)', async () => {
@@ -186,7 +186,7 @@ describe('getTypedFileList (r19)', () => {
             data: { isDir: true, name: 's', children: [{ name: 'sub', isDir: true, type: 'dir' }, { name: 'X.SQL', isDir: false }, { name: 'b.tql', isDir: false }] },
         });
         const sRes = await getTypedFileList('sql', 's');
-        expect(getFileList).toHaveBeenCalledWith('', 's', '');
+        expect(getFileList).toHaveBeenCalledWith('', 's', '', {canRetryFileRequest: expect.any(Function)});
         expect(sRes).toEqual({
             success: true,
             reason: 'success',
@@ -198,4 +198,13 @@ describe('getTypedFileList (r19)', () => {
         (getFileList as jest.Mock).mockResolvedValue(sFail);
         expect(await getTypedFileList('sql', '')).toBe(sFail);
     });
+});
+
+it('typed listings forward the live cancellation predicate to authentication retries',async()=>{
+    const canRead=jest.fn(()=>true);
+    (getFileList as jest.Mock).mockResolvedValue({success:true,data:{children:[]}});
+    await getTypedFileList('sql','/work/',canRead);
+    expect(getFileList).toHaveBeenLastCalledWith('','/work/','',{canRetryFileRequest:canRead});
+    (getFileList as jest.Mock).mockClear();canRead.mockReturnValue(false);
+    expect(await getTypedFileList('sql','/work/',canRead)).toBeUndefined();expect(getFileList).not.toHaveBeenCalled();
 });

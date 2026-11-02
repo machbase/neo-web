@@ -61,7 +61,7 @@ export function useBoardSave({
                     if (!destination) return true;
                     if (signal.aborted) return false;
                     if (destination.prepare) {
-                        const decision = await destination.prepare();
+                        const decision = await destination.prepare(canWrite);
                         if (decision.status !== 'none' && decision.status !== 'confirmed') return false;
                         overwritten = decision.status === 'confirmed';
                     }
@@ -159,7 +159,7 @@ export function useBoardSave({
     }, [isActive, save]);
 
     const saveAs = useCallback(
-        (directoryPath: string, fileName: string, overwritten?: boolean, before?: ReadonlyMap<string, BoardInfo>, prepare?: () => Promise<OverwriteDecision>, canWrite?: () => boolean) =>
+        (directoryPath: string, fileName: string, overwritten?: boolean, before?: ReadonlyMap<string, BoardInfo>, prepare?: (canWrite: () => boolean) => Promise<OverwriteDecision>, canWrite?: () => boolean) =>
             save({ directoryPath, fileName, overwritten, before, prepare, canWrite }),
         [save],
     );
@@ -189,7 +189,7 @@ type SaveDestination = {
     fileName: string;
     overwritten?: boolean;
     before?: ReadonlyMap<string, BoardInfo>;
-    prepare?: () => Promise<OverwriteDecision>;
+    prepare?: (canWrite: () => boolean) => Promise<OverwriteDecision>;
     canWrite?: () => boolean;
 };
 

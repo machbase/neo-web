@@ -40,7 +40,7 @@ export function SaveAsModal({
     initialDirectoryPath: string;
     initialFileName: string;
     onClose: () => void;
-    onSaveAs: (directoryPath: string, fileName: string, overwritten?: boolean, before?: ReadonlyMap<string, BoardInfo>, prepare?: () => Promise<OverwriteDecision>, canWrite?: () => boolean) => Promise<boolean>;
+    onSaveAs: (directoryPath: string, fileName: string, overwritten?: boolean, before?: ReadonlyMap<string, BoardInfo>, prepare?: (canWrite: () => boolean) => Promise<OverwriteDecision>, canWrite?: () => boolean) => Promise<boolean>;
     getSaveBoards?: () => BoardInfo[];
 }) {
     const sInitialDirectory = useRef(
@@ -73,11 +73,12 @@ export function SaveAsModal({
         closeOnError = false,
     ): Promise<void> => {
         const sRequestId = ++sDirectoryRequestIdRef.current;
+        const canRead = () => sOpen.current && sDirectoryRequestIdRef.current === sRequestId;
         setIsDirectoryLoading(true);
 
         try {
-            const sNextFileList = await tazFileApi.fetchTazFileList(directorySegments);
-            if (sDirectoryRequestIdRef.current !== sRequestId) return;
+            const sNextFileList = await tazFileApi.fetchTazFileList(directorySegments, canRead);
+            if (!canRead()) return;
 
             setSelectedDir(directorySegments);
             setSelectedFileName('');
@@ -85,7 +86,7 @@ export function SaveAsModal({
             setFileList(sNextFileList);
             setIsDirectoryLoading(false);
         } catch {
-            if (sDirectoryRequestIdRef.current !== sRequestId) return;
+            if (!canRead()) return;
             setIsDirectoryLoading(false);
             Toast.error(SAVE_AS_OPEN_ERROR_MESSAGE);
             if (closeOnError) handleClose();
@@ -156,16 +157,18 @@ export function SaveAsModal({
         setIsSaving(true);
         try {
             setSaveError(undefined);
+            const canSave = () => sOpen.current;
             // The common file queue calls this when the write's turn arrives.
-            const prepare = async (): Promise<OverwriteDecision> => {
-                if (!sOpen.current) return {status: 'cancel'};
+            const prepare = async (canWrite: () => boolean): Promise<OverwriteDecision> => {
+                const canPrepare = () => canSave() && canWrite();
+                if (!canPrepare()) return {status: 'cancel'};
                 const decision = await resolveOverwrite(sDirectoryPath, sSaveFileName, name =>
-                    sOpen.current ? askOverwrite(name) : Promise.resolve(false));
-                if (!sOpen.current) return {status: 'cancel'};
+                    canPrepare() ? askOverwrite(name) : Promise.resolve(false), canPrepare);
+                if (!canPrepare()) return {status: 'cancel'};
                 if (decision.status === 'folder' || decision.status === 'failed') setSaveError(decision.reason);
                 return decision;
             };
-            const sDidSave = await onSaveAs(sDirectoryPath, sSaveFileName, false, before, prepare, () => sOpen.current);
+            const sDidSave = await onSaveAs(sDirectoryPath, sSaveFileName, false, before, prepare, canSave);
 
             if (!sDidSave || !sOpen.current) {
                 return;
