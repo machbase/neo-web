@@ -18,7 +18,8 @@ import icons from '@/utils/icons';
 import EnterCallback from '@/hooks/useEnter';
 import { useFileTreeRefresh } from '@/hooks/useFileTreeRefresh';
 import { validateName } from '@/utils/fileName';
-import { getTypedFileList, resolveOverwrite, type OverwriteDecision } from '@/utils/fileExistence';
+import { getTypedFileList, type OverwriteDecision } from '@/utils/fileExistence';
+import {resolveTrackedOverwrite} from '@/utils/fileTargetInspection';
 import { useOverwritePrompt } from '@/components/modal/useOverwritePrompt';
 import { Alert, Button, Input, Modal, FileListHeader } from '@/design-system/components';
 import { loadBoardFromFile } from './loadBoardFromFile';
@@ -204,7 +205,7 @@ export const SaveModal = (props: SaveModalProps) => {
     // A failed lookup / folder conflict is shown inside this dialog (r13), not as a toast.
     const checkSaveTarget = async (aPath: string, aFileName: string, canSave: () => boolean): Promise<OverwriteDecision> => {
         setSaveError(undefined);
-        const sDecision = await resolveOverwrite(aPath, aFileName, name => canSave() ? askOverwrite(name) : Promise.resolve(false), canSave);
+        const sDecision = await resolveTrackedOverwrite(aPath, aFileName, name => canSave() ? askOverwrite(name) : Promise.resolve(false), canSave);
         if (canSave() && (sDecision.status === 'folder' || sDecision.status === 'failed')) setSaveError(sDecision.reason);
         return sDecision;
     };

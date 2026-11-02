@@ -58,7 +58,7 @@ it('first deleted worksheet must not be recreated by Save while the batch waits 
 });
 
 import {isSameFilePath} from '@/utils/fileIdentity';
-import {observeFileIdentity} from '@/utils/fileExistence';
+import {observeFileIdentity} from '@/utils/fileTargetInspection';
 it.each([true,false])('single delete must apply file identity to an open case alias; samePhysical=%s',async(samePhysical)=>{
  let disk:string|undefined=JSON.stringify({data:[{contents:'OLD'}]});const upperDisk=JSON.stringify({data:[{contents:'DISTINCT UPPER'}]});const requests:any[]=[];
  jest.mocked(request).mockReset().mockImplementation(async(c:any)=>{

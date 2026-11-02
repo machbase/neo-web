@@ -1,6 +1,6 @@
 import request, {setUserInitiatedLogout} from '@/api/core';
 import {cancelAllPendingFileWrites} from '@/api/repository/fileWriteQueue';
-import {resolveOverwrite} from './fileExistence';
+import {resolveTrackedOverwrite} from './fileTargetInspection';
 
 const adapter = request.defaults.adapter;
 afterEach(() => {
@@ -37,7 +37,7 @@ for (const stage of ['target-folder', 'parent-folder', 'alias-file'] as const) {
             };
             try {
                 const ask = jest.fn(async () => true);
-                const pending = resolveOverwrite('/work/', 'b.SQL', ask, () => current);
+                const pending = resolveTrackedOverwrite('/work/', 'b.SQL', ask, () => current);
                 await refreshing; current = false; release();
                 expect(await pending).toEqual({status: 'cancel'});
                 expect(attempts).toBe(1); expect(logout).not.toHaveBeenCalled(); expect(ask).not.toHaveBeenCalled();

@@ -4,7 +4,7 @@ import request from '@/api/core';
 import {moveFile} from '@/api/repository/fileTree';
 import {saveBoardFile} from '@/utils/boardFileSave';
 import {applySaveAsResult,applyFileSaveResult,applyFileReadResult,invalidateFileSaveResult} from '@/utils/boardSaveResult';
-import {resolveOverwrite} from '@/utils/fileExistence';
+import {resolveTrackedOverwrite} from '@/utils/fileTargetInspection';
 import {gBoardList} from '@/recoil/recoil';
 import {useFileMoveTabs} from '@/hooks/useFileMoveTabs';
 jest.mock('@/api/core',()=>({__esModule:true,default:jest.fn()}));
@@ -32,7 +32,7 @@ for(const format of ['wrk','dsh'])for(const replace of [false,true])test(`${form
  if(replace){
   const fresh=doc(format,'NEW FILE FROM LATER SAVE AS');const freshOwner:any={...source,id:'fresh-owner',name:'new.'+format,path:'',savedCode:false,...(format==='wrk'?{sheet:fresh.data}:fresh)};
   await act(async()=>{view.result.current.state[1]([draft,freshOwner]);});
-  await act(async()=>{expect(await saveBoardFile({board:freshOwner,target:{path:'/',name},saveAs:true,getSaveBoards:()=>view.result.current.state[0],beforeWrite:async()=>{const d=await resolveOverwrite('/',name,async()=>true);return d.status==='none'||d.status==='confirmed';},onSuccess:(submitted,ctx)=>view.result.current.state[1](bs=>applySaveAsResult(bs,{owner:freshOwner,target:{path:'/',name},fileType:format,submitted,sourceIsCurrent:true,confirmed:false,isSaving:ctx.isSaving})),onUncertain:jest.fn()})).toBe(true);});
+  await act(async()=>{expect(await saveBoardFile({board:freshOwner,target:{path:'/',name},saveAs:true,getSaveBoards:()=>view.result.current.state[0],beforeWrite:async()=>{const d=await resolveTrackedOverwrite('/',name,async()=>true);return d.status==='none'||d.status==='confirmed';},onSuccess:(submitted,ctx)=>view.result.current.state[1](bs=>applySaveAsResult(bs,{owner:freshOwner,target:{path:'/',name},fileType:format,submitted,sourceIsCurrent:true,confirmed:false,isSaving:ctx.isSaving})),onUncertain:jest.fn()})).toBe(true);});
   expect(JSON.stringify(disk.get('/'+name))).toContain('NEW FILE FROM LATER SAVE AS');
  }
  await act(async()=>{gates[1].resolve();await saving;});

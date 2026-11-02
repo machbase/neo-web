@@ -109,12 +109,10 @@ describe('FileModal — existing name', () => {
 
     it('r20 M1 in a sub folder: /sub/A.sql typed, a.sql there → POST dir sub + A.sql, tree drill /sub/A.sql', async () => {
         const { TreeFetchDrilling } = jest.requireMock('@/utils/UpdateTree');
-        (getFiles as jest.Mock).mockImplementation(async (path: string) =>
-            path === '/' ? parent([{name: 'sub', isDir: true}]) : parent([{name: 'a.sql', isDir: false}])
-        );
+        (getFiles as jest.Mock).mockResolvedValue(parent([{ name: 'a.sql', isDir: false }]));
         renderModal('/sub/A.sql');
         await clickOk();
-        expect(getFiles).toHaveBeenCalledWith('/sub/', {canRetryFileRequest: expect.any(Function)});
+        expect(getFiles).toHaveBeenCalledWith('/sub/');
         const sDialog = await screen.findByTestId('file-overwrite-dialog');
         await act(async () => {
             fireEvent.click(within(sDialog).getByTestId('confirm'));

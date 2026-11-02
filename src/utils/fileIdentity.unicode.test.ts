@@ -4,7 +4,7 @@ import { saveBoardFile } from './boardFileSave';
 import { applyFileSaveResult } from './boardSaveResult';
 import { isBoardSaved } from './boardSaveStatus';
 import { getFileIdentity, hasFileIdentity, forgetFileIdentities } from './fileIdentity';
-import { resolveOverwrite } from './fileExistence';
+import { resolveTrackedOverwrite } from './fileTargetInspection';
 import {applyFileReadResult, invalidateFileSaveResult} from './boardSaveResult';
 import {loadBoardFromFile} from '@/components/side/FileExplorer/loadBoardFromFile';
 
@@ -47,7 +47,7 @@ it('a missing decomposed path remains a separate future file after probing the c
         ? { success: true, data: { isDir: true, children: [{ name: '가.sql' }] } } as any
         : { status: 404, headers: {}, data: { reason: 'missing' } } as any);
     const alias = '가.sql'.normalize('NFD'), ask = jest.fn(async () => true);
-    expect(await resolveOverwrite('/', alias, ask)).toEqual({ status: 'confirmed' });
+    expect(await resolveTrackedOverwrite('/', alias, ask)).toEqual({ status: 'confirmed' });
     expect(ask).toHaveBeenCalledWith('가.sql');
     expect(getFileIdentity('/' + alias)).not.toBe(getFileIdentity('/가.sql'));
 });
@@ -60,8 +60,8 @@ it.each([true, false])('resolves Unicode parent directories without merging nati
             ? [{ name: folder, isDir: true }, ...sameFile ? [] : [{ name: alias, isDir: true }]]
             : [{ name: 'a.sql' }] } } as any;
     });
-    await resolveOverwrite(`/${folder}/`, 'a.sql', async () => true);
-    await resolveOverwrite(`/${alias}/`, 'a.sql', async () => true);
+    await resolveTrackedOverwrite(`/${folder}/`, 'a.sql', async () => true);
+    await resolveTrackedOverwrite(`/${alias}/`, 'a.sql', async () => true);
     expect(getFileIdentity(`/${folder}/a.sql`) === getFileIdentity(`/${alias}/a.sql`)).toBe(sameFile);
     forgetFileIdentities(`/${alias}/`);
     expect(hasFileIdentity(`/${folder}/a.sql`)).toBe(!sameFile);
@@ -72,7 +72,7 @@ it('clears observed Unicode aliases after a mutation using either spelling', asy
     const name = '가.sql', alias = name.normalize('NFD');
     jest.mocked(request).mockImplementation(async (config: any) => decodeURIComponent(config.url) === '/api/files/'
         ? { success: true, data: { isDir: true, children: [{ name }] } } as any : 'OLD' as any);
-    expect(await resolveOverwrite('/', alias, async () => true)).toEqual({ status: 'confirmed' });
+    expect(await resolveTrackedOverwrite('/', alias, async () => true)).toEqual({ status: 'confirmed' });
     expect(hasFileIdentity('/' + alias)).toBe(true);
     expect(hasFileIdentity('/' + name)).toBe(true);
     forgetFileIdentities('/' + alias);

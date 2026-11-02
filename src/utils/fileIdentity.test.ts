@@ -1,5 +1,5 @@
 import { getFiles } from '@/api/repository/fileTree';
-import { resolveOverwrite } from './fileExistence';
+import { resolveTrackedOverwrite } from './fileTargetInspection';
 import { forgetFileIdentities, getFileIdentity, hasFileIdentity, rememberDirectoryIdentity, rememberFileIdentity } from './fileIdentity';
 import { isTabOnFile } from './boardAfterOverwrite';
 import { applyFileSaveResult, applySaveAsResult } from './boardSaveResult';
@@ -13,7 +13,7 @@ it.each([true, false])('server-observed same-file=%s keeps both drafts and uses 
     const listing = {success:true,data:{isDir:true,children:[{name:'a.sql',type:'.sql'}]}};
     jest.mocked(getFiles).mockResolvedValueOnce(listing as any)
         .mockResolvedValueOnce((sameFile ? 'OLD' : {status:404,headers:{},data:{reason:'missing'}}) as any);
-    expect(await resolveOverwrite('/', 'A.sql', async () => true)).toEqual({status:'confirmed'});
+    expect(await resolveTrackedOverwrite('/', 'A.sql', async () => true)).toEqual({status:'confirmed'});
     const source = {id:'source',name:'source.sql',path:'/',type:'sql',code:'SOURCE',savedCode:'SOURCE_OLD'};
     const destination = {id:'destination',name:'a.sql',path:'/',type:'sql',code:'DEST_EDIT',savedCode:'DEST_OLD'};
     const boards = applySaveAsResult([source,destination], {owner:source,target:{path:'/',name:'A.sql'},fileType:'sql',submitted:'SOURCE',sourceIsCurrent:true,confirmed:true,previousBoards:new Map([[source.id,source],[destination.id,destination]]),isSaving:b=>b.id===destination.id});
@@ -28,7 +28,7 @@ it.each([true, false])('server-observed same-file=%s keeps both drafts and uses 
 
 it('keeps case variants distinct when both exact names exist, without probing a file', async () => {
     jest.mocked(getFiles).mockResolvedValueOnce({success:true,data:{isDir:true,children:[{name:'a.sql'},{name:'A.sql'}]}} as any);
-    expect(await resolveOverwrite('/', 'A.sql', async () => true)).toEqual({status:'confirmed'});
+    expect(await resolveTrackedOverwrite('/', 'A.sql', async () => true)).toEqual({status:'confirmed'});
     expect(getFiles).toHaveBeenCalledTimes(1);
     expect(isTabOnFile({id:'a',path:'/',name:'a.sql'},{path:'/',name:'A.sql'})).toBe(false);
 });
@@ -36,10 +36,10 @@ it('keeps case variants distinct when both exact names exist, without probing a 
 it('refuses an unverified alias and never treats a same-name folder as a file', async () => {
     jest.mocked(getFiles).mockResolvedValueOnce({success:true,data:{isDir:true,children:[{name:'a.sql'}]}} as any)
         .mockResolvedValueOnce({status:503,headers:{},data:{reason:'unavailable'}} as any);
-    expect(await resolveOverwrite('/', 'A.sql', async () => true)).toEqual({status:'failed',reason:'unavailable'});
+    expect(await resolveTrackedOverwrite('/', 'A.sql', async () => true)).toEqual({status:'failed',reason:'unavailable'});
     expect(hasFileIdentity('/A.sql')).toBe(false);
     jest.mocked(getFiles).mockResolvedValueOnce({success:true,data:{isDir:true,children:[{name:'A.sql',isDir:true}]}} as any);
-    const ask=jest.fn();expect((await resolveOverwrite('/', 'A.sql', ask)).status).toBe('folder');expect(ask).not.toHaveBeenCalled();
+    const ask=jest.fn();expect((await resolveTrackedOverwrite('/', 'A.sql', ask)).status).toBe('folder');expect(ask).not.toHaveBeenCalled();
 });
 
 it('moves/deletes clear related aliases and logout clears all identities', () => {
@@ -51,7 +51,7 @@ it('moves/deletes clear related aliases and logout clears all identities', () =>
 it('probes JSON aliases as raw text even when their file contents contain success:false', async () => {
     jest.mocked(getFiles).mockResolvedValueOnce({success:true,data:{isDir:true,children:[{name:'a.json'}]}} as any)
         .mockResolvedValueOnce('{"success":false}' as any);
-    expect(await resolveOverwrite('/', 'A.JSON', async () => true)).toEqual({status:'confirmed'});
+    expect(await resolveTrackedOverwrite('/', 'A.JSON', async () => true)).toEqual({status:'confirmed'});
     expect(getFiles).toHaveBeenLastCalledWith('/A.JSON',{rawText:true,canRetryFileRequest:expect.any(Function)});
     expect(isTabOnFile({id:'a',path:'/',name:'a.json'},{path:'/',name:'A.JSON'},true)).toBe(true);
 });
@@ -62,8 +62,8 @@ it.each([true, false])('resolves every parent folder while preserving native sam
         path === '/Reports/' ? [{name:'Nested',isDir:true}] :
         path === '/reports/' ? [{name:'nested',isDir:true}] : [{name:'a.sql',type:'.sql'}],
     }} as any));
-    await resolveOverwrite('/Reports/Nested/', 'a.sql', async () => true);
-    await resolveOverwrite('/reports/nested/', 'a.sql', async () => true);
+    await resolveTrackedOverwrite('/Reports/Nested/', 'a.sql', async () => true);
+    await resolveTrackedOverwrite('/reports/nested/', 'a.sql', async () => true);
     expect(isTabOnFile({id:'alias',path:'/reports/nested/',name:'a.sql'}, {path:'/Reports/Nested/',name:'a.sql'},true)).toBe(sameFile);
     expect(getFileIdentity('/reports/nested/a.sql')).toBe(sameFile ? '/Reports/Nested/a.sql' : '/reports/nested/a.sql');
 });
@@ -72,7 +72,7 @@ it('refuses a failed parent lookup without asking or recording a file identity',
     jest.mocked(getFiles).mockResolvedValueOnce({success:true,data:{isDir:true,children:[{name:'a.sql'}]}} as any)
         .mockResolvedValueOnce({status:503,headers:{},data:{reason:'parent unavailable'}} as any);
     const ask = jest.fn();
-    expect(await resolveOverwrite('/Reports/', 'a.sql', ask)).toEqual({status:'failed',reason:'parent unavailable'});
+    expect(await resolveTrackedOverwrite('/Reports/', 'a.sql', ask)).toEqual({status:'failed',reason:'parent unavailable'});
     expect(ask).not.toHaveBeenCalled();
     expect(hasFileIdentity('/Reports/a.sql')).toBe(false);
 });

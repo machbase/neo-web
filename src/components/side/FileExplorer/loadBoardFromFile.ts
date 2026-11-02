@@ -1,4 +1,4 @@
-import {observeFileAccess} from '@/utils/fileExistence';
+import {observeFileAccess} from '@/utils/fileTargetInspection';
 import {getRequestSession} from '@/api/core/requestSession';
 import axios from 'axios';
 import { getFiles } from '@/api/repository/fileTree';

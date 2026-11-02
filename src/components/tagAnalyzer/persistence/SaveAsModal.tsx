@@ -20,7 +20,8 @@ import {
     extractionExtension,
 } from '@/utils';
 import { validateName } from '@/utils/fileName';
-import { resolveOverwrite, type OverwriteDecision } from '@/utils/fileExistence';
+import type {OverwriteDecision} from '@/utils/fileExistence';
+import {resolveTrackedOverwrite} from '@/utils/fileTargetInspection';
 import { useOverwritePrompt } from '@/components/modal/useOverwritePrompt';
 import icons from '@/utils/icons';
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react';
@@ -162,7 +163,7 @@ export function SaveAsModal({
             const prepare = async (canWrite: () => boolean): Promise<OverwriteDecision> => {
                 const canPrepare = () => canSave() && canWrite();
                 if (!canPrepare()) return {status: 'cancel'};
-                const decision = await resolveOverwrite(sDirectoryPath, sSaveFileName, name =>
+                const decision = await resolveTrackedOverwrite(sDirectoryPath, sSaveFileName, name =>
                     canPrepare() ? askOverwrite(name) : Promise.resolve(false), canPrepare);
                 if (!canPrepare()) return {status: 'cancel'};
                 if (decision.status === 'folder' || decision.status === 'failed') setSaveError(decision.reason);

@@ -2,7 +2,7 @@ import { useRecoilCallback, useSetRecoilState } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import type { FileMoveHandlers } from '@/api/repository/fileTree';
 import type {FileMutationContext} from '@/api/repository/fileWriteQueue';
-import { observeFileIdentity } from '@/utils/fileExistence';
+import { observeFileIdentity } from '@/utils/fileTargetInspection';
 import { applyFileDeleteResult, applyFileMoveResult, applyFileReadResult } from '@/utils/boardSaveResult';
 import { readBoardSnapshots } from '@/components/side/FileExplorer/loadBoardFromFile';
 import {createNewBoardTab} from '@/components/mainContent/tabCloseUtils';

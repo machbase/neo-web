@@ -140,7 +140,7 @@ describe('FolderModal — existing name', () => {
         await clickOk();
 
         expect(await screen.findByTestId('folder-new-error')).toHaveTextContent('does not exist');
-        expect(getFiles).toHaveBeenCalledWith('/a/b/', {canRetryFileRequest: expect.any(Function)});
+        expect(getFiles).toHaveBeenCalledWith('/a/b/');
         expect(postFileList).not.toHaveBeenCalled();
     });
 
@@ -181,7 +181,7 @@ describe('FolderModal — clone into a missing parent (r20 L1)', () => {
         fireEvent.change(screen.getByTestId('folder-new-path-input'), { target: { value: '/a/b/edu' } });
         await clickOk();
         await waitFor(() => expect(postFileList).toHaveBeenCalledTimes(1));
-        expect(getFiles).toHaveBeenCalledWith('/a/b/', {canRetryFileRequest: expect.any(Function)});
+        expect(getFiles).toHaveBeenCalledWith('/a/b/');
         expect((postFileList as jest.Mock).mock.calls[0].slice(0, 2)).toEqual([{ url: 'https://github.com/machbase/education', command: 'clone' }, '/a/b/edu']);
     });
 });

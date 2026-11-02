@@ -4,7 +4,7 @@ import { saveBoardFile } from '@/utils/boardFileSave';
 import { applyFileReadResult, applyFileSaveResult, invalidateFileSaveResult } from '@/utils/boardSaveResult';
 import { isBoardSaved } from '@/utils/boardSaveStatus';
 import { getFileLookupKey, hasFileIdentity } from '@/utils/fileIdentity';
-import { resolveOverwrite } from '@/utils/fileExistence';
+import { resolveTrackedOverwrite } from '@/utils/fileTargetInspection';
 import { loadBoardFromFile } from '@/components/side/FileExplorer/loadBoardFromFile';
 
 jest.mock('@/api/core', () => ({ __esModule: true, default: jest.fn() }));
@@ -83,7 +83,7 @@ it('does not choose a physical file from a successful GET when several candidate
     jest.mocked(request).mockImplementation(async (config: any) => config.url === '/api/files/'
         ? { success: true, data: { isDir: true, children: [{ name: 'A가.sql' }, { name: 'a가.sql' }] } } as any : 'IDENTICAL' as any);
     const name = 'a가.sql'.normalize('NFD'), ask = jest.fn(async () => true);
-    expect(await resolveOverwrite('/', name, ask)).toEqual({ status: 'confirmed' });
+    expect(await resolveTrackedOverwrite('/', name, ask)).toEqual({ status: 'confirmed' });
     expect(ask).toHaveBeenCalledWith(name);
     expect(hasFileIdentity('/' + name)).toBe(false);
 });

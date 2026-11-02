@@ -4,7 +4,7 @@ import { forgetFileIdentities, getFileMutationRelation, hasFileIdentity, remembe
 import { saveBoardFile } from '@/utils/boardFileSave';
 import { applyFileSaveResult, invalidateFileSaveResult } from '@/utils/boardSaveResult';
 import { isBoardSaved } from '@/utils/boardSaveStatus';
-import { resolveOverwrite } from '@/utils/fileExistence';
+import { resolveTrackedOverwrite } from '@/utils/fileTargetInspection';
 import { deleteFile } from './fileTree';
 import { postFileList } from './api';
 
@@ -144,8 +144,8 @@ it.each(['wrk', 'dsh'])('keeps a verified separate %s tab clean when a pending t
     posts.push(path); disk.set(path, typeof config.data === 'string' ? config.data : JSON.stringify(config.data)); await gate;
     return { success: true } as any;
   });
-  await resolveOverwrite('/', 'SS.' + type, async () => true);
-  await resolveOverwrite('/', 'ß.' + type, async () => true);
+  await resolveTrackedOverwrite('/', 'SS.' + type, async () => true);
+  await resolveTrackedOverwrite('/', 'ß.' + type, async () => true);
   const blocker = postFileList('HELD', '/', 'SS.' + type);
   const queued = saveBoardFile({ board: owner, target, saveAs: true, getSaveBoards: () => boards,
     onSuccess: submitted => { boards = applyFileSaveResult(boards, target, type, submitted); },

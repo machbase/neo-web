@@ -4,7 +4,7 @@ import { saveTazBoard } from '@/components/tagAnalyzer/persistence/tazDocumentSe
 import { isTabOnFile } from './boardAfterOverwrite';
 import { getBoardSaveData, applyBoardSaveResult } from './boardSaveResult';
 import { getFileRequestFailure, isSuccessfulFileWrite } from './fileRequestResult';
-import { observeFileIdentity, observeFileAccess } from './fileExistence';
+import { observeFileIdentity, observeFileAccess } from './fileTargetInspection';
 import { getFileLookupKey, hasFileIdentity } from './fileIdentity';
 import { loadBoardFromFile } from '@/components/side/FileExplorer/loadBoardFromFile';
 import { beginBoardSave, hasPendingBoardSave, type FileWriteContext, type FileWriteOptions } from '@/api/repository/fileWriteQueue';
