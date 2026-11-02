@@ -257,3 +257,31 @@ describe('Tql empty ndjson result (neo #1421)', () => {
         expect(screen.queryByText(/no record/i)).not.toBeInTheDocument();
     });
 });
+
+// #1553: a JSON result is indented, unless it is nested too deeply to print back — then the raw text
+// is shown instead of the result area failing to render.
+describe('Tql JSON text result', () => {
+    const textResponse = (aBody: string) => ({ status: 200, headers: { 'content-type': 'text/plain' }, data: aBody });
+    const resultText = () => document.querySelector('pre.tql-result-text-pre')?.textContent;
+
+    afterEach(() => {
+        jest.clearAllMocks();
+    });
+
+    test('indents a JSON result', async () => {
+        jest.mocked(getTqlChart).mockResolvedValue(textResponse('{"a":[1]}') as any);
+        renderTql();
+        runQuery();
+        await waitFor(() => expect(resultText()).toBe(JSON.stringify({ a: [1] }, null, 4)));
+        expect(screen.getByRole('button', { name: 'JSON format' })).toBeEnabled();
+    });
+
+    test('shows a JSON result nested too deeply to indent as the raw text, its format button disabled', async () => {
+        const sDeep = '['.repeat(8000) + ']'.repeat(8000);
+        jest.mocked(getTqlChart).mockResolvedValue(textResponse(sDeep) as any);
+        renderTql();
+        runQuery();
+        await waitFor(() => expect(resultText()).toBe(sDeep));
+        expect(screen.getByRole('button', { name: 'JSON format' })).toBeDisabled();
+    });
+});
