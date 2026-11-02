@@ -1,4 +1,5 @@
 import request from '@/api/core';
+import type { AxiosRequestConfig } from 'axios';
 import { sqlContains, sqlIdentifier, sqlIdentifierPath, sqlQueryUrl, sqlString, tqlString } from '@/utils/queryText';
 import { qualifyTableName, qualifySiblingObject } from '@/utils/qualifiedTableName';
 import { ensureCurrentDatabase } from '@/api/repository/currentDatabase';
@@ -71,11 +72,12 @@ const getChartData = async (aTagTables: string, option: boolean, range: number, 
     });
 };
 
-const postTerminalSize = async (aTerminalId: number, aSize: { cols: number; rows: number }) => {
+const postTerminalSize = async (aTerminalId: number, aSize: { cols: number; rows: number }, options?: Pick<AxiosRequestConfig, 'signal' | 'canRetryFileRequest'>) => {
     await request({
         method: 'POST',
         url: `/api/term/${aTerminalId}/windowsize`,
         data: JSON.parse(JSON.stringify({ cols: aSize.cols, rows: aSize.rows })),
+        ...options,
     });
 };
 const fetchData = async (aSql: string, aFormat: string, aTimezone: any, aLimit?: any) => {
