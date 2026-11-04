@@ -1,4 +1,5 @@
 import './Shell.scss';
+import axios from 'axios';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
@@ -57,7 +58,6 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
     const term_view: Element | any = useRef();
     const sTermUIDRef = useRef<any>(undefined);
     const [sTermView, setTermView] = useState<any>(undefined);
-    const [sTermFitter, setTermFitter] = useState<any>(undefined);
     const [sFontSize, setFontSize] = useState<number>(DEFAULT_FONT_SIZE);
     const [sCurrentTheme, setCurrentTheme] = useState<ThemeKey>(() => {
         if (pInfo.shell.theme && pInfo.shell.theme !== 'default') return pInfo.shell.theme;
@@ -70,122 +70,100 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
     const sWebSocRef = useRef<WebSocket | null>(null);
     const sWebglAddonRef = useRef<WebglAddon | null>(null);
     const sImeWiredRef = useRef<boolean>(false);
-    // web socket
-    let sWebSoc: any = null;
-    // fitter
-    let sFitter: any = null;
-    // temr id
-    let sTermId: any = null;
-    let sTheme: any = Theme[sCurrentTheme] || Theme['dark'];
+    const sTermRef = useRef<Terminal | null>(null);
+    const sFitterRef = useRef<FitAddon | null>(null);
+    const sObserverRef = useRef<ResizeObserver | null>(null);
+    const sTimersRef = useRef(new Set<number>());
+    const sFrameRef = useRef<number | null>(null);
+    const sLifetimeRef = useRef<AbortController | null>(null);
+
+    // Deferred work belongs to this terminal, never a later mount or a closed tab.
+    const defer = (callback: () => void, delay: number) => {
+        const terminal = sTermRef.current;
+        const timer = window.setTimeout(() => {
+            sTimersRef.current.delete(timer);
+            if (terminal && sTermRef.current === terminal) callback();
+        }, delay);
+        sTimersRef.current.add(timer);
+    };
 
     const onSendReSizeInfo = async (aSize: { cols: number; rows: number }) => {
+        const signal = sLifetimeRef.current?.signal;
+        if (!signal || signal.aborted) return;
         if (aSize.cols > 0 && aSize.rows > 0 && sTermUIDRef.current != null && sWebSocRef.current?.readyState === WebSocket.OPEN) {
-            await postTerminalSize(sTermUIDRef.current, aSize);
+            try {
+                await postTerminalSize(sTermUIDRef.current, aSize, { signal, canRetryFileRequest: () => !signal.aborted });
+            } catch (error) {
+                if (!axios.isCancel(error)) throw error;
+            }
         }
     };
-    const sResizeObserver = new ResizeObserver(() => {
-        try {
-            if (selectedTabRef.current === pId) {
-                sFitter && sFitter.fit();
+    const init = async (signal: AbortSignal) => {
+        const sResult: any = await getLogin({ signal, canRetryFileRequest: () => !signal.aborted });
+        if (signal.aborted || sResult?.reason !== 'success') return;
+        const term = document.getElementById('term_view' + pId);
+        if (!term) return;
+
+        const sTermId = new Date().getTime();
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const socket = new WebSocket(`${protocol}//${window.location.host}/web/api/term/${sTermId}/data?token=${localStorage.getItem('accessToken')}&shell=${pInfo.shell.id}`);
+        sWebSocRef.current = socket;
+        const terminal = new Terminal({
+            theme: Theme[sCurrentTheme] || Theme.dark,
+            fontFamily: '"D2Coding", "Monaco", "Lucida Console", "Courier New","D2Coding", sans-serif, monospace',
+            allowProposedApi: true,
+            fontSize: DEFAULT_FONT_SIZE,
+        });
+        sTermRef.current = terminal;
+        const fitter = new FitAddon();
+        sFitterRef.current = fitter;
+        terminal.loadAddon(new WebLinksAddon());
+        terminal.loadAddon(new AttachAddon(socket, { bidirectional: true }));
+        terminal.loadAddon(fitter);
+        terminal.attachCustomKeyEventHandler((event) => {
+            if (event.ctrlKey && event.shiftKey && event.keyCode === 67) {
+                event.preventDefault();
+                document.execCommand('copy');
+                return false;
             }
-        } catch (err) {
-        }
-    });
-    const init = async () => {
-        const sResult: any = await getLogin();
-        if (sResult?.reason === 'success') {
-            const term = document.getElementById('term_view' + pId);
-            sTermId = new Date().getTime();
-
-            if (window.location.protocol.indexOf('https') === -1) {
-                sWebSoc = new WebSocket(`ws://${window.location.host}/web/api/term/${sTermId}/data?token=${localStorage.getItem('accessToken')}${'&shell=' + pInfo.shell.id}`);
-            } else {
-                sWebSoc = new WebSocket(`wss://${window.location.host}/web/api/term/${sTermId}/data?token=${localStorage.getItem('accessToken')}${'&shell=' + pInfo.shell.id}`);
+            return true;
+        });
+        const observer = new ResizeObserver(() => {
+            if (selectedTabRef.current !== pId || sTermRef.current !== terminal) return;
+            try { fitter.fit(); } catch { /* A hidden tab may have no size yet. */ }
+        });
+        sObserverRef.current = observer;
+        sTermUIDRef.current = sTermId;
+        setTermView(terminal);
+        terminal.onResize((size) => {
+            if (sTermRef.current === terminal) void onSendReSizeInfo(size);
+        });
+        socket.addEventListener('open', () => {
+            setWsStatus('connected');
+            defer(() => { try { fitter.fit(); } catch { /* Wait for layout. */ } }, 100);
+        }, { signal });
+        socket.addEventListener('close', () => {
+            setWsStatus('disconnected');
+            if (!(socket as any).CUSTOM_CLOSE_CEHCK) terminal.writeln('closed.');
+        }, { signal });
+        socket.addEventListener('error', () => setWsStatus('disconnected'), { signal });
+        socket.addEventListener('message', (message) => {
+            if (typeof message.data === 'string' && message.data.replace(/\n|\r|\s*/g, '') === 'closed.') {
+                (socket as any).CUSTOM_CLOSE_CEHCK = true;
+                setWsStatus('disconnected');
             }
-
-            const sTerm = new Terminal({
-                theme: sTheme,
-                fontFamily: '"D2Coding", "Monaco", "Lucida Console", "Courier New","D2Coding", sans-serif, monospace',
-                allowProposedApi: true,
-                fontSize: 14,
-            });
-
-            if (term) {
-                sFitter = new FitAddon();
-                sTerm.loadAddon(new WebLinksAddon());
-                sTerm.loadAddon(new AttachAddon(sWebSoc, { bidirectional: true }));
-                sTerm.loadAddon(sFitter);
-
-                sTerm.attachCustomKeyEventHandler((event) => {
-                    if (event.ctrlKey && event.shiftKey && event.keyCode == 67) {
-                        event.preventDefault();
-
-                        document.execCommand('copy');
-                        return false;
-                    } else {
-                        return true;
-                    }
-                });
-
-                setTermFitter(sFitter);
-                sTermUIDRef.current = sTermId;
-                setTermView(sTerm);
-                sWebSocRef.current = sWebSoc;
-
-                // Register resize handler once on terminal instance
-                sTerm.onResize((aSize: { cols: number; rows: number }) => {
-                    onSendReSizeInfo(aSize);
-                });
-
-                // Fit terminal after WebSocket is fully connected
-                sWebSoc.addEventListener('open', () => {
-                    setWsStatus('connected');
-                    setTimeout(() => {
-                        try {
-                            sFitter && sFitter.fit();
-                        } catch (err) {
-                        }
-                    }, 100);
-                });
-                // Socket connection lost (client side)
-                sWebSoc.addEventListener('close', () => {
-                    setWsStatus('disconnected');
-                    if (sTerm) {
-                        !sWebSoc['CUSTOM_CLOSE_CEHCK'] && sTerm.writeln('closed.');
-                    }
-                });
-                // Socket error (network failure, etc.)
-                sWebSoc.addEventListener('error', () => {
-                    setWsStatus('disconnected');
-                });
-                // Socket connection lost (server side)
-                sWebSoc.addEventListener('message', (message: any) => {
-                    if (typeof message.data === 'string') {
-                        const sParsedMsg = message.data.replace(/\n|\r|\s*/g, '');
-                        if (sParsedMsg === 'closed.') {
-                            sWebSoc['CUSTOM_CLOSE_CEHCK'] = true;
-                            setWsStatus('disconnected');
-                        }
-                    }
-                });
-
-                setTimeout(() => {
-                    try {
-                        sFitter && sFitter.fit();
-                        sResizeObserver.observe(term);
-                    } catch (err) {
-                    }
-                }, 400);
-            }
-        }
+        }, { signal });
+        defer(() => {
+            try { fitter.fit(); observer.observe(term); } catch { /* Wait for layout. */ }
+        }, 400);
     };
 
     const fitTerminal = () => {
-        if (!sTermFitter) return;
-        sTermFitter.fit();
+        sFitterRef.current?.fit();
     };
 
     const loadWebgl = (aTerm: Terminal) => {
+        if (sTermRef.current !== aTerm) return;
         try {
             // Dispose existing WebGL addon before creating a new one
             if (sWebglAddonRef.current) {
@@ -194,6 +172,7 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
             }
             const webglAddon = new WebglAddon();
             webglAddon.onContextLoss(() => {
+                if (sTermRef.current !== aTerm || sWebglAddonRef.current !== webglAddon) return;
                 webglAddon.dispose();
                 sWebglAddonRef.current = null;
             });
@@ -208,7 +187,8 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
         if (!isSafari || sImeWiredRef.current) return;
         const ta = (aTerm as any).textarea as HTMLTextAreaElement | null;
         const container = (aTerm as any).element as HTMLElement | null;
-        if (!ta || !container) return;
+        const signal = sLifetimeRef.current?.signal;
+        if (!ta || !container || !signal || signal.aborted) return;
         sImeWiredRef.current = true;
 
         let pending = '';
@@ -239,7 +219,7 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
                 }
                 if (pending) flush();
             },
-            true
+            { capture: true, signal }
         );
 
         // Capture on container fires before xterm's keydown listener on the textarea,
@@ -249,27 +229,27 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
             (ev: KeyboardEvent) => {
                 if (pending && ev.keyCode !== 229) flush();
             },
-            true
+            { capture: true, signal }
         );
     };
 
     const handleShellView = () => {
         const term = document.getElementById('term_view' + pId);
-        if (term && sTermView) {
+        if (term && sTermView && sTermRef.current === sTermView) {
             if (term_view.current.childNodes.length === 0) {
                 sTermView.open(term);
                 sTermView.focus();
                 wireWkImeFix(sTermView);
                 // Wait for DOM layout after open() before fitting
-                requestAnimationFrame(() => {
+                sFrameRef.current = requestAnimationFrame(() => {
+                    sFrameRef.current = null;
+                    if (sTermRef.current !== sTermView || selectedTabRef.current !== pId) return;
                     // Only fit if WebSocket is already open; otherwise the open handler will fit
                     if (sWebSocRef.current?.readyState === WebSocket.OPEN) {
                         fitTerminal();
                     }
                     // Load WebGL renderer after terminal is fully rendered
-                    setTimeout(() => {
-                        loadWebgl(sTermView);
-                    }, 300);
+                    defer(() => loadWebgl(sTermView), 300);
                 });
                 return;
             }
@@ -298,22 +278,42 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
                 const next = Math.min(MAX_FONT_SIZE, Math.max(MIN_FONT_SIZE, prev + delta));
                 if (sTermView) {
                     sTermView.options.fontSize = next;
-                    sTermFitter?.fit();
+                    sFitterRef.current?.fit();
                 }
                 return next;
             });
         },
-        [sTermView, sTermFitter]
+        [sTermView]
     );
 
     const wsStatusColor = sWsStatus === 'connected' ? '#5ea702' : sWsStatus === 'connecting' ? '#cfae00' : '#d81e00';
     const wsStatusLabel = sWsStatus === 'connected' ? 'Connected' : sWsStatus === 'connecting' ? 'Connecting' : 'Disconnected';
 
     useEffect(() => {
-        init();
-        return () => {
-            sWebSocRef.current && sWebSocRef.current.close();
+        const lifetime = new AbortController();
+        sLifetimeRef.current = lifetime;
+        const dispose = () => {
+            lifetime.abort();
+            for (const timer of sTimersRef.current) window.clearTimeout(timer);
+            sTimersRef.current.clear();
+            if (sFrameRef.current !== null) cancelAnimationFrame(sFrameRef.current);
+            sFrameRef.current = null;
+            sObserverRef.current?.disconnect();
+            sObserverRef.current = null;
+            const terminal = sTermRef.current, socket = sWebSocRef.current;
+            sTermRef.current = null;
+            sWebSocRef.current = null;
+            sFitterRef.current = null;
+            sWebglAddonRef.current = null;
+            sTermUIDRef.current = undefined;
+            sImeWiredRef.current = false;
+            // xterm owns its loaded addons and resize subscription; dispose them once here.
+            try { terminal?.dispose(); } finally { socket?.close(); }
         };
+        void init(lifetime.signal).catch(() => {
+            if (!lifetime.signal.aborted) { dispose(); setWsStatus('disconnected'); }
+        });
+        return dispose;
     }, []);
     useEffect(() => {
         if (pSelectedTab === pId && sTermView) handleShellView();
