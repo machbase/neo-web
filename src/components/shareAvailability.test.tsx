@@ -16,8 +16,9 @@ jest.mock('@/api/repository/machiot', () => ({
     getRollupTableList: jest.fn(() => Promise.resolve({})),
 }));
 
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { RecoilRoot } from 'recoil';
+import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { checkShareAvailable, getKnownShareAvailable } from '@/utils/shareAvailability';
 import Dashboard from '@/components/dashboard';
 import Tql from '@/components/tql';
@@ -79,5 +80,57 @@ describe.each(Object.entries(renders))('%s', (_aName, aCase) => {
         await act(async () => {});
         expect(screen.getByTestId(aCase.testId)).toBeInTheDocument();
         expect(checkShareAvailable).not.toHaveBeenCalled();
+    });
+});
+
+// HTML Run code opens the same /db/tql/<path> in a new window — a 401 page when shared links cannot work.
+// A package page (/apps/...) opens from /web/apps/... and is not affected.
+describe('HTML Run code', () => {
+    const renderHtml = (aPath: string) =>
+        render(
+            <RecoilRoot
+                initializeState={({ set }) => {
+                    set(gBoardList, [{ id: 'tab-1', type: 'html', name: 'page.html', path: aPath, code: '' }] as any);
+                    set(gSelectedTab, 'tab-1');
+                }}
+            >
+                <TextExtension pIsActiveTab pLang="html" pCode="" pHandleSaveModalOpen={jest.fn()} setIsOpenModal={jest.fn()} />
+            </RecoilRoot>
+        );
+
+    it('is off, saying why, where shared links cannot work', async () => {
+        const answer = mockAnswer();
+        renderHtml('/Z1576/');
+        await answer(false);
+        const sRun = screen.getByTestId('html-run');
+        expect(sRun).toBeDisabled();
+        expect(sRun).toHaveAccessibleName('Run code');
+        fireEvent.mouseEnter(sRun);
+        expect(await screen.findByText('Not available on this server.', undefined, { timeout: 2000 })).toBeInTheDocument();
+        const sOpen = jest.spyOn(window, 'open').mockImplementation(() => null);
+        fireEvent.click(sRun);
+        expect(sOpen).not.toHaveBeenCalled();
+        sOpen.mockRestore();
+    });
+
+    it('runs as before where shared links work, and while the server is asked', async () => {
+        const answer = mockAnswer();
+        renderHtml('/Z1576/');
+        const sOpen = jest.spyOn(window, 'open').mockImplementation(() => null);
+        expect(screen.getByTestId('html-run')).toBeEnabled();
+        await answer(true);
+        fireEvent.click(screen.getByTestId('html-run'));
+        expect(sOpen).toHaveBeenCalledWith(window.location.origin + '/db/tql/Z1576/page.html', window.location.origin + '/db/tql/Z1576/page.html');
+        sOpen.mockRestore();
+    });
+
+    it('a package page still runs where shared links cannot work', async () => {
+        const answer = mockAnswer();
+        renderHtml('/apps/demo/');
+        await answer(false);
+        const sOpen = jest.spyOn(window, 'open').mockImplementation(() => null);
+        fireEvent.click(screen.getByTestId('html-run'));
+        expect(sOpen).toHaveBeenCalledWith(window.location.origin + '/web/apps/demo/', window.location.origin + '/web/apps/demo/');
+        sOpen.mockRestore();
     });
 });
