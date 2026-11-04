@@ -25,7 +25,7 @@ export const toDirPath = (aDir: string): string => {
 export const buildFilesUrl = (aPath: string, aQuery?: string): string => `/api/files${encodeFilePath(aPath)}${aQuery ?? ''}`;
 
 /**
- * The one share-link rule (r13), used where a link is made (ShareModal, PanelHeader childBoard) and where it is
+ * The one share-link rule (r13), used where a link is made (ShareModal; PanelHeader childBoard, which opens /view) and where it is
  * opened (/view DashboardView, public-dashboard DashboardView): a name or path whose last segment ends in `.dsh`
  * (any case) is kept as is, anything else gets `.dsh` appended. Links now carry the real file name (`d/X.DSH`,
  * `v1.2.dsh`); links made before carry the stem (`d/x`) and keep working. No `split('.')[0]` + lower-case `.dsh`

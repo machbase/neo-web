@@ -375,7 +375,9 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
         const sChildBoard: string = pPanelInfo?.chartOptions?.childBoard ?? '';
         // r15: no child board set → no link (was '.../board/undefined', would become '.../board/.dsh')
         if (!sChildBoard.trim()) return;
-        const currentUrl = `${window.location.origin + '/web/ui/board' + toDshUrlPath(sChildBoard)}`;
+        // Opened in the logged-in view, not as a shared link: only an editor offers this menu, and a shared link
+        // does not open on a server with HTTP token auth on (#1576). The view works with it on or off.
+        const currentUrl = `${window.location.origin + '/web/ui/view' + toDshUrlPath(sChildBoard)}`;
         // window.open(currentUrl, '_blank', 'width=1200,height=800');
         window.open(currentUrl);
     };

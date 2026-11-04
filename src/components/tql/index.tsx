@@ -33,6 +33,7 @@ import { DetermineTqlResultType, E_TQL_SCR, TqlResType } from '@/utils/TQL/TqlRe
 import { gWsLog } from '@/recoil/websocket';
 import { useAbortController } from '@/hooks/useAbortController';
 import { toTqlFileUrlPath } from '@/utils/filePath';
+import { useShareAvailability } from '@/hooks/useShareAvailability';
 interface TqlProps {
     pIsActiveTab: boolean;
     pCode: string;
@@ -47,6 +48,8 @@ const Tql = (props: TqlProps) => {
     const [isVertical, setIsVertical] = useState<boolean>(true);
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const sSelectedTab = useRecoilValue(gSelectedTab);
+    // The copied /db/tql link answers 401 on a server with HTTP token auth on (#1576): no Copy link there.
+    const sShareAvailable = useShareAvailability();
     const [sText, setText] = useState<string>('');
     const [sCsv, setCsv] = useState<string[][]>([]);
     const [sCsvHeader, setCsvHeader] = useState<string[]>([]);
@@ -224,7 +227,7 @@ const Tql = (props: TqlProps) => {
                                 onClick={() => setIsSaveModal(true)}
                                 aria-label="Save as"
                             />
-                            {pIsSave && (
+                            {pIsSave && sShareAvailable && (
                                 <Button
                                     icon={<MdLink size={16} />}
                                     variant="ghost"

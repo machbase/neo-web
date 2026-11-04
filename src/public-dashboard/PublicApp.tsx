@@ -4,7 +4,8 @@ import { Toaster } from 'react-hot-toast';
 import { useEffect } from 'react';
 import { fetchRollupVersion, getRollupTableList } from './api/repository/machiot';
 import { gRollupTableList } from './recoil/recoil';
-import { ErrorBoundary } from '@/design-system/components';
+import { ErrorBoundary, ErrorCard } from '@/design-system/components';
+import { useShareAvailability } from '@/hooks/useShareAvailability';
 
 const PublicAppContent = () => {
     const setRollupTabls = useSetRecoilState(gRollupTableList);
@@ -42,6 +43,14 @@ const PublicAppContent = () => {
 };
 
 const PublicApp = () => {
+    // A shared board reads `/db/*` without a login, which a server with HTTP token auth on answers with 401
+    // (#1576, until #1559). Asked before anything is read: then only this notice, and no board, rollup or
+    // license request goes out. Nothing is drawn while asking.
+    const sShareAvailable = useShareAvailability();
+    if (sShareAvailable === undefined) return null;
+    if (!sShareAvailable) {
+        return <ErrorCard name="region:public-board-unavailable" variant="region" title="Shared links are not available on this server." message="" fallbackStyle={{ width: '100vw', height: '100vh' }} />;
+    }
     return (
         <RecoilRoot>
             <PublicAppContent />
