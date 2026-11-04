@@ -132,11 +132,14 @@ describe('PanelHeader Tag Analyzer entry', () => {
 
 // issue-1544 r13: the child board link goes through the one share-link rule (toDshPath), like ShareModal —
 // split('.')[0] cut `v1.2.dsh` to `v1` and rebuilt `X.DSH` as `X.dsh` in the view.
+// #1576: it opens the logged-in view (/web/ui/view), not the shared link (/web/ui/board), which a server with
+// HTTP token auth on answers with 401.
 describe('PanelHeader child board link (share-link rule)', () => {
     test.each([
-        ['d/X.DSH', '/web/ui/board/d/X.DSH'],
-        ['v1.2.dsh', '/web/ui/board/v1.2.dsh'],
-        ['d/old', '/web/ui/board/d/old.dsh'],
+        ['d/X.DSH', '/web/ui/view/d/X.DSH'],
+        ['v1.2.dsh', '/web/ui/view/v1.2.dsh'],
+        ['d/old', '/web/ui/view/d/old.dsh'],
+        ['/TEST/d#1.dsh', '/web/ui/view/TEST/d%231.dsh'],
     ])('childBoard %s → %s', (childBoard, expected) => {
         const sOpen = jest.spyOn(window, 'open').mockImplementation(() => null);
         const { container } = renderHeader(createPanel([createBlock()], { type: 'Video', chartOptions: { childBoard, source: {} } }));
