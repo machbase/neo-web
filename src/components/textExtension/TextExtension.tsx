@@ -7,6 +7,7 @@ import { Markdown } from '@/components/worksheet/Markdown';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { Button, Page, ErrorBoundary } from '@/design-system/components';
 import { toTqlFileUrlPath } from '@/utils/filePath';
+import { useShareAvailability } from '@/hooks/useShareAvailability';
 
 type EditorLangType = 'json' | 'go' | 'typescript' | 'markdown' | 'css' | 'html' | 'javascript' | 'jsh';
 
@@ -23,6 +24,8 @@ export const TextExtension = (props: TextExtensionProps) => {
     const [sText, setText] = useState<string>('');
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
     const sSelectedTab = useRecoilValue(gSelectedTab);
+    // The copied /db/tql link answers 401 on a server with HTTP token auth on (#1576): no Copy link there.
+    const sShareAvailable = useShareAvailability();
     const [sCurrentLang, setCurrentLang] = useState<string>('');
     const [sIsPreview, setIsPreView] = useState<boolean>(pLang === 'markdown' ? true : false);
 
@@ -87,7 +90,7 @@ export const TextExtension = (props: TextExtensionProps) => {
                     ) : null}
                     <Button size="icon" variant="ghost" isToolTip toolTipContent="Save" icon={<Save size={16} />} onClick={pHandleSaveModalOpen} />
                     <Button size="icon" variant="ghost" isToolTip toolTipContent="Save as" icon={<SaveAs size={16} />} onClick={() => setIsOpenModal(true)} />
-                    {pLang === 'html' ? <Button size="icon" variant="ghost" isToolTip toolTipContent="Copy link" onClick={handleCopyLink} icon={<MdLink size={16} />} data-testid="html-copy-link" /> : null}
+                    {pLang === 'html' && sShareAvailable ? <Button size="icon" variant="ghost" isToolTip toolTipContent="Copy link" onClick={handleCopyLink} icon={<MdLink size={16} />} data-testid="html-copy-link" /> : null}
                 </Button.Group>
             </Page.Header>
             <Page.Body>
