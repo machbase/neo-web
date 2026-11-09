@@ -1,12 +1,13 @@
-import { cloneReplaceMessage, findExistingEntry, getTypedFileList, keepTypeEntries, readTargetDir, resolveCloneTarget, resolveNewFolder, resolveOverwrite } from './fileExistence';
+import { cloneReplaceMessage, ensureFolderPath, findExistingEntry, getTypedFileList, keepTypeEntries, readTargetDir, resolveCloneTarget, resolveNewFolder, resolveOverwrite } from './fileExistence';
 import { getFiles } from '@/api/repository/fileTree';
-import { getFileList } from '@/api/repository/api';
+import { getFileList, postFileList } from '@/api/repository/api';
 
 jest.mock('@/api/repository/fileTree', () => ({
     getFiles: jest.fn(),
 }));
 jest.mock('@/api/repository/api', () => ({
     getFileList: jest.fn(),
+    postFileList: jest.fn(),
 }));
 
 describe('findExistingEntry', () => {
@@ -66,6 +67,54 @@ describe('readTargetDir (r20 — the one lookup)', () => {
     it("a file used as the folder (GET /f.sql/ answers the file's text, measured) → not a folder", async () => {
         (getFiles as jest.Mock).mockResolvedValue('select 1');
         expect(await readTargetDir('/f.sql/')).toEqual({ ok: false, reason: "'/f.sql/' is not a folder." });
+    });
+});
+
+describe('ensureFolderPath (#1572)', () => {
+    const DIR = '/.neo-web/new-tab';
+    const SERVER_ERROR = { status: 500, headers: {}, data: { success: false, reason: 'some server text' } };
+    // Answer each lookup from a set of existing folders, each mkdir with `aMkdir`.
+    const serve = (aFolders: string[], aMkdir: (aPath: string) => unknown = (aPath) => { aFolders.push(aPath); return { success: true }; }) => {
+        (getFiles as jest.Mock).mockImplementation(async (aPath: string) => (aFolders.includes(aPath.replace(/\/$/, '')) ? dirOf([]) : NOT_FOUND));
+        (postFileList as jest.Mock).mockImplementation(async (_aData: unknown, aParent: string, aName: string) => aMkdir(aParent === '/' ? `/${aName}` : `${aParent}/${aName}`));
+    };
+    beforeEach(() => jest.resetAllMocks());
+
+    it('creates every level, top down, when none exists', async () => {
+        serve([]);
+        expect(await ensureFolderPath(DIR)).toEqual({ ok: true });
+        expect((postFileList as jest.Mock).mock.calls).toEqual([[undefined, '/', '.neo-web'], [undefined, '/.neo-web', 'new-tab']]);
+    });
+    it('creates only the missing level when a parent already exists', async () => {
+        serve(['/.neo-web']);
+        expect(await ensureFolderPath(DIR)).toEqual({ ok: true });
+        expect((postFileList as jest.Mock).mock.calls).toEqual([[undefined, '/.neo-web', 'new-tab']]);
+    });
+    it('sends no mkdir when every level exists', async () => {
+        serve(['/.neo-web', DIR]);
+        expect(await ensureFolderPath(DIR)).toEqual({ ok: true });
+        expect(postFileList).not.toHaveBeenCalled();
+    });
+    it('stops with the reason when a level is a file', async () => {
+        (getFiles as jest.Mock).mockResolvedValue('file content');
+        expect(await ensureFolderPath(DIR)).toEqual({ ok: false, reason: "'/.neo-web/' is not a folder." });
+        expect(postFileList).not.toHaveBeenCalled();
+    });
+    it('stops with the reason when a lookup fails', async () => {
+        (getFiles as jest.Mock).mockResolvedValue(SERVER_ERROR);
+        expect(await ensureFolderPath(DIR)).toEqual({ ok: false, reason: 'some server text' });
+        expect(postFileList).not.toHaveBeenCalled();
+    });
+    it('a failed mkdir counts as done when the folder is there on a second look, whatever the error says', async () => {
+        const sFolders: string[] = [];
+        serve(sFolders, (aPath) => { sFolders.push(aPath); return SERVER_ERROR; });
+        expect(await ensureFolderPath(DIR)).toEqual({ ok: true });
+        expect(postFileList).toHaveBeenCalledTimes(2);
+    });
+    it('a failed mkdir stops with the server reason when the folder is still missing', async () => {
+        serve([], () => SERVER_ERROR);
+        expect(await ensureFolderPath(DIR)).toEqual({ ok: false, reason: 'some server text' });
+        expect(postFileList).toHaveBeenCalledTimes(1);
     });
 });
 

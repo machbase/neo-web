@@ -1,6 +1,6 @@
 import { getFiles } from '@/api/repository/fileTree';
-import { getFileList } from '@/api/repository/api';
-import { getFileRequestFailure } from '@/utils/fileRequestResult';
+import { getFileList, postFileList } from '@/api/repository/api';
+import { getFileRequestFailure, isSuccessfulFileWrite } from '@/utils/fileRequestResult';
 import { extractionExtension } from '@/utils';
 import { toDirPath } from '@/utils/filePath';
 
@@ -76,6 +76,32 @@ export const readTargetDir = async (aDir: string, canObserve?: () => boolean): P
     if (sFailure) return { ok: false, reason: sFailure.reason };
     if (!sRes?.data?.isDir) return { ok: false, reason: `'${sDir}' is not a folder.` };
     return { ok: true, dir: { missing: false, children: Array.isArray(sRes.data.children) ? sRes.data.children : [] } };
+};
+
+/**
+ * Make sure every level of a folder path exists, for app-owned paths the user did not pick (a mkdir POST does not
+ * create intermediate folders, measured). Each level is judged by looking it up, never by the server's error text,
+ * which differs by OS (#1572): an existing folder gets no POST, a same-name file or a failed lookup stops with the
+ * reason. A failed mkdir is looked up once more, because another save may have just created the same folder.
+ */
+export const ensureFolderPath = async (aDir: string): Promise<{ ok: true } | { ok: false; reason: string }> => {
+    let sParent = '/';
+    for (const sName of aDir.split('/').filter(Boolean)) {
+        const sPath = sParent === '/' ? `/${sName}` : `${sParent}/${sName}`;
+        const sDir = await readTargetDir(sPath);
+        if (!sDir.ok) return sDir;
+        if (sDir.dir.missing) {
+            const sCreated: any = await postFileList(undefined, sParent, sName);
+            if (!isSuccessfulFileWrite(sCreated)) {
+                const sAgain = await readTargetDir(sPath);
+                if (!sAgain.ok || sAgain.dir.missing) {
+                    return { ok: false, reason: getFileRequestFailure(sCreated)?.reason ?? `Failed to create the folder '${toDirPath(sPath)}'.` };
+                }
+            }
+        }
+        sParent = sPath;
+    }
+    return { ok: true };
 };
 
 /** A file/folder POST does not create missing parent folders (measured: 500 `mkdir ...: no such file or directory`). */

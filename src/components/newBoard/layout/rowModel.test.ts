@@ -1,5 +1,5 @@
-import { createSection, createWidget, SectionNode, WidgetSize } from './layoutModel';
-import { besideSections, EMPTY_BODY, leastSavedHeight, NESTED_HEAD, packRows, ROW_GAP, shapeOf, widgetRowHeight } from './rowModel';
+import { createSection, createWidget, findNode, SECTION_MAX_HEIGHT, SECTION_MIN_HEIGHT, SectionNode, WidgetSize } from './layoutModel';
+import { besideOwnHeight, besideSections, EMPTY_BODY, growthLimit, heldWithWidget, holdersAfter, leastSavedHeight, NESTED_HEAD, ownRowHeight, packRows, ROW_GAP, setWidgetHeight, shapeOf, widgetRowHeight } from './rowModel';
 
 const widget = (aSize: WidgetSize) => createWidget('clock', aSize);
 const section = (aChildren: SectionNode['children'], aSize: WidgetSize = 4, aHeight?: number): SectionNode => ({ ...createSection('', aChildren, aSize), ...(aHeight ? { height: aHeight } : {}) });
@@ -68,5 +68,70 @@ describe('besideSections', () => {
         const sBeside = widget(2);
         const sMap = besideSections(section([sAlone, sBeside, section([widget(4)], 2, 150)]));
         expect([...sMap]).toEqual([[sBeside.id, NESTED_HEAD + 150]]);
+    });
+});
+
+describe('packRows on a section\'s own columns (#1572)', () => {
+    it('a row is as many columns as the section is wide', () => {
+        const sSection = createSection('', [createWidget('recent', 1), createWidget('sdk', 1), createWidget('references', 1)], 2);
+        expect(packRows(sSection).map((aRow) => aRow.length)).toEqual([2, 1]);
+    });
+});
+
+describe('a widget\'s own height (#1572)', () => {
+    const tall = (aHeight: number) => ({ ...widget(1), height: aHeight });
+
+    it('makes its row the tallest own height, and a row without one has none', () => {
+        expect(ownRowHeight([tall(200), tall(120), widget(1)])).toBe(200);
+        expect(ownRowHeight([widget(1)])).toBeUndefined();
+    });
+    it('counts in the least height of the section', () => {
+        expect(leastSavedHeight(section([tall(200)]))).toBe(200);
+        expect(leastSavedHeight(section([tall(40)]))).toBe(SECTION_MIN_HEIGHT);
+    });
+    it('is taken out of what the other rows share', () => {
+        const sSection = section([{ ...widget(4), height: 200 }, widget(4), widget(4)], 4, 600);
+        expect(widgetRowHeight(sSection, 600)).toBe(Math.floor((600 - ROW_GAP * 2 - 200) / 2));
+    });
+    it('grows a holder by what its slack does not cover, and never shrinks it', () => {
+        const sHolders = [{ id: 'inner', height: 100, slack: 40 }, { id: 'outer', height: 150, slack: 90 }];
+        expect(holdersAfter(sHolders, 30)).toEqual([]);
+        expect(holdersAfter(sHolders, 60)).toEqual([{ id: 'inner', height: 120 }]);
+        expect(holdersAfter(sHolders, 100)).toEqual([{ id: 'inner', height: 160 }, { id: 'outer', height: 160 }]);
+        expect(holdersAfter(sHolders, -50)).toEqual([]);
+    });
+    it('stops a widget where the section holding it reaches the height limit', () => {
+        expect(growthLimit([{ id: 'a', height: SECTION_MAX_HEIGHT - 100, slack: 20 }, { id: 'b', height: 300, slack: 0 }])).toBe(120);
+        expect(growthLimit([])).toBe(Infinity);
+    });
+    it('tells the widgets beside one how tall it makes their row', () => {
+        const sPlain = widget(1);
+        const sOwn = tall(200);
+        const sOther = widget(4);
+        expect([...besideOwnHeight(section([sPlain, sOwn, sOther], 4, 400)).entries()]).toEqual([[sPlain.id, 200]]);
+    });
+    it('holds the rest of the row, not the other rows, in a section that grows with its content', () => {
+        const sDragged = widget(1);
+        const sBeside = widget(1);
+        const sAlready = tall(150);
+        const sNextRow = widget(4);
+        expect(heldWithWidget(section([sDragged, sBeside, sAlready, sNextRow]), sDragged.id)).toEqual([sBeside]);
+    });
+    it('holds every widget in a section of set height, whose rows share it', () => {
+        const sDragged = widget(4);
+        const sNextRow = widget(4);
+        expect(heldWithWidget(section([sDragged, sNextRow], 4, 400), sDragged.id)).toEqual([sNextRow]);
+    });
+    it('gives the held widgets the height they were drawn at', () => {
+        const sDragged = widget(1);
+        const sBeside = widget(1);
+        const sNodes = setWidgetHeight([section([sDragged, sBeside])], sDragged.id, 300, [{ id: sBeside.id, height: 216 }]);
+        expect(findNode(sNodes, sDragged.id)!.node).toMatchObject({ height: 300 });
+        expect(findNode(sNodes, sBeside.id)!.node).toMatchObject({ height: 216 });
+    });
+    it('leaves a section without a set height alone', () => {
+        const sWidget = widget(1);
+        const sSection = section([sWidget]);
+        expect(findNode(setWidgetHeight([sSection], sWidget.id, 300), sSection.id)!.node).not.toHaveProperty('height');
     });
 });

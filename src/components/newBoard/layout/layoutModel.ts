@@ -2,7 +2,7 @@
  * The New tab is a tree: top-level section widgets, each a full row, holding widgets and further
  * sections. Everything here is pure so the editor, the store and the tests share one set of rules.
  */
-/** Columns taken in the parent row. Every row is four columns wide. */
+/** Columns taken in the parent row, counted on the board's four columns: `1` is a quarter of the board at any depth. */
 export type WidgetSize = 1 | 2 | 3 | 4;
 export const ROW_COLUMNS = 4;
 export type BuiltinWidgetType = 'pulse' | 'create' | 'shells' | 'examples' | 'recent' | 'clock' | 'weather' | 'calendar' | 'references' | 'sdk';
@@ -13,7 +13,7 @@ export interface SectionNode {
     title: string;
     /** The grey line on the right of the title. Dropped when the user retitles the section. */
     note?: string;
-    /** Share of the parent row. Ignored for top-level sections, which always take the whole row. */
+    /** Columns taken in the parent row, and so the columns inside it. Top-level sections always take all four. */
     size: WidgetSize;
     /** Height of the section's content in px, set by dragging its bottom edge. Absent means as tall as its widgets. */
     height?: number;
@@ -33,6 +33,8 @@ export interface WidgetNode {
     groupId?: string;
     /** Per-widget options, e.g. a clock's time zone or a weather widget's place. */
     settings?: Record<string, unknown>;
+    /** Height of the widget in px, set by dragging its bottom edge. Absent means as tall as its row. */
+    height?: number;
 }
 
 export type LayoutNode = SectionNode | WidgetNode;
@@ -72,6 +74,14 @@ export const isItemSettings = (aValue: unknown): aValue is ItemWidgetSettings =>
     !!aValue && typeof (aValue as any).kind === 'string' && typeof (aValue as any).ref === 'string' && !!(aValue as any).ref && typeof (aValue as any).label === 'string';
 export const SECTION_SIZES: WidgetSize[] = [1, 2, 3, 4];
 
+/** The fewest columns a node can take: a widget its smallest size, a section what its children need at theirs. */
+export const leastColumns = (aNode: LayoutNode): number =>
+    aNode.kind === 'widget' ? widgetSizes(aNode.type)[0] : Math.max(1, ...aNode.children.map(leastColumns));
+
+/** The widths on offer for `aNode` where it sits: what it supports, and no wider than the section holding it. */
+export const sizesIn = (aNode: LayoutNode, aParent: SectionNode | undefined): WidgetSize[] =>
+    (aNode.kind === 'section' ? SECTION_SIZES.filter((aSize) => aSize >= leastColumns(aNode)) : widgetSizes(aNode.type)).filter((aSize) => aSize <= (aParent?.size ?? ROW_COLUMNS));
+
 let sSeq = 0;
 export const newNodeId = (aPrefix: 'sec' | 'wid') => `${aPrefix}-${Date.now().toString(36)}-${(sSeq++).toString(36)}`;
 
@@ -101,7 +111,7 @@ export const createWidget = (aType: WidgetNode['type'], aSize?: WidgetSize, aGro
 });
 
 const builtinSection = (aType: BuiltinWidgetType, aSize: WidgetSize = 4, aExtra: LayoutNode[] = []) =>
-    createSection(BUILTIN_WIDGETS[aType].title, [createWidget(aType, 4), ...aExtra], aSize, BUILTIN_WIDGETS[aType].note);
+    createSection(BUILTIN_WIDGETS[aType].title, [createWidget(aType, aSize), ...aExtra], aSize, BUILTIN_WIDGETS[aType].note);
 
 /** What a user who never pressed Customize sees. */
 export const createDefaultLayout = (): SectionNode[] => [
@@ -166,6 +176,13 @@ const containsNode = (aSection: SectionNode, aId: string) => !!findNode(aSection
 
 const clone = (aNodes: SectionNode[]): SectionNode[] => structuredClone(aNodes);
 
+/** `aNode` narrowed to `aColumns` where it is wider: a widget to the largest size it supports, a section with what it holds. */
+const fitColumns = (aNode: LayoutNode, aColumns: number): LayoutNode => {
+    if (aNode.size <= aColumns) return aNode;
+    if (aNode.kind === 'widget') return { ...aNode, size: [...widgetSizes(aNode.type)].reverse().find((aSize) => aSize <= aColumns) ?? aNode.size };
+    return { ...aNode, size: aColumns as WidgetSize, children: aNode.children.map((aChild) => fitColumns(aChild, aColumns)) };
+};
+
 export type LayoutResult = { ok: true; nodes: SectionNode[] } | { ok: false; reason: string };
 
 /**
@@ -191,8 +208,10 @@ export const insertNode = (aNodes: SectionNode[], aNode: LayoutNode, aParentId?:
     const sTarget = findNode(sNodes, aParentId);
     if (!sTarget || sTarget.node.kind !== 'section') return { ok: false, reason: 'That section no longer exists.' };
     if (sTarget.depth + 1 + sectionHeight(aNode) > MAX_SECTION_DEPTH) return { ok: false, reason: `Sections can be nested ${MAX_SECTION_DEPTH} deep at most.` };
+    const sLeast = leastColumns(aNode);
+    if (sLeast > sTarget.node.size) return { ok: false, reason: `That section is too narrow: this needs ${sLeast} columns and it has ${sTarget.node.size}.` };
     const sChildren = sTarget.node.children;
-    sChildren.splice(aIndex === undefined ? sChildren.length : Math.max(0, Math.min(aIndex, sChildren.length)), 0, aNode);
+    sChildren.splice(aIndex === undefined ? sChildren.length : Math.max(0, Math.min(aIndex, sChildren.length)), 0, fitColumns(aNode, sTarget.node.size));
     return { ok: true, nodes: sNodes };
 };
 
@@ -235,6 +254,13 @@ export const updateNode = (aNodes: SectionNode[], aId: string, aPatch: Partial<S
     const sFound = findNode(sNodes, aId);
     if (sFound) Object.assign(sFound.node, aPatch);
     return sNodes;
+};
+
+/** Give a node `aSize` columns. A section made narrower narrows what it holds to fit. */
+export const resizeColumns = (aNodes: SectionNode[], aId: string, aSize: WidgetSize): SectionNode[] => {
+    const sNode = findNode(aNodes, aId)?.node;
+    if (sNode?.kind !== 'section') return updateNode(aNodes, aId, { size: aSize });
+    return updateNode(aNodes, aId, { size: aSize, children: sNode.children.map((aChild) => fitColumns(aChild, aSize)) });
 };
 
 /** Drop every widget of a deleted group. */
@@ -318,15 +344,17 @@ export const parseLayout = (aRaw: unknown): SectionNode[] | undefined => {
         sSeen.add(sId);
         if (aNode.kind === 'section') {
             if (aDepth >= MAX_SECTION_DEPTH) return undefined;
-            const sChildren = Array.isArray(aNode.children) ? aNode.children.map((aChild: any) => sParse(aChild, aDepth + 1)).filter(Boolean) : [];
+            const sChildren: LayoutNode[] = Array.isArray(aNode.children) ? aNode.children.map((aChild: any) => sParse(aChild, aDepth + 1)).filter(Boolean) : [];
+            // Nothing may be wider than the columns holding it (a span past the grid adds columns to it).
+            const sColumns = Math.max(sSize, ...sChildren.map(leastColumns)) as WidgetSize;
             return {
                 id: sId,
                 kind: 'section',
                 title: typeof aNode.title === 'string' ? aNode.title : '',
                 ...(typeof aNode.note === 'string' && aNode.note ? { note: aNode.note } : {}),
-                size: sSize,
+                size: sColumns,
                 ...(typeof aNode.height === 'number' && Number.isFinite(aNode.height) ? { height: clampSectionHeight(aNode.height) } : {}),
-                children: sChildren,
+                children: sChildren.map((aChild) => fitColumns(aChild, sColumns)),
             };
         }
         if (aNode.kind === 'widget' && WIDGET_TYPES.has(aNode.type)) {
@@ -340,6 +368,7 @@ export const parseLayout = (aRaw: unknown): SectionNode[] | undefined => {
                 size: sAllowed.includes(sSize) ? sSize : [...sAllowed].reverse().find((aOne) => aOne <= sSize) ?? sAllowed[0],
                 ...(aNode.type === 'group' ? { groupId: aNode.groupId } : {}),
                 ...(aNode.settings && typeof aNode.settings === 'object' && !Array.isArray(aNode.settings) ? { settings: cleanSettings(aNode.type, aNode.settings) } : {}),
+                ...(typeof aNode.height === 'number' && Number.isFinite(aNode.height) ? { height: clampSectionHeight(aNode.height) } : {}),
             };
         }
         return undefined;

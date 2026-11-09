@@ -12,10 +12,13 @@ import {
     placedWidgetKeys,
     removeGroupWidgets,
     removeNode,
+    resizeColumns,
     SectionNode,
     serializeLayout,
     shiftNode,
+    sizesIn,
     updateNode,
+    walkNodes,
     WidgetNode,
 } from './layoutModel';
 
@@ -148,7 +151,81 @@ describe('removeNode, shiftNode and updateNode', () => {
     });
 });
 
+describe('widths on the board\'s columns (#1572)', () => {
+    const nested = (aSize: 1 | 2 | 3 | 4, aChildren: LayoutNode[] = []) => {
+        const sInner = createSection('inner', aChildren, aSize);
+        return { sInner, sNodes: [createSection('outer', [sInner])] };
+    };
+
+    it('a widget going into a narrower section takes the largest size that fits', () => {
+        const { sInner, sNodes } = nested(1);
+        const sResult = insertNode(sNodes, createWidget('calendar', 2), sInner.id);
+        expect(sResult.ok && (findNode(sResult.nodes, sInner.id)!.node as SectionNode).children[0].size).toBe(1);
+    });
+    it('a widget that cannot be that narrow is refused, with the reason', () => {
+        const { sInner, sNodes } = nested(1);
+        const sResult = insertNode(sNodes, createWidget('pulse', 2), sInner.id);
+        expect(sResult).toEqual({ ok: false, reason: 'That section is too narrow: this needs 2 columns and it has 1.' });
+    });
+    it('a section moved into a narrower one is narrowed along with what it holds', () => {
+        const sMoved = createSection('moved', [createWidget('recent', 4)], 4);
+        const { sInner, sNodes } = nested(2);
+        const sResult = moveNode([...sNodes, createSection('other', [sMoved])], sMoved.id, sInner.id);
+        const sNode = sResult.ok ? (findNode(sResult.nodes, sMoved.id)!.node as SectionNode) : undefined;
+        expect(sNode?.size).toBe(2);
+        expect(sNode?.children[0].size).toBe(2);
+    });
+    it('only the widths that fit where a node sits are offered', () => {
+        const sCalendar = createWidget('calendar', 1);
+        const sPulse = createWidget('pulse', 2);
+        const sRecent = createWidget('recent', 2);
+        expect(sizesIn(sCalendar, createSection('', [], 1))).toEqual([1]);
+        expect(sizesIn(sRecent, createSection('', [], 2))).toEqual([1, 2]);
+        expect(sizesIn(sPulse, createSection('', [], 3))).toEqual([2]);
+        expect(sizesIn(createSection('', [sPulse], 2), createSection('', [], 4))).toEqual([2, 3, 4]);
+        expect(sizesIn(createSection('', [sCalendar], 2), createSection('', [], 3))).toEqual([1, 2, 3]);
+    });
+    it('narrowing a section narrows what it holds, and widening leaves it alone', () => {
+        const sWidget = createWidget('recent', 3);
+        const { sInner, sNodes } = nested(3, [sWidget]);
+        const sNarrow = resizeColumns(sNodes, sInner.id, 1);
+        expect(findNode(sNarrow, sInner.id)!.node.size).toBe(1);
+        expect(findNode(sNarrow, sWidget.id)!.node.size).toBe(1);
+        const sWide = resizeColumns(sNarrow, sInner.id, 4);
+        expect(findNode(sWide, sInner.id)!.node.size).toBe(4);
+        expect(findNode(sWide, sWidget.id)!.node.size).toBe(1);
+    });
+    it('a saved layout never has a child wider than its section', () => {
+        const sParsed = parseLayout({
+            nodes: [{ id: 'o', kind: 'section', title: '', size: 4, children: [
+                { id: 'a', kind: 'section', title: '', size: 2, children: [{ id: 'r', kind: 'widget', type: 'recent', size: 4 }] },
+                { id: 'b', kind: 'section', title: '', size: 1, children: [{ id: 'p', kind: 'widget', type: 'pulse', size: 2 }] },
+            ] }],
+        })!;
+        expect(findNode(sParsed, 'r')!.node.size).toBe(2);
+        expect(findNode(sParsed, 'b')!.node.size).toBe(2);
+        expect(findNode(sParsed, 'p')!.node.size).toBe(2);
+    });
+    it('the default layout fits its columns', () => {
+        walkNodes(createDefaultLayout(), (aNode) => {
+            if (aNode.kind === 'section') aNode.children.forEach((aChild) => expect(aChild.size).toBeLessThanOrEqual(aNode.size));
+        });
+    });
+});
+
 describe('parseLayout', () => {
+    it('keeps a widget\'s own height, within the limits, and ignores one that is not a number', () => {
+        const sParsed = parseLayout({
+            nodes: [{ id: 's', kind: 'section', title: '', size: 4, children: [
+                { id: 'a', kind: 'widget', type: 'recent', size: 1, height: 300 },
+                { id: 'b', kind: 'widget', type: 'sdk', size: 1, height: 9 },
+                { id: 'c', kind: 'widget', type: 'references', size: 1, height: 'tall' },
+            ] }],
+        })!;
+        expect(findNode(sParsed, 'a')!.node).toMatchObject({ height: 300 });
+        expect(findNode(sParsed, 'b')!.node).toMatchObject({ height: 80 });
+        expect(findNode(sParsed, 'c')!.node).not.toHaveProperty('height');
+    });
     it('reads sizes saved as letters before rows were four columns', () => {
         const sParsed = parseLayout({
             nodes: [{ kind: 'section', children: [{ kind: 'widget', type: 'clock', size: 'XS' }, { kind: 'widget', type: 'group', groupId: 'g', size: 'M' }, { kind: 'widget', type: 'recent', size: 'L' }, { kind: 'section', size: 'S', children: [] }] }],

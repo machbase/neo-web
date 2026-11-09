@@ -22,6 +22,7 @@ const sFiles: Record<string, unknown> = {
 beforeEach(() => {
     jest.clearAllMocks();
     mockRequest.mockImplementation(async ({ url }: { url: string }) => {
+        if (url.endsWith('/')) return { success: true, data: { isDir: true, children: [] } };
         const sName = url.split('/').pop() as string;
         return sName in sFiles ? sFiles[sName] : { status: 404, headers: {}, config: {}, data: { reason: 'no such file or directory' } };
     });

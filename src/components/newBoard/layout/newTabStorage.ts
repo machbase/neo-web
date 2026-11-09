@@ -2,13 +2,14 @@ import axios from 'axios';
 import request from '@/api/core';
 import { postFileList } from '@/api/repository/api';
 import { getUserName } from '@/utils';
+import { ensureFolderPath, readTargetDir } from '@/utils/fileExistence';
 import { buildFilesUrl } from '@/utils/filePath';
 
 /**
  * New tab settings live as JSON files in a hidden folder of the server's file root. The file API
  * serves dot paths but leaves them out of every listing, so they never show up in the explorer,
- * and they follow the user to any browser. Measured on v8.7.2: writing into a folder that does not
- * exist yet fails with `no such file or directory`, so the folders are created on the first save.
+ * and they follow the user to any browser. Writing into a folder that does not exist yet fails, with
+ * a different error text per OS (#1572), so a failed save looks the folder up and creates it if missing.
  */
 export const NEW_TAB_DIR = '/.neo-web/new-tab';
 
@@ -38,25 +39,19 @@ export const readJsonFile = async <T = unknown>(aName: string): Promise<ReadResu
     return { status: 'ok', data: sResult as T };
 };
 
-const ensureFolders = async () => {
-    const sParts = NEW_TAB_DIR.split('/').filter(Boolean);
-    let sPath = '';
-    for (const sPart of sParts) {
-        // A folder that already exists answers `mkdir ...: file exists`; that is fine, so the result is not checked.
-        await postFileList(undefined, sPath || '/', sPart);
-        sPath += '/' + sPart;
-    }
-};
-
 export const writeJsonFile = async (aName: string, aData: unknown): Promise<{ ok: true } | { ok: false; reason: string }> => {
     const sWrite = async () => {
         const sResult: any = await postFileList(JSON.stringify(aData, null, 2), NEW_TAB_DIR, aName);
         return sResult?.success ? undefined : reasonOf(sResult);
     };
     let sFailure = await sWrite();
-    if (sFailure && /no such file or directory/i.test(sFailure)) {
-        await ensureFolders();
-        sFailure = await sWrite();
+    if (sFailure) {
+        const sDir = await readTargetDir(NEW_TAB_DIR);
+        if (sDir.ok && sDir.dir.missing) {
+            const sEnsured = await ensureFolderPath(NEW_TAB_DIR);
+            if (!sEnsured.ok) return sEnsured;
+            sFailure = await sWrite();
+        }
     }
     return sFailure ? { ok: false, reason: sFailure } : { ok: true };
 };
