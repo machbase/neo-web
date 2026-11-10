@@ -13,6 +13,7 @@ import { RiLockPasswordLine } from 'react-icons/ri';
 import { MdOutlinePalette } from 'react-icons/md';
 import { BsShieldLock } from 'react-icons/bs';
 import { ThemeModal } from '@/components/theme/ThemeModal';
+import { themesEnabled } from '@/design-system/theme';
 import { PasswordModal } from '../password';
 import { VscExtensions } from 'react-icons/vsc';
 import { BadgeStatus } from '../badge';
@@ -235,9 +236,12 @@ const GNBPanel = ({ pOpenSideBar, pCloseSideBar, pIsSidebar, pSetEula }: GNBPane
                             <Menu.Item icon={<TableHeader />} onClick={handleStatzTable}>
                                 Statz Table
                             </Menu.Item>
-                            <Menu.Item icon={<MdOutlinePalette />} onClick={() => setIsThemeModal(true)}>
-                                Theme
-                            </Menu.Item>
+                            {/* themes are an experiment: the item is there in experiment mode only */}
+                            {themesEnabled() && (
+                                <Menu.Item icon={<MdOutlinePalette />} onClick={() => setIsThemeModal(true)}>
+                                    Theme
+                                </Menu.Item>
+                            )}
                             <Menu.Item icon={<RiLockPasswordLine />} onClick={handlePWD}>
                                 Change password
                             </Menu.Item>
@@ -251,7 +255,7 @@ const GNBPanel = ({ pOpenSideBar, pCloseSideBar, pIsSidebar, pSetEula }: GNBPane
 
             {sIsLicenseModal ? <LicenseModal isOpen={sIsLicenseModal} onClose={() => setIsLicenseModal(false)} /> : null}
             {sIsPWDModal ? <PasswordModal isOpen={sIsPWDModal} onClose={() => setIsPWDModal(false)} /> : null}
-            {sIsThemeModal ? <ThemeModal isOpen={sIsThemeModal} onClose={() => setIsThemeModal(false)} /> : null}
+            {sIsThemeModal && themesEnabled() ? <ThemeModal isOpen={sIsThemeModal} onClose={() => setIsThemeModal(false)} /> : null}
             {sIsStatzTableModal ? <StatzTableModal isOpen={sIsStatzTableModal} onClose={() => setIsStatzTableModal(false)} /> : null}
         </>
     );

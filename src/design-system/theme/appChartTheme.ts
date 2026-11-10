@@ -8,6 +8,14 @@ export type AppChartTheme = { theme: 'dark' | 'white'; background: string; text:
 export const DARK_APP_CHART: AppChartTheme = { theme: 'dark', background: '#252525', text: '#ffffff' };
 
 /**
+ * The grid and axis lines of a chart the app draws on the page: a small step from the page's colour
+ * toward its text, as faint under every theme as on the dark screen (about 1.2:1 against the chart).
+ * Not the theme's Borders: those are made to be seen, and across a chart they outweigh the data.
+ * With no theme both colours fall back to the dark screen's line, so the mix is that line.
+ */
+export const APP_CHART_LINE = 'color-mix(in srgb, var(--neo-text-primary, #323333) 10%, var(--neo-bg-secondary, #323333))';
+
+/**
  * The app chart look under the current theme: ECharts' "white" under a light-scheme theme, "dark"
  * otherwise, on the editors' surface (bg-secondary) — so with no theme it is `DARK_APP_CHART`.
  * Resolved to colours: the server renders the chart and cannot read CSS variables. A chart a
@@ -16,5 +24,5 @@ export const DARK_APP_CHART: AppChartTheme = { theme: 'dark', background: '#2525
 export const appChartTheme = (): AppChartTheme => ({
     theme: currentScheme() === 'light' ? 'white' : 'dark',
     background: resolveCssColor('var(--neo-bg-secondary, #252525)', '#252525'),
-    text: resolveCssColor('var(--neo-text-primary, #ffffff)', '#ffffff'),
+    text: resolveCssColor('var(--neo-text-primary, #f1f1f1)', '#ffffff'),
 });

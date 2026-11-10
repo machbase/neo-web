@@ -10,10 +10,30 @@ import { Input } from '@/design-system/components/Input';
 import { Alert } from '@/design-system/components/Alert';
 import { Button, Page, PasswordInput, Checkbox } from '@/design-system/components';
 import { readViewPath } from './loginRedirect';
-import { applyStoredTheme } from '@/design-system/theme';
+import { applyStoredTheme, localLoginPictureRef, readStoredTheme, readThemePicture, themeLoginImageSrc } from '@/design-system/theme';
 
 const Login = () => {
     const sNavigate = useNavigate();
+    // The theme this browser last chose may bring its own picture: a package's file (neoTheme.loginImage),
+    // or one set in the theme builder, kept in IndexedDB and read once the page is up — until then
+    // (undefined) no picture shows, so the built-in one does not flash first. One that does not
+    // load gives way to the built-in picture.
+    const [sPictureRef] = useState(() => localLoginPictureRef(readStoredTheme()));
+    const [sThemeImage, setThemeImage] = useState<string | null | undefined>(() => (sPictureRef ? undefined : themeLoginImageSrc(readStoredTheme())));
+    useEffect(() => {
+        if (!sPictureRef) return;
+        let sLive = true;
+        let sUrl: string | null = null;
+        readThemePicture(sPictureRef.id).then((aBlob) => {
+            if (!sLive) return;
+            sUrl = aBlob ? URL.createObjectURL(aBlob) : null;
+            setThemeImage(sUrl);
+        });
+        return () => {
+            sLive = false;
+            if (sUrl) URL.revokeObjectURL(sUrl);
+        };
+    }, [sPictureRef]);
 
     const [sLoginId, setLoginId] = useState<string>('');
     const [sPassword, setPassword] = useState<string>('');
@@ -66,9 +86,9 @@ const Login = () => {
             const sIsView = localStorage.getItem('view');
             localStorage.setItem('accessToken', sReturn.accessToken);
             localStorage.setItem('refreshToken', sReturn.refreshToken);
-            // The user is known now: their own theme choice, not the browser's last.
-            applyStoredTheme();
             sReturn.option && sReturn.option.experimentMode ? setExperiment(sReturn.option.experimentMode) : rmExperiment();
+            // Themes are an experiment: the server has just said whether it is on (the browser's theme, or the dark defaults).
+            applyStoredTheme();
             const sViewPath = readViewPath(sIsView);
             // A broken value is dropped too, or every later sign-in would trip over it again.
             if (sIsView !== null && !sViewPath) localStorage.removeItem('view');
@@ -95,7 +115,13 @@ const Login = () => {
 
     return (
         <div className="login-form">
-            <img className="login-bg-img" src={`${LOGIN_BG_IMG}`} />
+            <img
+                className={sThemeImage ? 'login-bg-img login-bg-img--theme' : 'login-bg-img'}
+                alt=""
+                src={sThemeImage === undefined ? undefined : (sThemeImage ?? LOGIN_BG_IMG)}
+                onError={sThemeImage ? () => setThemeImage(null) : undefined}
+                data-testid="login-bg-img"
+            />
             <Page style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                 <div className="login-card">
                     <Page.Body fullHeight>

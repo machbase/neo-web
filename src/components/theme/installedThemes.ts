@@ -3,13 +3,13 @@
 // Read on demand (the Theme dialog opening), never at startup: the remembered choice already
 // carries its stylesheet path (theme.ts), so the first paint does not wait for this.
 //
-// A package declares one theme (`neoTheme.stylesheet`) or an index of them (`neoTheme.index`,
-// JSON files listing entries — the theme builder package's presets and the themes it saves).
+// A package declares one theme (`neoTheme.stylesheet`), an index of them (`neoTheme.index`, JSON
+// files listing entries), or neither — the theme builder, a theme package for its app alone.
 
 import { getFileList } from '@/api/repository/api';
 import { readManifest } from '@/components/side/AppStore/pkgLifecycle/manifest';
 import { checkHtmlExists } from '@/components/side/AppStore/appTabs';
-import { parseThemeIndex, parseThemeManifest, themeIndexFiles, type ThemeChoice } from '@/design-system/theme';
+import { declaresTheme, parseThemeIndex, parseThemeManifest, themeIndexFiles, type ThemeChoice } from '@/design-system/theme';
 
 type Listing = { children?: { name?: unknown; isDir?: unknown }[] };
 
@@ -39,7 +39,7 @@ const readJson = async (aPkg: string, aFile: string): Promise<unknown> => {
         const sPayload = sRes?.data ?? sRes;
         return typeof sPayload === 'string' ? JSON.parse(sPayload) : sPayload;
     } catch {
-        // Not there (a builder that has saved nothing has no user index) or not JSON.
+        // Not there or not JSON.
         return null;
     }
 };
@@ -54,10 +54,12 @@ const entryExtras = (aIndex: unknown, aChoice: ThemeChoice): Pick<InstalledTheme
 
 const readPackage = async (aDir: string): Promise<ThemePackage | null> => {
     const sManifest = await readManifest(aDir);
+    // the installed version goes with each choice: it is in the stylesheet's address (themeStylesheetHref)
+    const sVersion = typeof sManifest?.version === 'string' ? { version: sManifest.version } : {};
     const sSingle = parseThemeManifest(aDir, sManifest);
-    if (sSingle) return { pkg: aDir, label: sSingle.label, hasApp: false, themes: [{ ...sSingle, swatch: [], detail: aDir }] };
+    if (sSingle) return { pkg: aDir, label: sSingle.label, hasApp: false, themes: [{ ...sSingle, ...sVersion, swatch: [], detail: aDir }] };
+    if (!declaresTheme(aDir, sManifest)) return null;
     const sFiles = themeIndexFiles(sManifest);
-    if (sFiles.length === 0) return null;
     const sIndexes = await Promise.all(sFiles.map((f) => readJson(aDir, f)));
     const sSeen = new Set<string>();
     const sThemes: InstalledTheme[] = [];
@@ -65,7 +67,7 @@ const readPackage = async (aDir: string): Promise<ThemePackage | null> => {
         for (const sChoice of parseThemeIndex(aDir, aIndex)) {
             if (sSeen.has(sChoice.stylesheet)) continue;
             sSeen.add(sChoice.stylesheet);
-            sThemes.push({ ...sChoice, ...entryExtras(aIndex, sChoice) });
+            sThemes.push({ ...sChoice, ...sVersion, ...entryExtras(aIndex, sChoice) });
         }
     });
     const sLabel = (sManifest as { neoTheme?: { label?: unknown } } | null)?.neoTheme?.label;
@@ -85,9 +87,12 @@ export const listThemePackages = async (): Promise<ThemePackage[] | null> => {
     let sDirs: string[] = [];
     try {
         const sRes: any = await getFileList('', '/public/', '');
-        const sListing: Listing | undefined = sRes?.data ?? sRes;
-        if (!Array.isArray(sListing?.children)) return null;
-        sDirs = sListing.children.filter((c) => c.isDir === true && typeof c.name === 'string').map((c) => c.name as string);
+        const sListing: (Listing & { isDir?: unknown }) | undefined = sRes?.data ?? sRes;
+        // an empty folder is listed without `children` (no package installed, or the last one
+        // uninstalled): that is "none", not a listing that failed
+        const sChildren = Array.isArray(sListing?.children) ? sListing.children : sListing?.isDir === true ? [] : null;
+        if (!sChildren) return null;
+        sDirs = sChildren.filter((c) => c.isDir === true && typeof c.name === 'string').map((c) => c.name as string);
     } catch {
         return null;
     }
