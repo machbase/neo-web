@@ -418,12 +418,12 @@ export const CameraSide = () => {
                         </Button.Group>
                     </Side.Collapse>
                     {sIsLoading && (
-                        <div style={{ width: '100%', height: '2px', overflow: 'hidden', backgroundColor: 'var(--color-bg-tertiary, var(--neo-bg-elevated, #2a2a2a))' }}>
+                        <div style={{ width: '100%', height: '2px', overflow: 'hidden', backgroundColor: 'var(--color-bg-tertiary, var(--neo-bg-elevated, #2c2c2c))' }}>
                             <div
                                 style={{
                                     width: '40%',
                                     height: '100%',
-                                    backgroundColor: 'var(--color-primary, var(--neo-bg-active-hover, #007acc))',
+                                    backgroundColor: 'var(--color-primary, var(--neo-selected-hover-bg, rgb(0, 108, 210)))',
                                     animation: 'indeterminate-progress 1.2s ease-in-out infinite',
                                 }}
                             />
@@ -449,7 +449,7 @@ export const CameraSide = () => {
                                                 onClick={hasError ? undefined : () => handleServerClick(config)}
                                                 style={{
                                                     ...(hasError ? { cursor: 'default' } : undefined),
-                                                    ...(isActiveServer ? { boxShadow: 'inset 2px 0 0 0 #007acc', backgroundColor: 'var(--neo-bg-hover, rgba(255, 255, 255, 0.1))' } : undefined),
+                                                    ...(isActiveServer ? { boxShadow: 'inset 2px 0 0 0 var(--neo-selected-text, rgb(243, 243, 243))', backgroundColor: 'var(--neo-side-selected-bg, var(--neo-selected-bg, rgb(0, 83, 160)))' } : undefined),
                                                 }}
                                             >
                                                 <Side.ItemContent>
@@ -515,7 +515,7 @@ export const CameraSide = () => {
                                                         active={sActiveName === `${config.alias}::__events__`}
                                                         style={{ paddingLeft: '52px', paddingRight: '8px' }}
                                                     >
-                                                        <Side.ItemContent style={cameras?.length > 0 ? { borderTop: 'solid 1px #454545' } : {}}>
+                                                        <Side.ItemContent style={cameras?.length > 0 ? { borderTop: 'solid 1px var(--neo-border-color-default, rgba(255, 255, 255, 0.13))' } : {}}>
                                                             <Side.ItemIcon style={{ width: '16px' }}>{icons('event')}</Side.ItemIcon>
                                                             <Side.ItemText>Events</Side.ItemText>
                                                             {(serverEventCountMap[config.alias] ?? 0) > 0 && (

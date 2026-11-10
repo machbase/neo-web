@@ -253,7 +253,7 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
                                     <input autoFocus onChange={changeSaveFileName} value={sSaveFileName}></input>
                                 </div>
                             </div>
-                            <span style={{ color: 'var(--neo-text-secondary, #ccc)', fontSize: '12px', paddingBottom: '8px' }}> .csv</span>
+                            <span style={{ color: 'var(--neo-text-primary, #f1f1f1)', fontSize: '12px', paddingBottom: '8px' }}> .csv</span>
                         </div>
                         <div className="save-file-block">
                             <span>Block</span>
@@ -273,13 +273,13 @@ export const PanelDataDownloadModal = (props: PanelDataDownloadModalProps) => {
                     <div className="button-group">
                         <TextButton
                             pText={sIsDownloading ? 'Downloading...' : 'Download'}
-                            pBackgroundColor="var(--neo-primary-base, #4199ff)"
-                            pFontColor="var(--neo-text-on-accent, #f8f8f8)"
+                            pBackgroundColor="var(--neo-button-primary-bg, #005fb8)"
+                            pFontColor="var(--neo-text-on-accent, #ffffff)"
                             pIsDisabled={sBlockList.length === 0 || sIsDownloading}
                             onClick={handleDownload}
                         />
                         <div style={{ width: '10px' }}></div>
-                        <TextButton pText="Cancel" pBackgroundColor="#666979" onClick={handleClose} />
+                        <TextButton pText="Cancel" pBackgroundColor="var(--neo-neutral-main, #6f7173)" onClick={handleClose} />
                     </div>
                 </Modal.Footer>
             </Modal>

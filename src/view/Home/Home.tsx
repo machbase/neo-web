@@ -20,6 +20,8 @@ import GNBPanel from '@/components/extension/Extension';
 import { SidePanel } from '@/components/side';
 import { useHomeSidePaneSizes } from './useHomeSidePaneSizes';
 import { useNeoUpdateStatus } from '@/hooks/useNeoUpdateStatus';
+import { refreshStoredThemeVersion } from '@/design-system/theme';
+import { getInstalledVersion } from '@/components/side/AppStore/pkgLifecycle/manifest';
 
 const HomeContent = () => {
     const { sideSizes: sSideSizes, setSideSizes, openSideBar, closeSideBar } = useHomeSidePaneSizes();
@@ -127,6 +129,11 @@ const HomeContent = () => {
 
     useEffect(() => {
         sHome && getInfo();
+    }, [sHome]);
+
+    // Signed in: the chosen theme's package may have been updated since (its stylesheet's address carries the version).
+    useEffect(() => {
+        if (sHome) void refreshStoredThemeVersion(getInstalledVersion);
     }, [sHome]);
 
     useEffect(() => {

@@ -69,7 +69,7 @@ const ModalShell = ({ pGetInfo, pSetIsModal, pInfo }: any) => {
                 <div className="edit-shell-header">
                     <div>{pInfo.label}</div>
                     <div>
-                        <Close onClick={() => pSetIsModal(false)} color="#f8f8f8"></Close>
+                        <Close onClick={() => pSetIsModal(false)} color="var(--neo-text-primary, #f1f1f1)"></Close>
                     </div>
                 </div>
                 <div className="edit-shell-info">
@@ -99,8 +99,8 @@ const ModalShell = ({ pGetInfo, pSetIsModal, pInfo }: any) => {
                     </div>
                 </div>
                 <div className="edit-shell-footer">
-                    <TextButton pWidth={100} pHeight={30} pText="Save" pBackgroundColor="var(--neo-primary-base, #4199ff)" pFontColor="var(--neo-text-on-accent, #f8f8f8)" onClick={save} />
-                    <TextButton pWidth={100} pHeight={30} pText="Cancel" pBackgroundColor="#666979" onClick={() => pSetIsModal(false)} />
+                    <TextButton pWidth={100} pHeight={30} pText="Save" pBackgroundColor="var(--neo-button-primary-bg, #005fb8)" pFontColor="var(--neo-text-on-accent, #ffffff)" onClick={save} />
+                    <TextButton pWidth={100} pHeight={30} pText="Cancel" pBackgroundColor="var(--neo-neutral-main, #6f7173)" onClick={() => pSetIsModal(false)} />
                 </div>
             </div>
         </div>

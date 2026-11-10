@@ -33,7 +33,7 @@ export const TqlBlock = ({ pPanelOption, pSetPanelOption }: { pPanelOption: any;
                     </Page.TabItem>
                 </Page.TabList>
             </Page.TabContainer>
-            <Page.Body style={{ display: 'flex', flexDirection: 'column', borderRadius: 'calc(4px * var(--neo-radius-scale, 1))', border: '1px solid var(--neo-border-color-light, #b8c8da41)', gap: '8px' }}>
+            <Page.Body style={{ display: 'flex', flexDirection: 'column', borderRadius: 'calc(4px * var(--neo-radius-scale, 1))', border: '1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13))', gap: '8px' }}>
                 {sSelectTab === 'tql' && (
                     <Page.ContentBlock pHoverNone style={{ padding: '0', gap: '4px' }}>
                         <Page.DpRow style={{ gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -53,7 +53,7 @@ export const TqlBlock = ({ pPanelOption, pSetPanelOption }: { pPanelOption: any;
                         <Page.DpRow style={{ padding: '0', flexDirection: 'column', alignItems: 'start', gap: '4px' }}>
                             <Page.ContentDesc>
                                 Params
-                                <span style={{ marginLeft: '8px', fontSize: '12px', color: 'var(--neo-text-tertiary, #999)' }}>{pPanelOption?.tqlInfo?.params?.length ?? 0}/12</span>
+                                <span style={{ marginLeft: '8px', fontSize: '12px', color: 'var(--neo-text-tertiary, #a3a3a3)' }}>{pPanelOption?.tqlInfo?.params?.length ?? 0}/12</span>
                             </Page.ContentDesc>
                             {paramForm(pPanelOption?.tqlInfo?.params ?? [], ChangeOption)}
                         </Page.DpRow>

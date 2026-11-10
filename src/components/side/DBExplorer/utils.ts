@@ -190,6 +190,27 @@ export const buildRetentionQuery = ({
     return `select j.POLICY_NAME as 'POLICY', r.'DURATION' as "DURATION", r.'INTERVAL' as "INTERVAL", j.STATE, j.LAST_DELETED_TIME from M$retention r, V$retention_job j where r.policy_name=j.policy_name and table_name=upper(${sqlString(tableName)}) and user_name=upper(${sqlString(userName)})${sDatabaseCondition}`;
 };
 
+const TABLE_TYPE_KEY: Record<string, keyof typeof E_TABLE_TYPE_COLOR> = {
+    tag: 'TAG',
+    keyValue: 'KV',
+    log: 'LOG',
+    volatile: 'VOLATILE',
+    fixed: 'FIXED',
+    lookup: 'LOOKUP',
+    view: 'VIEW',
+    transaction: 'TRANSACTION',
+};
+
+/**
+ * A table type's icon in the tree: the type's colour, and under a light scheme the deeper shade of
+ * the same hue global.scss gives it (`--table-type-*`) — the colour still says the type, read 3:1 on
+ * a light panel and its selected row.
+ */
+export const getTableTypeIconColor = (aTableType: string) => {
+    const sKey = TABLE_TYPE_KEY[aTableType];
+    return sKey ? `var(--table-type-${sKey.toLowerCase()}, ${E_TABLE_TYPE_COLOR[sKey]})` : getTableTypeColor(aTableType);
+};
+
 export const getTableTypeColor = (aTableType: string) => {
     switch (aTableType) {
         case 'tag':
@@ -209,7 +230,7 @@ export const getTableTypeColor = (aTableType: string) => {
         case 'transaction':
             return E_TABLE_TYPE_COLOR.TRANSACTION;
         default:
-            return 'darkgray';
+            return 'var(--neo-text-icon, #818181)';
     }
 };
 

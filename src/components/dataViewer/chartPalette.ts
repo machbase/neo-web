@@ -1,4 +1,4 @@
-import { resolveEchartsColor } from '@/design-system/theme';
+import { APP_CHART_LINE, resolveEchartsColor } from '@/design-system/theme';
 import { DATA_VIEWER_CHART_PALETTE, type DataViewerChartPalette } from './dataViewerModel';
 
 /**
@@ -8,7 +8,7 @@ import { DATA_VIEWER_CHART_PALETTE, type DataViewerChartPalette } from './dataVi
  */
 const TOKENS: Record<keyof DataViewerChartPalette, string> = {
     background: 'var(--neo-bg-secondary, #252525)',
-    axisLine: 'var(--neo-border-color-default, #323333)',
+    axisLine: APP_CHART_LINE,
     axisLabel: 'var(--neo-text-primary, #f8f8f8)',
     axisLabelMuted: 'var(--neo-text-secondary, #afb5bc)',
     legendText: 'var(--neo-text-primary, #e7e8ea)',
@@ -16,10 +16,10 @@ const TOKENS: Record<keyof DataViewerChartPalette, string> = {
     tooltipBackground: 'var(--neo-tooltip-bg, #1f1d1d)',
     tooltipBorder: 'var(--neo-tooltip-border, #292929)',
     tooltipText: 'var(--neo-tooltip-text, #afb5bc)',
-    navigatorBorder: 'var(--neo-border-color-medium, #7a828c)',
-    navigatorFiller: 'color-mix(in srgb, var(--neo-primary-light, rgb(104, 119, 138)) 28%, transparent)',
+    navigatorBorder: 'var(--neo-border-color-strong, #7a828c)',
+    navigatorFiller: 'color-mix(in srgb, var(--neo-accent-light, rgb(104, 119, 138)) 28%, transparent)',
     navigatorHandle: 'color-mix(in srgb, var(--neo-bg-elevated, rgb(245, 247, 250)) 78%, transparent)',
-    navigatorHandleBorder: 'var(--neo-border-color-medium, #8a939e)',
+    navigatorHandleBorder: 'var(--neo-border-color-strong, #8a939e)',
     navigatorMoveHandle: 'color-mix(in srgb, var(--neo-bg-elevated, rgb(245, 247, 250)) 32%, transparent)',
 };
 

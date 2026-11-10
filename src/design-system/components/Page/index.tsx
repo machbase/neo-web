@@ -428,7 +428,7 @@ const DateTimePicker = ({ pSetApply, pTime }: { pSetApply: (e: any) => void; pTi
                                                 fill: 'var(--neo-text-primary, #f1f1f1)',
                                             },
                                             '&:hover': {
-                                                backgroundColor: 'var(--neo-bg-hover, rgba(255, 255, 255, 0.08))',
+                                                backgroundColor: 'var(--neo-hover-bg, rgba(255, 255, 255, 0.08))',
                                             },
                                         },
                                         '& .MuiPickersCalendarHeader-label': {
@@ -440,13 +440,13 @@ const DateTimePicker = ({ pSetApply, pTime }: { pSetApply: (e: any) => void; pTi
                                         '& .MuiButtonBase-root': {
                                             color: 'var(--neo-text-primary, #f1f1f1)',
                                             '&:hover': {
-                                                backgroundColor: 'var(--neo-bg-hover, rgba(255, 255, 255, 0.08))',
+                                                backgroundColor: 'var(--neo-hover-bg, rgba(255, 255, 255, 0.08))',
                                             },
                                             '&.Mui-selected': {
-                                                backgroundColor: 'var(--neo-primary-base, #005fb8)',
-                                                color: 'var(--neo-text-on-accent, #f3f3f3)',
+                                                backgroundColor: 'var(--neo-accent-main, #005fb8)',
+                                                color: 'var(--neo-text-on-accent, #ffffff)',
                                                 '&:hover': {
-                                                    backgroundColor: 'var(--neo-primary-hover, #0075e2)',
+                                                    backgroundColor: 'var(--neo-accent-hover, #0075e2)',
                                                 },
                                             },
                                             '&.Mui-disabled': {
@@ -484,14 +484,14 @@ const DateTimePicker = ({ pSetApply, pTime }: { pSetApply: (e: any) => void; pTi
                                             '& .MuiButtonBase-root': {
                                                 color: 'var(--neo-text-primary, #f1f1f1)',
                                                 '&:hover': {
-                                                    backgroundColor: 'var(--neo-bg-hover, rgba(255, 255, 255, 0.08))',
+                                                    backgroundColor: 'var(--neo-hover-bg, rgba(255, 255, 255, 0.08))',
                                                 },
                                                 '&.Mui-selected': {
                                                     borderRadius: 'calc(3px * var(--neo-radius-scale, 1))',
-                                                    backgroundColor: 'var(--neo-primary-base, #005fb8)',
-                                                    color: 'var(--neo-text-on-accent, #f3f3f3)',
+                                                    backgroundColor: 'var(--neo-accent-main, #005fb8)',
+                                                    color: 'var(--neo-text-on-accent, #ffffff)',
                                                     '&:hover': {
-                                                        backgroundColor: 'var(--neo-primary-hover, #0075e2)',
+                                                        backgroundColor: 'var(--neo-accent-hover, #0075e2)',
                                                     },
                                                 },
                                             },
@@ -566,7 +566,7 @@ const DatePicker = ({ pSetApply, pTime, pPlaceholder }: { pSetApply: (e: any) =>
                                             fill: 'var(--neo-text-primary, #f1f1f1)',
                                         },
                                         '&:hover': {
-                                            backgroundColor: 'var(--neo-bg-hover, rgba(255, 255, 255, 0.08))',
+                                            backgroundColor: 'var(--neo-hover-bg, rgba(255, 255, 255, 0.08))',
                                         },
                                     },
                                     '& .MuiPickersCalendarHeader-label': {
@@ -578,13 +578,13 @@ const DatePicker = ({ pSetApply, pTime, pPlaceholder }: { pSetApply: (e: any) =>
                                     '& .MuiButtonBase-root': {
                                         color: 'var(--neo-text-primary, #f1f1f1)',
                                         '&:hover': {
-                                            backgroundColor: 'var(--neo-bg-hover, rgba(255, 255, 255, 0.08))',
+                                            backgroundColor: 'var(--neo-hover-bg, rgba(255, 255, 255, 0.08))',
                                         },
                                         '&.Mui-selected': {
-                                            backgroundColor: 'var(--neo-primary-base, #005fb8)',
-                                            color: 'var(--neo-text-on-accent, #f3f3f3)',
+                                            backgroundColor: 'var(--neo-accent-main, #005fb8)',
+                                            color: 'var(--neo-text-on-accent, #ffffff)',
                                             '&:hover': {
-                                                backgroundColor: 'var(--neo-primary-hover, #0075e2)',
+                                                backgroundColor: 'var(--neo-accent-hover, #0075e2)',
                                             },
                                         },
                                         '&.Mui-disabled': {

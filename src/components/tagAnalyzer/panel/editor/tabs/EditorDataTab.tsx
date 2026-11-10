@@ -149,7 +149,7 @@ export default function EditorDataTab({
                                     size="xsm"
                                     variant="ghost"
                                     icon={
-                                        <Close size={16} color="#f8f8f8" />
+                                        <Close size={16} />
                                     }
                                     onClick={() =>
                                         updateTagSet((tagSet) =>

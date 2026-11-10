@@ -22,14 +22,15 @@ import { ReactComponent as MuiFolderLayOutOpenSvg } from '@/assets/icons/materia
 
 /**
  * The file-type icons keep the Material icon colours (yellow folders, a grey document): they say
- * what a thing is. `neo-type-icon` lets a light-scheme theme deepen them (global.scss) — drawn for
- * a dark page, the yellow and grey all but vanished on a light one.
+ * what a thing is. Each SVG reads its colour from a token (`var(--neo-icon-folder, #ffca28)`, …), so
+ * a theme can set it; a light scheme starts from deeper shades (global.scss) — drawn for a dark page,
+ * the yellow and grey all but vanished on a light one.
  */
 type SvgComponent = FunctionComponent<SVGProps<SVGSVGElement>>;
 const typeIcon = (aSvg: SvgComponent): SvgComponent => {
     const Icon = (aProps: ComponentProps<SvgComponent>) => {
         const Svg = aSvg;
-        return <Svg {...aProps} className={aProps.className ? `neo-type-icon ${aProps.className}` : 'neo-type-icon'} />;
+        return <Svg {...aProps} className={aProps.className ? `neo-type-icon neo-type-icon--tokens ${aProps.className}` : 'neo-type-icon neo-type-icon--tokens'} />;
     };
     Icon.displayName = aSvg.displayName ?? aSvg.name;
     return Icon;

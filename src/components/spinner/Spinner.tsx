@@ -6,7 +6,7 @@ interface SpinnerProps {
 }
 
 export const Spinner = (props: SpinnerProps) => {
-    const { pSpeed = '1s', pColor = '#c2c2c2' } = props;
+    const { pSpeed = '1s', pColor = 'var(--neo-text-tertiary, #a3a3a3)' } = props;
     return (
         <div className="spinner-wrapper">
             <div className="spinner" style={{ backgroundColor: pColor, animationDuration: pSpeed }}></div>

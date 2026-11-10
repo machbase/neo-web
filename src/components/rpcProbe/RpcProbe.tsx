@@ -114,10 +114,10 @@ const ResultBlock = ({ result }: { result?: CallResult }) => {
     return (
         <div style={{ marginTop: 6 }}>
             <span style={{ color: STATUS_COLOR[result.status], fontWeight: 600 }}>{STATUS_LABEL[result.status]}</span>
-            {result.elapsedMs != null && <span style={{ color: 'var(--neo-text-disabled, #888)', marginLeft: 8 }}>{result.elapsedMs}ms</span>}
+            {result.elapsedMs != null && <span style={{ color: 'var(--neo-text-muted, #818181)', marginLeft: 8 }}>{result.elapsedMs}ms</span>}
             {result.status !== 'loading' && (
                 <>
-                    {result.errorMessage && <div style={{ color: 'var(--neo-error-light, #f0883e)', fontSize: 12, margin: '4px 0' }}>{result.errorMessage}</div>}
+                    {result.errorMessage && <div style={{ color: 'var(--neo-error-text, #f0883e)', fontSize: 12, margin: '4px 0' }}>{result.errorMessage}</div>}
                     {result.response !== undefined && (
                         <pre
                             style={{

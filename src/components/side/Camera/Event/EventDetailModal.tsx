@@ -422,8 +422,8 @@ const EventMediaSection = ({
                 <div className="video-container" style={{ minHeight: '350px' }}>
                     <video ref={videoRef} playsInline muted />
                     {videoPlayer.isLoading && (
-                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--neo-bg-primary, rgba(0,0,0,0.5))' }}>
-                            <span style={{ fontSize: '12px', color: 'var(--neo-text-secondary, rgba(255,255,255,0.7))' }}>Loading...</span>
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--neo-bg-canvas, var(--neo-bg-primary, #1e1e1e))' }}>
+                            <span style={{ fontSize: '12px', color: 'var(--neo-text-primary, #f1f1f1)' }}>Loading...</span>
                         </div>
                     )}
                 </div>

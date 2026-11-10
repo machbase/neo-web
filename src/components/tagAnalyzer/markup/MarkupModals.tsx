@@ -169,8 +169,8 @@ export function EditAnnotationModal({
                     data-testid="clip-checkbox"
                     aria-label="Clip annotation to panel range"
                     type="checkbox"
-                    // the theme's accent for the native box; `auto` (the browser's) on the dark screen
-                    style={{ accentColor: 'var(--neo-primary-base, auto)' }}
+                    // the accent for the native box
+                    style={{ accentColor: 'var(--neo-accent-main, #005fb8)' }}
                     checked={state.clip}
                     onChange={(event) => setField('clip', event.target.checked)}
                 />

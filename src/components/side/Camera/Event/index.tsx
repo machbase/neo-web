@@ -190,7 +190,7 @@ export const EventPage = ({ pServerConfig }: EventPageProps) => {
             key: 'timestamp',
             header: 'Time',
             headerStyle: { padding: '6px 12px', textAlign: 'left' },
-            style: { whiteSpace: 'nowrap', padding: '6px 12px', color: 'rgba(255,255,255,0.7)' },
+            style: { whiteSpace: 'nowrap', padding: '6px 12px', color: 'var(--neo-text-secondary, #c4c4c4)' },
             render: (event) => (
                 <span data-tooltip-id="event-tooltip" data-tooltip-content={formatIsoWithMs(event.timestamp)}>
                     {formatIsoWithMs(event.timestamp)}
@@ -223,7 +223,7 @@ export const EventPage = ({ pServerConfig }: EventPageProps) => {
             key: 'expressionText',
             header: 'Expression',
             headerStyle: { padding: '6px 8px', textAlign: 'left' },
-            style: { padding: '6px 8px', color: 'rgba(255,255,255,0.5)', maxWidth: '300px', overflowX: 'auto', whiteSpace: 'nowrap' },
+            style: { padding: '6px 8px', color: 'var(--neo-text-tertiary, #a3a3a3)', maxWidth: '300px', overflowX: 'auto', whiteSpace: 'nowrap' },
             render: (event) => (
                 <span data-tooltip-id="event-tooltip" data-tooltip-content={event.expressionText || '-'}>
                     <TextHighlight variant="muted" style={{ fontFamily: 'monospace' }}>
@@ -365,7 +365,7 @@ export const EventPage = ({ pServerConfig }: EventPageProps) => {
                     </div>
                 </Page.Body>
                 <Page.Footer style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px' }}>
-                    {totalCount > 0 && <span style={{ fontSize: '12px', color: 'var(--neo-text-disabled, rgba(255,255,255,0.5))' }}>Total {totalCount}</span>}
+                    {totalCount > 0 && <span style={{ fontSize: '12px', color: 'var(--neo-text-muted, #818181)' }}>Total {totalCount}</span>}
                     {totalPages > 1 && (
                         <Pagination
                             showTotalPage

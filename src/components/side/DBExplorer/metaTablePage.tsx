@@ -462,13 +462,13 @@ export const MetaTablePage = ({
                                                         <Page.DpRow>
                                                             <Page.ContentTitle>{column}</Page.ContentTitle>
                                                             <Page.ContentDesc>
-                                                                <span style={{ marginLeft: '4px', color: 'var(--neo-btn-status, #009688)' }}>
+                                                                <span style={{ marginLeft: '4px', color: 'var(--neo-accent-text, #4199ff)' }}>
                                                                     ({sMetaTableInfo?.types?.[sMetaTableInfo?.columns?.indexOf(column)]})
                                                                 </span>
                                                             </Page.ContentDesc>
                                                             {REQUIRE_COL_LIST.includes(column?.toString()?.toUpperCase()) ? (
                                                                 <Page.ContentDesc>
-                                                                    <span style={{ marginLeft: '4px', color: 'var(--neo-error-light, #f35b5b)' }}>*</span>
+                                                                    <span style={{ marginLeft: '4px', color: 'var(--neo-error-text, #fa6464)' }}>*</span>
                                                                 </Page.ContentDesc>
                                                             ) : null}
                                                         </Page.DpRow>

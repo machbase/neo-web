@@ -348,7 +348,7 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
 
             <Modal.Body>
                 {sHasDistance && !sLockTab && (
-                    <div style={{ display: 'flex', borderBottom: '1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.1))', marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', borderBottom: '1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13))', marginBottom: '12px' }}>
                         {(['time', 'distance'] as const).map((aKey) => (
                             <button
                                 key={aKey}
@@ -359,9 +359,9 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
                                     padding: '8px 16px',
                                     background: 'transparent',
                                     border: 'none',
-                                    borderBottom: sTab === aKey ? '2px solid var(--neo-primary-hover, #2f7fe0)' : '2px solid transparent',
+                                    borderBottom: sTab === aKey ? '2px solid var(--neo-accent-hover, #0075e2)' : '2px solid transparent',
                                     borderRadius: 0,
-                                    color: sTab === aKey ? 'var(--neo-text-primary, #e8e8e8)' : 'var(--neo-text-disabled, #8a8d94)',
+                                    color: sTab === aKey ? 'var(--neo-text-primary, #f1f1f1)' : 'var(--neo-text-muted, #818181)',
                                     fontSize: '13px',
                                     fontWeight: 600,
                                     cursor: 'pointer',

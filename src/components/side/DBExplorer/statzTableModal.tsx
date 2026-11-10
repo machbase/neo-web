@@ -70,7 +70,7 @@ export const StatzTableModal = ({ pModalInfo, pSetModalInfo }: VirtualTableProps
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', width: '100%' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         <Modal.Title style={{ fontSize: '24px' }}>
-                            Real-Time Statistics of <p style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--neo-warning-main, #ff9800)' }}>{pModalInfo?.table?.[E_TABLE_INFO.TB_NM]}</p> Table
+                            Real-Time Statistics of <p style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--neo-warning-text, #ff9800)' }}>{pModalInfo?.table?.[E_TABLE_INFO.TB_NM]}</p> Table
                         </Modal.Title>
                         {pModalInfo?.filter && <Modal.TitleSub>Filtered by '{pModalInfo.filter}'</Modal.TitleSub>}
                     </div>

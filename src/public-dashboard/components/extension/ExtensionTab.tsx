@@ -115,7 +115,7 @@ const TextButton = ({
         <button
             className="extension-tab-text-button"
             style={{
-                backgroundColor: pIsDisable ? 'var(--neo-btn-copy, #6f7173)' : getColor(),
+                backgroundColor: pIsDisable ? 'var(--neo-neutral-main, #6f7173)' : getColor(),
                 width: pWidth,
                 marginRight: mr,
                 marginBottom: mb,

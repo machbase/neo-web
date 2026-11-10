@@ -113,7 +113,7 @@ export const GeomapOptions = (props: LiquidfillOptionProps) => {
                         <Page.ContentBlock pHoverNone style={{ display: 'flex', padding: 0, gap: '4px', flexFlow: 'wrap' }}>
                             {pPanelOption.blockList.map((block: any, idx: number) => {
                                 return (
-                                    <div key={block.id + 'opt-coor'} style={{ border: 'solid 1px var(--neo-border-color-medium, #777777)', borderRadius: 'calc(5px * var(--neo-radius-scale, 1))', width: '100%' }} data-testid={`marker-${encodeURIComponent(block.id)}`}>
+                                    <div key={block.id + 'opt-coor'} style={{ border: 'solid 1px var(--neo-border-color-strong, #767676)', borderRadius: 'calc(5px * var(--neo-radius-scale, 1))', width: '100%' }} data-testid={`marker-${encodeURIComponent(block.id)}`}>
                                         <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
                                             <Dropdown.Root
                                                 label="Latitude"

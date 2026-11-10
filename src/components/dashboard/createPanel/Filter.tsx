@@ -89,8 +89,8 @@ const Filter = ({ pFilterInfo, pChangeValueOption, pAddFilter, pRemoveFilter, pI
                         size="md"
                         style={{ width: '160px' }}
                         {...((sOperator === 'in' || sIsVarchar) && {
-                            addonBefore: <span style={{ color: 'var(--neo-text-disabled, #818181)' }}>{`${sOperator === 'in' ? '(' : ''}${sIsVarchar ? "'" : ''}`}</span>,
-                            addonAfter: <span style={{ color: 'var(--neo-text-disabled, #818181)' }}>{`${sIsVarchar ? "'" : ''}${sOperator === 'in' ? ')' : ''}`}</span>,
+                            addonBefore: <span style={{ color: 'var(--neo-text-muted, #818181)' }}>{`${sOperator === 'in' ? '(' : ''}${sIsVarchar ? "'" : ''}`}</span>,
+                            addonAfter: <span style={{ color: 'var(--neo-text-muted, #818181)' }}>{`${sIsVarchar ? "'" : ''}${sOperator === 'in' ? ')' : ''}`}</span>,
                         })}
                     />
                 </>

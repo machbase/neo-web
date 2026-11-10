@@ -88,15 +88,39 @@ export const MonacoEditor = (props: MonacoEditorProps) => {
     const sThemeVersion = useThemeVersion();
     useEffect(() => {
         if (!sMonaco) return;
+        const sMenuBorder = resolveCssColor('var(--neo-menu-border, var(--neo-border-color-default, rgba(255, 255, 255, 0.13)))', '#ffffff21');
         sMonaco.editor.defineTheme('my-theme', {
             base: currentScheme() === 'light' ? 'vs' : 'vs-dark',
             inherit: true,
             rules: [],
             colors: {
                 'editor.background': resolveCssColor('var(--neo-bg-secondary, #252525)', '#252525'),
+                // the box around the current line: a small step from the editor's colour toward its text, faint under
+                // any theme (left to Monaco, a fixed #eeeeee showed as a white box on a gray editor); with no theme both
+                // sides fall back to the line the dark screen has
+                'editor.lineHighlightBorder': resolveCssColor('color-mix(in srgb, var(--neo-text-primary, #282828) 4%, var(--neo-bg-secondary, #282828))', '#282828'),
+                // the right-click menu is a menu: the app's menu colours (left to Monaco, white on every light theme)
+                'menu.background': resolveCssColor('var(--neo-menu-bg, #2d2d2d)', '#2d2d2d'),
+                'menu.foreground': resolveCssColor('var(--neo-text-primary, #f1f1f1)', '#f1f1f1'),
+                'menu.selectionBackground': resolveCssColor('var(--neo-menu-item-hover-bg, #3d3d3d)', '#3d3d3d'),
+                'menu.selectionForeground': resolveCssColor('var(--neo-text-primary, #f1f1f1)', '#f1f1f1'),
+                'menu.border': sMenuBorder,
+                'menu.separatorBackground': sMenuBorder,
                 'scrollbarSlider.background': resolveCssColor(scrollbar.thumb, '#5c5c5c'),
                 'scrollbarSlider.hoverBackground': resolveCssColor(scrollbar.thumbHover, '#868686'),
                 'scrollbarSlider.activeBackground': resolveCssColor(scrollbar.thumbHover, '#868686'),
+                // the command palette and the suggest list are menus: the menu's colours, a chosen row the selection's
+                // (left to Monaco, a light theme got Monaco's blue row under the app's dark text)
+                'quickInput.background': resolveCssColor('var(--neo-menu-bg, #2d2d2d)', '#2d2d2d'),
+                'quickInput.foreground': resolveCssColor('var(--neo-text-primary, #f1f1f1)', '#f1f1f1'),
+                'quickInputList.focusBackground': resolveCssColor('var(--neo-selected-bg, rgb(0, 83, 160))', '#0053a0'),
+                'quickInputList.focusForeground': resolveCssColor('var(--neo-selected-text, rgb(243, 243, 243))', '#f3f3f3'),
+                'list.activeSelectionBackground': resolveCssColor('var(--neo-selected-bg, rgb(0, 83, 160))', '#0053a0'),
+                'list.activeSelectionForeground': resolveCssColor('var(--neo-selected-text, rgb(243, 243, 243))', '#f3f3f3'),
+                'editorSuggestWidget.background': resolveCssColor('var(--neo-menu-bg, #2d2d2d)', '#2d2d2d'),
+                'editorSuggestWidget.foreground': resolveCssColor('var(--neo-text-primary, #f1f1f1)', '#f1f1f1'),
+                'editorSuggestWidget.selectedBackground': resolveCssColor('var(--neo-selected-bg, rgb(0, 83, 160))', '#0053a0'),
+                'editorSuggestWidget.selectedForeground': resolveCssColor('var(--neo-selected-text, rgb(243, 243, 243))', '#f3f3f3'),
             },
         });
         sMonaco.editor.setTheme('my-theme');

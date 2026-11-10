@@ -29,7 +29,7 @@ const Sparkline = ({ pPoints, pColor }: { pPoints: MetricPoint[]; pColor: string
                     <stop offset="1" stopOpacity="0" style={{ stopColor: pColor }} />
                 </linearGradient>
             </defs>
-            <line x1="0" x2={W} y1={H / 2} y2={H / 2} vectorEffect="non-scaling-stroke" style={{ stroke: 'var(--neo-border-color-default, rgba(255,255,255,0.06))' }} />
+            <line x1="0" x2={W} y1={H / 2} y2={H / 2} vectorEffect="non-scaling-stroke" style={{ stroke: 'var(--neo-border-color-default, rgba(255, 255, 255, 0.13))' }} />
             <polygon points={`${x(sFirst).toFixed(1)},${H} ${sLine} ${x(sLast.time).toFixed(1)},${H}`} fill={`url(#${sGradientId})`} />
             <polyline points={sLine} fill="none" strokeWidth="1.6" strokeLinejoin="round" vectorEffect="non-scaling-stroke" style={{ stroke: pColor }} />
             <circle cx={x(sLast.time)} cy={y(sLast.value)} r="2.6" style={{ fill: pColor }} />

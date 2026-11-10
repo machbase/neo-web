@@ -33,11 +33,11 @@ const LIGHT_ANSI: ITheme = {
  * Resolved to hex — xterm takes colours, not CSS variables.
  */
 export const appTerminalTheme = (): ITheme => {
-    const sForeground = resolveCssColor('var(--neo-text-primary, #ffffff)', '#ffffff');
+    const sForeground = resolveCssColor('var(--neo-text-primary, #f1f1f1)', '#ffffff');
     return {
         background: resolveCssColor('var(--neo-bg-secondary, #000000)', '#000000'),
         foreground: sForeground,
         cursor: sForeground,
-        ...(currentScheme() === 'light' ? { ...LIGHT_ANSI, selectionBackground: resolveCssColor('var(--neo-bg-active, #add6ff)', '#add6ff') } : {}),
+        ...(currentScheme() === 'light' ? { ...LIGHT_ANSI, selectionBackground: resolveCssColor('var(--neo-selected-bg, #add6ff)', '#add6ff') } : {}),
     };
 };

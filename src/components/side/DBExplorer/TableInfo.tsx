@@ -14,7 +14,7 @@ import { LuDatabaseBackup } from 'react-icons/lu';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { normalizeBackupStatus } from '@/components/database/backup/backupPayload';
 import { useRecoilState, useSetRecoilState } from 'recoil';
-import { CheckTableFlag, E_TABLE_INFO, E_TABLE_TYPE, TableTypeOrderList, buildDataViewerColumnConfigFromColumnRows, buildQualifiedTableName, describeTablePrivilege, getTableTypeColor } from './utils';
+import { CheckTableFlag, E_TABLE_INFO, E_TABLE_TYPE, TableTypeOrderList, buildDataViewerColumnConfigFromColumnRows, buildQualifiedTableName, describeTablePrivilege, getTableTypeIconColor } from './utils';
 import { getColumnType } from '@/utils/dashboardUtil';
 import { ClipboardCopy } from '@/utils/ClipboardCopy';
 import { Tooltip } from 'react-tooltip';
@@ -519,7 +519,7 @@ const UserDiv = (props: UserDivPropsType): JSX.Element => {
                                                 <TableDiv
                                                     pShowHiddenObj={props.pShowHiddenObj}
                                                     pUserName={sUserName}
-                                                    pTableIcon={<TfiLayoutColumn3Alt className="neo-type-icon" style={{ color: getTableTypeColor(aTableType), rotate: '90deg' }} />}
+                                                    pTableIcon={<TfiLayoutColumn3Alt style={{ color: getTableTypeIconColor(aTableType), rotate: '90deg' }} />}
                                                     pTable={aTable}
                                                     pTableType={aTableType}
                                                     pTableFlag={aTable[5]}
@@ -676,7 +676,7 @@ const TableNameText = ({ pTable, disabled, qualifiedName, query }: { pTable: (st
 
     return (
         <Side.ItemText>
-            <div className={`table-name-text tooltip-${tooltipId}`} style={disabled ? { color: 'darkgray' } : undefined}>
+            <div className={`table-name-text tooltip-${tooltipId}`} style={disabled ? { color: 'var(--neo-text-disabled, #818181)' } : undefined}>
                 <HighlightedName pText={tableName} pQuery={query} />
             </div>
             <Tooltip place="top" positionStrategy="fixed" anchorSelect={`.tooltip-${tooltipId}`} content={qualifiedName} delayShow={700} style={{ zIndex: 9999 }} />
@@ -881,12 +881,12 @@ const ColumnDiv = (props: ColumnDivPropsType): JSX.Element => {
                             ) : visibleColumns.length > 50 ? (
                                 <Virtuoso
                                     className="scrollbar-dark"
-                                    style={{ height: '40vh', backgroundColor: 'var(--neo-dropdown-bg, #2d2d2d)' }}
+                                    style={{ height: '40vh', backgroundColor: 'var(--neo-menu-bg, #2d2d2d)' }}
                                     data={visibleColumns}
                                     itemContent={(index, bColumn) => <ColumnRow pColumn={bColumn} pIsLast={index === visibleColumns.length - 1} />}
                                 />
                             ) : (
-                                <div style={{ backgroundColor: 'var(--neo-dropdown-bg, #2d2d2d)' }}>
+                                <div style={{ backgroundColor: 'var(--neo-menu-bg, #2d2d2d)' }}>
                                     {visibleColumns.map((bColumn, index) => (
                                         <ColumnRow key={`${props.pKey}-col-${index}`} pColumn={bColumn} pIsLast={index === visibleColumns.length - 1} />
                                     ))}
@@ -907,12 +907,12 @@ const ColumnDiv = (props: ColumnDivPropsType): JSX.Element => {
                                     {visibleIndexes.length > 50 ? (
                                         <Virtuoso
                                             className="scrollbar-dark"
-                                            style={{ height: '40vh', backgroundColor: 'var(--neo-dropdown-bg, #2d2d2d)' }}
+                                            style={{ height: '40vh', backgroundColor: 'var(--neo-menu-bg, #2d2d2d)' }}
                                             data={visibleIndexes}
                                             itemContent={(index, aIndex) => <IndexRow pIndex={aIndex} pIsLast={index === visibleIndexes.length - 1} />}
                                         />
                                     ) : (
-                                        <div style={{ backgroundColor: 'var(--neo-dropdown-bg, #2d2d2d)' }}>
+                                        <div style={{ backgroundColor: 'var(--neo-menu-bg, #2d2d2d)' }}>
                                             {visibleIndexes.map((aIndex, index) => (
                                                 <IndexRow key={`${props.pKey}-idx-${index}`} pIndex={aIndex} pIsLast={index === visibleIndexes.length - 1} />
                                             ))}

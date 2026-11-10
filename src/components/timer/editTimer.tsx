@@ -140,7 +140,7 @@ export const EditTimer = () => {
                             <Page.DpRow>
                                 <Page.ContentTitle>Timer id</Page.ContentTitle>
                                 <Page.ContentDesc>
-                                    <span style={{ marginLeft: '4px', color: 'var(--neo-error-light, #f35b5b)' }}>*</span>
+                                    <span style={{ marginLeft: '4px', color: 'var(--neo-error-text, #fa6464)' }}>*</span>
                                 </Page.ContentDesc>
                             </Page.DpRow>
                             <Page.ContentDesc>Task’s name</Page.ContentDesc>
@@ -161,12 +161,12 @@ export const EditTimer = () => {
                             <Page.DpRow>
                                 <Page.ContentTitle>timer spec</Page.ContentTitle>
                                 <Page.ContentDesc>
-                                    <span style={{ marginLeft: '4px', color: 'var(--neo-error-light, #f35b5b)' }}>*</span>
+                                    <span style={{ marginLeft: '4px', color: 'var(--neo-error-text, #fa6464)' }}>*</span>
                                 </Page.ContentDesc>
                             </Page.DpRow>
                             <Page.ContentDesc>
                                 Specifies when this task runs.
-                                <span style={{ marginLeft: '8px', color: 'var(--neo-primary-light, dodgerblue)', fontSize: '12px' }}>Check the example on the right</span>
+                                <span style={{ marginLeft: '8px', color: 'var(--neo-accent-text, #4199ff)', fontSize: '12px' }}>Check the example on the right</span>
                             </Page.ContentDesc>
                             <Page.Input
                                 data-testid="timer-schedule" pValue={sCreatePayload.schedule}
@@ -179,7 +179,7 @@ export const EditTimer = () => {
                             <Page.DpRow>
                                 <Page.ContentTitle>tql path</Page.ContentTitle>
                                 <Page.ContentDesc>
-                                    <span style={{ marginLeft: '4px', color: 'var(--neo-error-light, #f35b5b)' }}>*</span>
+                                    <span style={{ marginLeft: '4px', color: 'var(--neo-error-text, #fa6464)' }}>*</span>
                                 </Page.ContentDesc>
                             </Page.DpRow>
                             <Page.ContentDesc>The tql script as a task</Page.ContentDesc>

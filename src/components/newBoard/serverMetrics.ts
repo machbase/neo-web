@@ -18,10 +18,13 @@ export interface ServerMetric {
     color: string;
 }
 
+/** Every pulse line is drawn in the theme's accent (accent-light: the accent as a line), not a signal colour. */
+const PULSE_LINE = 'var(--neo-accent-light, rgb(0, 108, 210))';
+
 export const PULSE_METRICS: ServerMetric[] = [
-    { name: 'sys:append:data:success', label: 'Rows appended', unit: '/ min', decimals: 0, color: 'var(--neo-primary-light, #6d8bff)' },
-    { name: 'ps:cpu_percent', label: 'CPU', unit: '%', decimals: 1, color: 'var(--neo-primary-hover, #8ea4ff)' },
-    { name: 'ps:mem_percent', label: 'Memory', unit: '%', decimals: 1, color: 'var(--neo-primary-base, #b3c1ff)' },
+    { name: 'sys:append:data:success', label: 'Rows appended', unit: '/ min', decimals: 0, color: PULSE_LINE },
+    { name: 'ps:cpu_percent', label: 'CPU', unit: '%', decimals: 1, color: PULSE_LINE },
+    { name: 'ps:mem_percent', label: 'Memory', unit: '%', decimals: 1, color: PULSE_LINE },
 ];
 
 export interface MetricPoint {

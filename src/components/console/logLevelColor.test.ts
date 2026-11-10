@@ -1,10 +1,10 @@
 import { logLevelColor, logRepeatBadgeStyle } from './logLevelColor';
 
 describe('logLevelColor', () => {
-    test('a level takes its theme token, the dark console colour as fallback', () => {
-        expect(logLevelColor('WARN')).toBe('var(--neo-warning-main, #FFCC00)');
-        expect(logLevelColor('DEBUG')).toBe('var(--neo-text-primary, #F8F8F8)');
-        expect(logLevelColor('ERROR')).toBe('var(--neo-error-main, #CC3300)');
+    test('a level takes its token as text, the token\'s one dark value as fallback', () => {
+        expect(logLevelColor('WARN')).toBe('var(--neo-warning-text, #ff9800)');
+        expect(logLevelColor('DEBUG')).toBe('var(--neo-text-primary, #f1f1f1)');
+        expect(logLevelColor('ERROR')).toBe('var(--neo-error-text, #fa6464)');
     });
     test('no level, no colour', () => {
         expect(logLevelColor(undefined)).toBeUndefined();
@@ -13,8 +13,8 @@ describe('logLevelColor', () => {
 });
 
 describe('logRepeatBadgeStyle', () => {
-    test('the level colour fills the badge and its digits are accent ink, the row colour with no theme', () => {
-        expect(logRepeatBadgeStyle('ERROR', false)).toEqual({ background: 'var(--neo-error-main, #CC3300)', color: 'var(--neo-text-on-accent, #d1d1d1)' });
-        expect(logRepeatBadgeStyle('DEBUG', true)).toEqual({ background: 'var(--neo-text-primary, #F8F8F8)', color: 'var(--neo-text-on-accent, #f4f4f4)' });
+    test('the level\'s signal fills the badge and its digits are the text on fills', () => {
+        expect(logRepeatBadgeStyle('ERROR')).toEqual({ background: 'var(--neo-error-main, rgb(255, 83, 83))', color: 'var(--neo-text-on-accent, #ffffff)' });
+        expect(logRepeatBadgeStyle('DEBUG')).toEqual({ background: 'var(--neo-neutral-main, #6f7173)', color: 'var(--neo-text-primary, #f1f1f1)' });
     });
 });

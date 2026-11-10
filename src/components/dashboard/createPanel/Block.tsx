@@ -880,7 +880,7 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
 
     return (
         <>
-            <Page style={{ borderRadius: 'calc(4px * var(--neo-radius-scale, 1))', border: '1px solid var(--neo-border-color-light, #b8c8da41)', gap: '6px', height: 'auto', display: 'table' }} data-testid={`series-block-${encodeURIComponent(pBlockInfo.id)}`}>
+            <Page style={{ borderRadius: 'calc(4px * var(--neo-radius-scale, 1))', border: '1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13))', gap: '6px', height: 'auto', display: 'table' }} data-testid={`series-block-${encodeURIComponent(pBlockInfo.id)}`}>
                 {/* TABLE */}
                 <Page.ContentBlock style={{ padding: '4px', ...FIELD_STACK_STYLE }} pHoverNone>
                     <Page.DpRow style={{ width: '100%', justifyContent: 'end', paddingBottom: '8px' }}>
@@ -939,8 +939,8 @@ export const Block = ({ pBlockInfo, pPanelOption, pVariables, pTableList, pGetTa
                                                 position: 'fixed',
                                                 top: `${sMathPosition.top}px`,
                                                 left: `${sMathPosition.left}px`,
-                                                backgroundColor: 'var(--neo-dropdown-bg, #2d2d2d)',
-                                                border: '1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13))',
+                                                backgroundColor: 'var(--neo-menu-bg, #2d2d2d)',
+                                                border: '1px solid var(--neo-menu-border, var(--neo-border-color-default, rgba(255, 255, 255, 0.13)))',
                                                 borderRadius: 'calc(4px * var(--neo-radius-scale, 1))',
                                                 alignItems: 'center',
                                                 justifyContent: 'center',

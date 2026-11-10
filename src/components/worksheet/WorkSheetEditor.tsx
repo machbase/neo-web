@@ -561,7 +561,7 @@ export const WorkSheetEditor = (props: WorkSheetEditorProps) => {
             <>
                 {/* `-- env:` directives the splitter rejected: rendered above the result so a successful query still shows its data. */}
                 {sEnvWarnLog ? (
-                    <div className="result-worksheet-total" style={{ color: 'var(--neo-warning-main, #fdb532)' }}>
+                    <div className="result-worksheet-total" style={{ color: 'var(--neo-warning-text, #ff9800)' }}>
                         <span>{sEnvWarnLog}</span>
                     </div>
                 ) : null}

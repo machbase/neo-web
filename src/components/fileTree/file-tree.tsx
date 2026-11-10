@@ -537,7 +537,7 @@ export const GitIcon = ({ aFile, aRefreshCallback }: { aFile: FileTreeType; aRef
 
         :hover {
             cursor: pointer;
-            background-color: var(--neo-bg-hover-light, #4c4c4c);
+            background-color: var(--neo-toolbar-hover-bg, rgba(255, 255, 255, 0.13));
             border-radius: calc(4px * var(--neo-radius-scale, 1));
         }
     `;
@@ -567,7 +567,8 @@ export const GitIcon = ({ aFile, aRefreshCallback }: { aFile: FileTreeType; aRef
     );
 };
 
-const FileNameWithTooltip = ({ file }: { file: FileType | FileTreeType }) => {
+// a name the editor can't open is dimmed, except on a selected row: there it takes the selected text colour
+const FileNameWithTooltip = ({ file, onSelection }: { file: FileType | FileTreeType; onSelection: boolean }) => {
     return (
         <span
             data-tooltip-id="shared-file-tooltip"
@@ -578,7 +579,11 @@ const FileNameWithTooltip = ({ file }: { file: FileType | FileTreeType }) => {
                 whiteSpace: 'nowrap',
                 textOverflow: 'ellipsis',
                 overflow: 'hidden',
-                color: file.type === 1 || (file.type === 0 && EXTENSION_SET.has(extractionExtension(file.name))) ? '' : 'darkgray',
+                color: file.type === 1 || (file.type === 0 && EXTENSION_SET.has(extractionExtension(file.name)))
+                    ? ''
+                    : onSelection
+                      ? 'var(--neo-selected-text, rgb(243, 243, 243))'
+                      : 'var(--neo-side-text-muted, var(--neo-text-muted, #818181))',
             }}
         >
             {file.name}
@@ -777,7 +782,7 @@ const FileDiv = ({
                             />
                         </div>
                     ) : (
-                        <FileNameWithTooltip file={file} />
+                        <FileNameWithTooltip file={file} onSelection={isSelected || checkDndItem(file) || checkDndSection(file) || pIsDropzone} />
                     )}
                 </div>
                 {(file as FileTreeType).gitClone && (file as FileTreeType).virtual ? <GitIcon aFile={file as FileTreeType} aRefreshCallback={onRefresh} /> : null}
@@ -786,8 +791,10 @@ const FileDiv = ({
     );
 };
 
-const DND_BG = 'var(--neo-bg-active, #3e3e3e)';
-const ROW_ACTIVE_BG = 'var(--neo-side-active-bg, var(--neo-bg-hover-block, rgba(255, 255, 255, 0.13)))';
+const DND_BG = 'var(--neo-selected-bg, rgb(0, 83, 160))';
+// the selected row is a selection, the row under the pointer a hover
+const ROW_ACTIVE_BG = 'var(--neo-side-selected-bg, var(--neo-selected-bg, rgb(0, 83, 160)))';
+const ROW_HOVER_BG = 'var(--neo-side-hover-bg, var(--neo-list-hover-bg, rgba(255, 255, 255, 0.13)))';
 
 const Div = styled.div<{
     depth: number;
@@ -802,14 +809,14 @@ const Div = styled.div<{
     justify-content: space-between;
     padding-left: ${(props) => props.depth * 16}px;
     // Drag-and-drop marks (the drop zone, the rows being dragged, the folder under the pointer) take
-    // bg-active so a theme shows them in its selection colour; a selected or hovered row takes the side panel's active colour (side-active-bg, else bg-hover-block).
+    // selected-bg so a theme shows them in its selection colour; a selected row takes the side panel's selected colour (side-selected-bg), a hovered one its hover (side-hover-bg).
     background-color: ${(props) => (props.isDropzone || props.isDndItem || props.isDndSection ? DND_BG : props.isSelected ? ROW_ACTIVE_BG : 'transparent')};
     word-break: break-all;
     :hover {
         cursor: pointer;
-        background-color: ${(props) => (props.isDropzone || props.isDndItem || props.isDndSection ? DND_BG : ROW_ACTIVE_BG)};
+        background-color: ${(props) => (props.isDropzone || props.isDndItem || props.isDndSection ? DND_BG : props.isSelected ? ROW_ACTIVE_BG : ROW_HOVER_BG)};
     }
-    border: ${(props) => (props.isBorder ? 'solid 1px var(--neo-border-color-focus, #c9d1d9)' : 'solid 1px transparent')};
+    border: ${(props) => (props.isBorder ? 'solid 1px var(--neo-border-color-focus, rgb(0, 108, 210))' : 'solid 1px transparent')};
 `;
 
 const DirDiv = ({

@@ -86,7 +86,7 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
     // terminal theme's background (xterm's own default is black), not the page's.
     const paintTerminal = (aTerm: any, aTheme: any) => {
         if (aTerm) aTerm.options.theme = aTheme;
-        document.getElementById('term_view' + pId)?.style.setProperty('--neo-terminal-bg', aTheme?.background ?? '#000000');
+        document.getElementById('term_view' + pId)?.style.setProperty('--shell-terminal-bg', aTheme?.background ?? '#000000');
     };
 
     const onSendReSizeInfo = async (aSize: { cols: number; rows: number }) => {
@@ -325,7 +325,7 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
     );
 
     // the theme's signal colours; the dark terminal's own greens and ambers as fallbacks
-    const wsStatusColor = sWsStatus === 'connected' ? 'var(--neo-success-main, #5ea702)' : sWsStatus === 'connecting' ? 'var(--neo-warning-main, #cfae00)' : 'var(--neo-error-main, #d81e00)';
+    const wsStatusColor = sWsStatus === 'connected' ? 'var(--neo-success-main, #37aa3b)' : sWsStatus === 'connecting' ? 'var(--neo-warning-main, #d67f00)' : 'var(--neo-error-main, rgb(255, 83, 83))';
     const wsStatusLabel = sWsStatus === 'connected' ? 'Connected' : sWsStatus === 'connecting' ? 'Connecting' : 'Disconnected';
 
     useEffect(() => {
@@ -344,7 +344,7 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
                 <Page.Header>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <GoDotFill size={10} style={{ color: wsStatusColor }} />
-                        <span style={{ fontSize: '12px', color: 'var(--neo-text-tertiary, #9a9ba0)' }}>{wsStatusLabel}</span>
+                        <span style={{ fontSize: '12px', color: 'var(--neo-text-tertiary, #a3a3a3)' }}>{wsStatusLabel}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <Dropdown.Root options={THEME_OPTIONS} value={sCurrentTheme} onChange={handleThemeChange}>
@@ -356,7 +356,7 @@ export const Shell = ({ pId, pInfo, pType, pSelectedTab }: ShellProps) => {
                         <Button size="icon" variant="ghost" onClick={() => handleFontSizeChange(-1)} style={{ fontSize: '12px', fontWeight: 700 }}>
                             A-
                         </Button>
-                        <span style={{ fontSize: '11px', color: 'var(--neo-text-tertiary, #9a9ba0)', minWidth: '24px', textAlign: 'center', fontVariantNumeric: 'tabular-nums', lineHeight: '28px' }}>
+                        <span style={{ fontSize: '11px', color: 'var(--neo-text-tertiary, #a3a3a3)', minWidth: '24px', textAlign: 'center', fontVariantNumeric: 'tabular-nums', lineHeight: '28px' }}>
                             {sFontSize}
                         </span>
                         <Button size="icon" variant="ghost" onClick={() => handleFontSizeChange(1)} style={{ fontSize: '12px', fontWeight: 700 }}>

@@ -10,9 +10,9 @@ export const TqlOptions = () => {
                 <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
                     <Page.ContentDesc>Set the chart theme inside the TQL file with theme("...").</Page.ContentDesc>
                     <Page.Space />
-                    <div style={{ display: 'flex', flexDirection: 'column', color: 'var(--neo-text-hint, #b6b6b6)' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', color: 'var(--neo-text-tertiary, #a3a3a3)' }}>
                         <Page.ContentText pContent="CHART(" />
-                        <Page.ContentText pContent='theme("chalk"),' style={{ color: 'var(--neo-primary-hover, #179fff)', fontWeight: 'bold', fontFamily: 'codicon', margin: '0 0 4px 16px' }} />
+                        <Page.ContentText pContent='theme("chalk"),' style={{ color: 'var(--neo-accent-text, #4199ff)', fontWeight: 'bold', fontFamily: 'codicon', margin: '0 0 4px 16px' }} />
                         <Page.ContentText pContent="chartOption({" style={{ margin: '0 0 0 16px' }} />
                         <Page.ContentText pContent="..." />
                     </div>
@@ -51,22 +51,22 @@ export const TqlOptions = () => {
                 <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
                     <Page.ContentDesc>For charts that use plugin, need to add the plugin to tql file.</Page.ContentDesc>
                     <Page.Space />
-                    <div style={{ display: 'flex', flexDirection: 'column', color: 'var(--neo-text-hint, #b6b6b6)' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', color: 'var(--neo-text-tertiary, #a3a3a3)' }}>
                         <Page.ContentText pContent="3D charts" />
                         <Page.ContentText pContent="CHART(" />
-                        <Page.ContentText pContent='plugins("gl"),' style={{ color: 'var(--neo-primary-hover, #179fff)', fontWeight: 'bold', fontFamily: 'codicon', margin: '0 0 4px 16px' }} />
+                        <Page.ContentText pContent='plugins("gl"),' style={{ color: 'var(--neo-accent-text, #4199ff)', fontWeight: 'bold', fontFamily: 'codicon', margin: '0 0 4px 16px' }} />
                         <Page.ContentText pContent="chartOption({" style={{ margin: '0 0 0 16px' }} />
                         <Page.ContentText pContent="..." />
                         <Page.Space />
                         <Page.ContentText pContent="Liquid fill" />
                         <Page.ContentText pContent="CHART(" />
-                        <Page.ContentText pContent='plugins("liquidfill"),' style={{ color: 'var(--neo-primary-hover, #179fff)', fontWeight: 'bold', fontFamily: 'codicon', margin: '0 0 4px 16px' }} />
+                        <Page.ContentText pContent='plugins("liquidfill"),' style={{ color: 'var(--neo-accent-text, #4199ff)', fontWeight: 'bold', fontFamily: 'codicon', margin: '0 0 4px 16px' }} />
                         <Page.ContentText pContent="chartOption({" style={{ margin: '0 0 0 16px' }} />
                         <Page.ContentText pContent="..." />
                         <Page.Space />
                         <Page.ContentText pContent="Word cloud" />
                         <Page.ContentText pContent="CHART(" />
-                        <Page.ContentText pContent='plugins("wordcloud"),' style={{ color: 'var(--neo-primary-hover, #179fff)', fontWeight: 'bold', fontFamily: 'codicon', margin: '0 0 4px 16px' }} />
+                        <Page.ContentText pContent='plugins("wordcloud"),' style={{ color: 'var(--neo-accent-text, #4199ff)', fontWeight: 'bold', fontFamily: 'codicon', margin: '0 0 4px 16px' }} />
                         <Page.ContentText pContent="chartOption({" style={{ margin: '0 0 0 16px' }} />
                         <Page.ContentText pContent="..." />
                     </div>

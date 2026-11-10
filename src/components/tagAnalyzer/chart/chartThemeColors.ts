@@ -1,4 +1,4 @@
-import { resolveEchartsColor } from '@/design-system/theme';
+import { APP_CHART_LINE, resolveEchartsColor } from '@/design-system/theme';
 
 /**
  * The Tag Analyzer chart's own colours under the app theme.
@@ -11,19 +11,21 @@ import { resolveEchartsColor } from '@/design-system/theme';
  */
 const TOKEN_FOR_LITERAL: Record<string, string> = {
     '#252525': 'var(--neo-bg-secondary, #252525)',
-    '#323333': 'var(--neo-border-color-default, #323333)',
+    // the overlap chart, drawn in its dialog: the dialog's colour (the dark dialog is this grey)
+    '#2a2a2a': 'var(--neo-dialog-bg, var(--neo-bg-elevated, #2c2c2c))',
+    '#323333': APP_CHART_LINE,
     '#f8f8f8': 'var(--neo-text-primary, #f8f8f8)',
     '#afb5bc': 'var(--neo-text-secondary, #afb5bc)',
     '#e7e8ea': 'var(--neo-text-primary, #e7e8ea)',
     '#1f1d1d': 'var(--neo-tooltip-bg, #1f1d1d)',
     '#292929': 'var(--neo-tooltip-border, #292929)',
-    '#7a828c': 'var(--neo-border-color-medium, #7a828c)',
-    '#8a939e': 'var(--neo-border-color-medium, #8a939e)',
-    '#c0c7d0': 'var(--neo-text-disabled, #c0c7d0)',
-    '#a8b0ba': 'var(--neo-text-disabled, #a8b0ba)',
+    '#7a828c': 'var(--neo-border-color-strong, #7a828c)',
+    '#8a939e': 'var(--neo-border-color-strong, #8a939e)',
+    '#c0c7d0': 'var(--neo-text-muted, #c0c7d0)',
+    '#a8b0ba': 'var(--neo-text-muted, #a8b0ba)',
     '#a8b3c1': 'var(--neo-text-tertiary, #a8b3c1)',
     '#7f8da0': 'var(--neo-text-tertiary, #7f8da0)',
-    'rgba(104, 119, 138, 0.28)': 'color-mix(in srgb, var(--neo-primary-light, rgb(104, 119, 138)) 28%, transparent)',
+    'rgba(104, 119, 138, 0.28)': 'color-mix(in srgb, var(--neo-accent-light, rgb(104, 119, 138)) 28%, transparent)',
     'rgba(245, 247, 250, 0.78)': 'color-mix(in srgb, var(--neo-bg-elevated, rgb(245, 247, 250)) 78%, transparent)',
     'rgba(245, 247, 250, 0.32)': 'color-mix(in srgb, var(--neo-bg-elevated, rgb(245, 247, 250)) 32%, transparent)',
 };

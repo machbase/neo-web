@@ -248,7 +248,7 @@ export const BackupDatabase = ({ pCode }: { pCode: any }) => {
                                             <div style={{ display: 'flex', marginTop: '12px', flexDirection: 'column', alignItems: 'end' }}>
                                                 <Page.TextButton pText="Check" pType="CREATE" pCallback={handleStatusRefresh} />
                                                 <div style={{ marginRight: '16px', marginTop: '-12px' }}>
-                                                    <span style={{ fontSize: '10px', color: 'var(--neo-status-none, #5d5d5d)' }}>last checked at {sLastCheckTime}</span>
+                                                    <span style={{ fontSize: '10px', color: 'var(--neo-text-muted, #818181)' }}>last checked at {sLastCheckTime}</span>
                                                 </div>
                                             </div>
                                         </Page.DpRowBetween>

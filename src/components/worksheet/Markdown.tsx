@@ -93,7 +93,7 @@ export const Markdown = (props: MarkdownProps) => {
             button.className = 'cp-button';
             button.innerHTML = `<svg
                                     viewBox="0 0 24 24"
-                                    fill="rgba(255, 255, 255, 0.5)"
+                                    fill="currentColor"
                                     height="100%"
                                     width="100%"
                                 >

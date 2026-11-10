@@ -355,17 +355,17 @@ CHART(
         <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
             {isLoading && (
                 <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ fontSize: '12px', color: 'var(--neo-text-disabled, rgba(255,255,255,0.5))' }}>Loading detection data...</span>
+                    <span style={{ fontSize: '12px', color: 'var(--neo-text-muted, #818181)' }}>Loading detection data...</span>
                 </div>
             )}
             {!isLoading && !hasData && !error && (
                 <div style={{ height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ fontSize: '11px', color: 'var(--neo-status-none, rgba(255,255,255,0.3))' }}>No detection data available</span>
+                    <span style={{ fontSize: '11px', color: 'var(--neo-text-muted, #818181)' }}>No detection data available</span>
                 </div>
             )}
             {error && (
                 <div style={{ height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ fontSize: '11px', color: 'var(--neo-btn-delete, #ef4444)' }}>{error}</span>
+                    <span style={{ fontSize: '11px', color: 'var(--neo-error-text, #fa6464)' }}>{error}</span>
                 </div>
             )}
             {hasData && visualData && <ShowVisualization pData={visualData} pLoopMode={false} pPanelRef={containerRef} />}

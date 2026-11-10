@@ -57,7 +57,7 @@ const CalendarIcon = () => (
 const BUILTIN_ICON: Record<'pulse' | 'create' | 'shells' | 'examples' | 'recent' | 'references' | 'sdk', React.ReactNode> = {
     pulse: (
         <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-            <path d="M1 9h3l2-5 3 8 2-4h4" fill="none" strokeWidth="1.5" style={{ stroke: 'var(--neo-primary-light, #6d8bff)' }} />
+            <path d="M1 9h3l2-5 3 8 2-4h4" fill="none" strokeWidth="1.5" style={{ stroke: 'var(--neo-accent-light, rgb(0, 108, 210))' }} />
         </svg>
     ),
     create: icons('dsh'),

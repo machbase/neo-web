@@ -6,7 +6,8 @@ import {
     VscChevronLeft,
     VscChevronRight,
 } from '@/assets/icons/Icon';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useThemeVersion } from '@/design-system/theme';
 import { Modal } from '@/design-system/components/Modal';
 import { Button, Dropdown, Input, Page, Toast } from '@/design-system/components';
 import { formatAxisRange } from '../format/axisFormat';
@@ -23,6 +24,7 @@ import {
     type OverlapPanelInput,
 } from './overlapModel';
 import { useOverlapData } from './useOverlapData';
+import { recolorTagAnalyzerOption, resolveTagAnalyzerChartColors } from '../chart/chartThemeColors';
 import { Inline, Stack, Surface, Text } from '../ui/Presentation';
 import controls from '../ui/Controls.module.scss';
 
@@ -40,10 +42,12 @@ export default function OverlapModal({
         shiftPanelRange,
     } = useOverlapData(initialPanels);
 
-    const option = buildOverlapChartOption(
-        seriesGroups,
-        includeZeroInYAxisRange,
-        isNumericXAxis,
+    // the panel charts' colours under the theme, as the panels themselves get them (chartThemeColors)
+    const themeVersion = useThemeVersion();
+    const themeColors = useMemo(() => resolveTagAnalyzerChartColors(), [themeVersion]);
+    const option = recolorTagAnalyzerOption(
+        buildOverlapChartOption(seriesGroups, includeZeroInYAxisRange, isNumericXAxis),
+        themeColors,
     );
 
     return (
