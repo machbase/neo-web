@@ -6,16 +6,17 @@ import { findUnitById, UNITS } from '@/utils/Chart/AxisConstants';
 interface ChartCommonOptionsProps {
     pPanelOption: any;
     pSetPanelOption: any;
+    pExtensionOptions?: ('title' | 'theme')[];
 }
 
 export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
-    const { pPanelOption, pSetPanelOption } = props;
+    const { pPanelOption, pSetPanelOption, pExtensionOptions } = props;
 
     const handleCustomOption = (aValue: string | boolean, aKey: string) => {
         pSetPanelOption((aPrev: any) => {
             return {
                 ...aPrev,
-                id: generateUUID(),
+                id: pExtensionOptions ? aPrev.id : generateUUID(),
                 [aKey]: aValue,
             };
         });
@@ -37,7 +38,7 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
     };
     const handleTitle = (aEvent: any) => {
         handleCustomOption(aEvent.target.value, 'title');
-        handleCommonOption(aEvent.target.value, 'title');
+        if (!pExtensionOptions) handleCommonOption(aEvent.target.value, 'title');
     };
 
     return (
@@ -45,7 +46,7 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
             <Page.Divi />
             <Page.Collapse pTrigger="Panel option" pInitOpen>
                 <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
-                    <Input
+                    {(!pExtensionOptions || pExtensionOptions.includes('title')) && <Input
                         label={
                             <Page.DpRowBetween>
                                 <span>Title</span>
@@ -58,8 +59,8 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                         fullWidth
                         value={pPanelOption.title}
                         onChange={(aEvent: any) => handleTitle(aEvent)}
-                    />
-                    <Dropdown.Root
+                    />}
+                    {(!pExtensionOptions || pExtensionOptions.includes('theme')) && <Dropdown.Root
                         label="Theme"
                         options={ChartThemeList.map((option) => ({ label: option, value: option }))}
                         value={pPanelOption.theme}
@@ -70,11 +71,11 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                         <Dropdown.Menu>
                             <Dropdown.List />
                         </Dropdown.Menu>
-                    </Dropdown.Root>
+                    </Dropdown.Root>}
                 </Page.ContentBlock>
             </Page.Collapse>
 
-            {pPanelOption?.type !== 'Text' && pPanelOption?.type !== 'Geomap' && (
+            {!pExtensionOptions && pPanelOption?.type !== 'Text' && pPanelOption?.type !== 'Geomap' && (
                 <>
                     <Page.Divi />
                     <Page.Collapse pTrigger="Legend">

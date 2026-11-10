@@ -1,6 +1,9 @@
+import { ExtensionErrorBoundary, ExtensionFields, usePanelExtension } from '../extensions/ExtensionPanels';
+import { extensionKey, isExtensionPanel } from '../extensions/types';
+import { validateExtensionSettings, type SettingErrors, type Settings } from '../extensions/settings';
 import { IoArrowBackOutline } from '@/assets/icons/Icon';
 import { SplitPane, Pane, Page, Button } from '@/design-system/components';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import CreatePanelBody from './CreatePanelBody';
 import CreatePanelFooter from './CreatePanelFooter';
 import CreatePanelRight from './CreatePanelRight';
@@ -41,6 +44,7 @@ const CreatePanel = ({
     pBoardTimeMinMax,
     pChartVariableId,
     pSetBoardTimeMinMax,
+    pResolveBoardTimeRange,
 }: {
     pLoopMode: boolean;
     pPanelId: string;
@@ -56,6 +60,7 @@ const CreatePanel = ({
     pSetIsSaveModal: any;
     pBoardTimeMinMax: any;
     pChartVariableId: string;
+    pResolveBoardTimeRange: (start: any, end: any) => void;
     pSetBoardTimeMinMax: (aTimeRange: { min: number; max: number }) => void;
 }) => {
     const [sSideSizes, setSideSizes] = useState<any>(['75%', '25%']);
@@ -69,7 +74,88 @@ const CreatePanel = ({
     const [sIsPreview, setIsPreview] = useState<boolean>(false);
     const [sBoardTimeRange, setBoardTimeRange] = useState<any>(undefined);
     const [sMissingTagBlockId, setMissingTagBlockId] = useState<string | null>(null);
-    const [sRangeModal, setRangeModal] = useState(false);
+    const [sRangeModal, setRangeModal] = useState<'time' | 'distance'>();
+
+    const [settingErrors, setSettingErrors] = useState<SettingErrors>({});
+    const savingExtension = useRef(false);
+    const [extensionSaving, setExtensionSaving] = useState(false);
+    const isExtension = isExtensionPanel(sPanelOption);
+    const extension = sPanelOption.extension;
+    const selectedExtension = extension ? extensionKey(extension) : undefined;
+    const { definition, error: loadError } = usePanelExtension(extension?.packageId, extension?.typeId);
+    const versionMismatch = definition && !sPanelOption.extensionPending && definition.settingsVersion !== extension?.settingsVersion;
+    const extensionError = versionMismatch ? 'This dashboard extension settings version is unsupported.' : loadError;
+    const extensionDefinition = extensionError || extension?.settingsVersion === undefined ? undefined : definition;
+
+    useEffect(() => {
+        setSettingErrors({});
+    }, [selectedExtension]);
+
+    useEffect(() => {
+        if (!definition || !extension || !sPanelOption.extensionPending) return;
+        const { settings } = validateExtensionSettings(definition.defaults);
+        if (!settings) return;
+        setPanelOption((panel: any) => {
+            if (panel.extension !== extension) return panel;
+            const { extensionPending, ...rest } = panel;
+            return { ...rest, extension: { ...extension, settingsVersion: definition.settingsVersion, settings } };
+        });
+    }, [definition, extension, sPanelOption.extensionPending]);
+
+    const extensionEditorProps = {
+        settings: extension?.settings ?? {},
+        settingErrors,
+        onSettingsChange: (patch: Settings) => {
+            setPanelOption((panel: any) => {
+                if (!isExtensionPanel(panel) || !panel.extension || extensionKey(panel.extension) !== selectedExtension) return panel;
+                return { ...panel, extension: { ...panel.extension, settings: { ...panel.extension.settings, ...patch } } };
+            });
+        },
+    };
+
+    const validatedExtension = () => {
+        if (!extensionDefinition) return;
+        const { settings, settingErrors, error } = validateExtensionSettings(extension.settings, extensionDefinition.validateSettings);
+        setSettingErrors(settingErrors);
+        if (error) Toast.error(error);
+        if (settings) return { ...sPanelOption, extension: { ...extension, settings } };
+    };
+
+    const saveExtension = async () => {
+        if (savingExtension.current) return;
+        const panel = validatedExtension();
+        const board = sBoardList.find((item) => item.id === pBoardInfo.id);
+        if (!panel || !board) return;
+
+        const updateBoard = (item: typeof board) => {
+            const panels = pType === 'create'
+                ? [...item.dashboard.panels, panel]
+                : item.dashboard.panels.map((previous: any) => previous.id === pPanelId ? panel : previous);
+            return { ...item, dashboard: { ...item.dashboard, panels } };
+        };
+
+        savingExtension.current = true;
+        setExtensionSaving(true);
+        try {
+            const updated = updateBoard(board);
+            if (board.path) {
+                const result: any = await postFileList({ ...updated, savedCode: JSON.stringify(updated.dashboard) }, board.path, board.name);
+                if (!result?.success) throw new Error('Could not save dashboard.');
+            }
+            setBoardList((boards) => boards.map((item) => {
+                if (item.id !== board.id) return item;
+                const latest = updateBoard(item);
+                return board.path ? { ...latest, savedCode: JSON.stringify(updated.dashboard) } : latest;
+            }));
+            if (!pBoardTimeMinMax) pResolveBoardTimeRange(pBoardInfo.dashboard.timeRange.start, pBoardInfo.dashboard.timeRange.end);
+            handleClose();
+        } catch {
+            Toast.error('Could not save dashboard.');
+        } finally {
+            savingExtension.current = false;
+            setExtensionSaving(false);
+        }
+    };
 
     // Create
     const addPanel = async () => {
@@ -143,11 +229,11 @@ const CreatePanel = ({
             setBoardList(() => sTabList);
         }
 
-        if (pBoardInfo.dashboard.panels.length === 0) {
+        if (pBoardInfo.dashboard.panels.every(isExtensionPanel)) {
             pSetBoardTimeMinMax(await getTimeMinMax(sTmpPanelInfo.useCustomTime ? sTmpPanelInfo.timeRange : pBoardInfo.dashboard.timeRange, sTmpPanelInfo));
             pSetModifyState({ id: PanelIdParser(pChartVariableId + '-' + sTmpPanelInfo.id), state: true });
         } else {
-            const sChartPanelList = pBoardInfo.dashboard.panels.filter((panel: any) => panel.type !== 'Tql chart');
+            const sChartPanelList = pBoardInfo.dashboard.panels.filter((panel: any) => !isExtensionPanel(panel) && panel.type !== 'Tql chart');
             if (sChartPanelList.length === 0) {
                 pSetBoardTimeMinMax(await getTimeMinMax(sTmpPanelInfo.useCustomTime ? sTmpPanelInfo.timeRange : pBoardInfo.dashboard.timeRange, sTmpPanelInfo));
                 pSetModifyState({ id: PanelIdParser(pChartVariableId + '-' + sTmpPanelInfo.id), state: true });
@@ -282,6 +368,13 @@ const CreatePanel = ({
     }, [sMissingTagBlockId, sPanelOption]);
     // Preview
     const applyPanel = async (aTime?: any) => {
+        if (isExtension) {
+            const panel = validatedExtension();
+            if (!panel) return;
+            setAppliedPanelOption(panel);
+            if (!pBoardTimeMinMax) pResolveBoardTimeRange(pBoardInfo.dashboard.timeRange.start, pBoardInfo.dashboard.timeRange.end);
+            return;
+        }
         // Validate transform aliases first
         if (!validateTransformAliases(sPanelOption)) {
             return;
@@ -356,7 +449,7 @@ const CreatePanel = ({
                     pSetModifyState({ id: PanelIdParser('undefined-' + sTmpPanelOption.id), state: true });
                 }
             } else {
-                const sChartPanelList = pBoardInfo.dashboard.panels.filter((panel: any) => panel.type !== 'Tql chart');
+                const sChartPanelList = pBoardInfo.dashboard.panels.filter((panel: any) => !isExtensionPanel(panel) && panel.type !== 'Tql chart');
                 if (isValidJSON(JSON.stringify(sTmpPanelOption))) {
                     setAppliedPanelOption(sTmpPanelOption);
                 }
@@ -384,10 +477,7 @@ const CreatePanel = ({
         const sTargetPanel = getPanelTimeMinMaxTarget(aTargetPanel ?? sPanelOption, pBoardInfo?.dashboard?.panels ?? [], pPanelId);
         const sTargetTag = sTargetPanel?.blockList?.length > 0 ? sTargetPanel.blockList[0] : { tag: '', table: '', filter: [], useCustom: false };
         const sIsTagName = sTargetTag.tag && sTargetTag.tag !== '';
-        const sIsCreateModeFirstPanel =
-            pType === 'create' &&
-            pBoardInfo.dashboard.panels.filter((panel: any) => panel.type !== 'Tql chart').length === pBoardInfo?.dashboard?.panels?.length &&
-            pBoardInfo.dashboard.panels.filter((panel: any) => panel.type !== 'Tql chart').length <= 0;
+        const sIsCreateModeFirstPanel = pType === 'create' && pBoardInfo.dashboard.panels.every(isExtensionPanel);
         const sCustomTag =
             sIsTagName &&
             sTargetTag.filter?.filter((aFilter: any) => {
@@ -453,11 +543,19 @@ const CreatePanel = ({
                         setAppliedPanelOption(JSON.parse(JSON.stringify(sOption)));
                     }
                 } else {
-                    setPanelOption(pBoardInfo.dashboard.panels.find((aItem: any) => aItem.id === pPanelId));
-                    setAppliedPanelOption(JSON.parse(JSON.stringify(pBoardInfo.dashboard.panels.find((aItem: any) => aItem.id === pPanelId))));
+                    const panel = pBoardInfo.dashboard.panels.find((item: any) => item.id === pPanelId);
+                    if (!isExtensionPanel(panel)) {
+                        setPanelOption(panel);
+                        setAppliedPanelOption(JSON.parse(JSON.stringify(panel)));
+                    }
                 }
             }
         }
+    };
+    const savePanel = () => {
+        if (savingExtension.current) return;
+        if (isExtension) return saveExtension();
+        return pType === 'create' ? addPanel() : editPanel();
     };
     const handleClose = () => {
         pSetType(undefined);
@@ -465,17 +563,24 @@ const CreatePanel = ({
         if (pBoardInfo.path === '') pSetIsSaveModal(true);
     };
     const handleDiscard = () => {
+        if (savingExtension.current) return;
         pSetType(undefined);
         pSetCreateModal(false);
     };
-    const handleTimeRange = () => {
-        setRangeModal(true);
-    };
     const init = async () => {
-        if (pType === 'edit') setCreateModeTimeMinMax(async () => await getTimeMinMax(pBoardInfo?.dashboard?.timeRange));
+        if (pType === 'edit') {
+            const panel = pBoardInfo.dashboard.panels.find((item: any) => item.id === pPanelId);
+            if (isExtensionPanel(panel)) {
+                setPanelOption(panel);
+                setAppliedPanelOption(JSON.parse(JSON.stringify(panel)));
+            } else {
+                void getTimeMinMax(pBoardInfo?.dashboard?.timeRange).then(setCreateModeTimeMinMax);
+            }
+        }
         await getTables(true);
     };
     const handlePreviewText = () => {
+        if (isExtension || isExtensionPanel(sAppliedPanelOption)) return 'Apply';
         if (JSON.stringify(sPanelOption) !== JSON.stringify(sAppliedPanelOption)) return 'Apply';
         return 'Refresh';
     };
@@ -486,12 +591,13 @@ const CreatePanel = ({
     useEffect(() => {
         if (sTableList.length > 0 && JSON.stringify(sBoardTimeRange) !== JSON.stringify(pBoardInfo?.dashboard?.timeRange)) {
             setBoardTimeRange(() => pBoardInfo?.dashboard?.timeRange);
-            applyPanel(pBoardInfo?.dashboard?.timeRange);
+            if (!isExtension && !isExtensionPanel(sAppliedPanelOption)) void applyPanel(pBoardInfo?.dashboard?.timeRange);
         }
     }, [pBoardInfo?.dashboard?.timeRange]);
 
     // The edited panel has a single base x-axis: distance (numeric) or time. The header range chip
     // and the range modal both follow that kind, so a distance panel shows/edits the distance range.
+    const hasExtensionRange = isExtension || isExtensionPanel(sAppliedPanelOption);
     const sIsDistancePanel = isNumericBaseTimeBlock(sPanelOption?.blockList?.[0]);
 
     return (
@@ -505,17 +611,17 @@ const CreatePanel = ({
                 <Page.DpRow>
                     <RangeChips
                         pBoardInfo={pBoardInfo}
-                        pOnlyAxis={sIsDistancePanel ? 'DIST' : 'TIME'}
+                        pOnlyAxis={hasExtensionRange ? undefined : sIsDistancePanel ? 'DIST' : 'TIME'}
                         pOnShiftTime={pMoveTimeRange}
                         pOnShiftDist={pMoveDistanceRange}
-                        pOnEditTime={handleTimeRange}
-                        pOnEditDist={handleTimeRange}
+                        pOnEditTime={() => setRangeModal('time')}
+                        pOnEditDist={() => setRangeModal('distance')}
                     />
                     <Page.Divi direction={'vertical'} />
                     <Page.DpRow>
                         <Page.TextButton pText="Discard" pType="DELETE" pCallback={handleDiscard} pWidth="75px" mb="0px" mr="4px" />
                         <Page.TextButton pText={handlePreviewText()} pType="STATUS" pCallback={() => applyPanel()} pWidth="75px" mb="0px" mr="4px" />
-                        <Page.TextButton pText="Save" pType="CREATE" pCallback={pType === 'create' ? () => addPanel() : () => editPanel()} pWidth="65px" mb="0px" mr="4px" />
+                        <Page.TextButton pText="Save" pType="CREATE" pCallback={savePanel} pIsDisable={extensionSaving} pWidth="65px" mb="0px" mr="4px" />
                     </Page.DpRow>
                 </Page.DpRow>
             </Page.Header>
@@ -547,12 +653,16 @@ const CreatePanel = ({
                                         pPanelInfo={sAppliedPanelOption}
                                         pModifyState={pModifyState}
                                         pSetModifyState={pSetModifyState}
-                                        pBoardTimeMinMax={(pType === 'create' && !pBoardTimeMinMax) || sIsPreview ? sCreateModeTimeMinMax : pBoardTimeMinMax}
+                                        pBoardTimeMinMax={isExtensionPanel(sAppliedPanelOption) ? pBoardTimeMinMax : (pType === 'create' && !pBoardTimeMinMax) || sIsPreview ? sCreateModeTimeMinMax : pBoardTimeMinMax}
                                     />
                                 )}
                             </Pane>
                             <Pane minSize="10%">
-                                {sPanelOption.id && (
+                                {isExtension ? (
+                                    <ExtensionErrorBoundary key={selectedExtension}>
+                                        <ExtensionFields definition={extensionDefinition} area="Editor" {...extensionEditorProps} />
+                                    </ExtensionErrorBoundary>
+                                ) : sPanelOption.id && (
                                     <CreatePanelFooter
                                         pType={pType}
                                         pVariables={pBoardInfo?.dashboard?.variables ?? []}
@@ -566,7 +676,13 @@ const CreatePanel = ({
                             </Pane>
                         </SplitPane>
                     </Pane>
-                    <Pane>{sPanelOption.id && <CreatePanelRight pType={pType} pPanelOption={sPanelOption} pSetPanelOption={setPanelOption} pBoardInfo={pBoardInfo} />}</Pane>
+                    <Pane>{sPanelOption.id && <CreatePanelRight pType={pType} pPanelOption={sPanelOption} pSetPanelOption={setPanelOption} pBoardInfo={pBoardInfo}
+                            pTableList={sTableList}
+                            pExtensionDefinition={extensionDefinition}
+                            pExtensionEditorProps={extensionEditorProps}
+                            pExtensionError={extensionError}
+                            pExtensionSaving={extensionSaving}
+                        />}</Pane>
                 </SplitPane>
             </Page.Body>
         </Page>
@@ -574,11 +690,13 @@ const CreatePanel = ({
             <TimeRangeModal
                 pUseRecoil={true}
                 pType={'dashboard'}
-                pLockTab={sIsDistancePanel ? 'distance' : 'time'}
+                pInitialTab={sRangeModal}
+                pSaveCallback={hasExtensionRange ? pResolveBoardTimeRange : undefined}
+                pLockTab={hasExtensionRange ? undefined : sIsDistancePanel ? 'distance' : 'time'}
                 // The panel being edited is the extent the slider has to span — it may not be the
                 // board's first distance panel, and a panel being created is not on the board yet.
-                pBoundsBlock={sPanelOption?.blockList?.[0]}
-                pSetTimeRangeModal={setRangeModal}
+                pBoundsBlock={hasExtensionRange ? undefined : sPanelOption?.blockList?.[0]}
+                pSetTimeRangeModal={() => setRangeModal(undefined)}
             />
         )}
         </>

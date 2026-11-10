@@ -1,3 +1,4 @@
+import { isExtensionPanel } from '@/components/dashboard/extensions/types';
 import { isNumericBaseTimeBlock } from './timeFieldColumns';
 
 export const isViewTimeMinMaxTarget = (aBlock: any) => Boolean(aBlock?.type === 'view' && aBlock?.time && aBlock.time !== '');
@@ -11,7 +12,7 @@ export const isViewTimeMinMaxTarget = (aBlock: any) => Boolean(aBlock?.type === 
  * blockList (pure-distance / tql-only boards, where the returned value is unused).
  */
 export const pickBoardTimeMinMaxPanel = (aPanels: any[] = []): any => {
-    const sCandidates = (aPanels ?? []).filter((aPanel: any) => aPanel?.type !== 'Tql chart' && aPanel?.blockList?.length);
+    const sCandidates = (aPanels ?? []).filter((aPanel: any) => !isExtensionPanel(aPanel) && aPanel?.type !== 'Tql chart' && aPanel?.blockList?.length);
     return sCandidates.find((aPanel: any) => !isNumericBaseTimeBlock(aPanel.blockList?.[0])) ?? sCandidates[0];
 };
 
@@ -26,9 +27,9 @@ export const getTimeMinMaxFetchTarget = (aBlock: any, aCustomTag?: string) => {
 };
 
 export const getPanelTimeMinMaxTarget = (aCurrentPanel: any, aFallbackPanels: any[] = [], aPanelId?: string) => {
-    if (aCurrentPanel?.blockList?.length) return aCurrentPanel;
-    if (aPanelId) return aFallbackPanels.find((aPanel: any) => aPanel.id === aPanelId);
-    return aFallbackPanels.find((aPanel: any) => aPanel.type !== 'Tql chart');
+    if (!isExtensionPanel(aCurrentPanel) && aCurrentPanel?.blockList?.length) return aCurrentPanel;
+    if (aPanelId) return aFallbackPanels.find((aPanel: any) => !isExtensionPanel(aPanel) && aPanel.id === aPanelId);
+    return aFallbackPanels.find((aPanel: any) => !isExtensionPanel(aPanel) && aPanel.type !== 'Tql chart');
 };
 
 export const hasResolvedTimeRange = (aStart: any, aEnd: any) => {

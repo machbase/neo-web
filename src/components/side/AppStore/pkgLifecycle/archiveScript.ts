@@ -656,3 +656,8 @@ function archiveNames(records) {
     return out.join(", ");
 }
 `;
+
+// JSH's copyFileSync can decode and corrupt non-UTF-8 bytes in older Neo builds.
+export const COPY_PACKAGE_FILE = `function copyFile(from, to) {
+    fs.writeFileSync(to, fs.readFileSync(from, "buffer"), "buffer");
+}`;

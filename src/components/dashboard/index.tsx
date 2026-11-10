@@ -1,3 +1,5 @@
+import { PanelExtensionProvider } from './extensions/ExtensionPanels';
+import { isExtensionPanel } from './extensions/types';
 import GridLayout from 'react-grid-layout';
 import { useState, useEffect, useRef } from 'react';
 import '/node_modules/react-grid-layout/css/styles.css';
@@ -34,6 +36,7 @@ import { Button, Input, Page, Drawer } from '@/design-system/components';
 import { clearBoardVideoStore } from '@/hooks/useVideoSync';
 
 const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveModal, pIsSave }: any) => {
+    const rangeRequest = useRef(0);
     const boardIdRef = useRef<string>(pInfo?.id);
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
     const [sInitialRangeTab, setInitialRangeTab] = useState<'time' | 'distance'>('time');
@@ -98,13 +101,13 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
         let sFrom = Number(sDR.start);
         let sTo = Number(sDR.end);
         if (sAnchored) {
-            const sDistancePanel = pInfo.dashboard.panels.find((aPanel: any) => aPanel.type !== 'Tql chart' && isNumericBaseTimeBlock(aPanel.blockList?.[0]));
+            const sDistancePanel = pInfo.dashboard.panels.find((aPanel: any) => !isExtensionPanel(aPanel) && aPanel.type !== 'Tql chart' && isNumericBaseTimeBlock(aPanel.blockList?.[0]));
             const sBounds = await fetchBlockBaseMinMax(sDistancePanel?.blockList?.[0]);
             sFrom = resolveDistanceEdge(sDR.start, sBounds) ?? NaN;
             sTo = resolveDistanceEdge(sDR.end, sBounds) ?? NaN;
         }
         if (!isDistanceEdgeSet(sDR.start) || !isDistanceEdgeSet(sDR.end) || !Number.isFinite(sFrom) || !Number.isFinite(sTo)) {
-            const sDistancePanel = pInfo.dashboard.panels.find((aPanel: any) => aPanel.type !== 'Tql chart' && isNumericBaseTimeBlock(aPanel.blockList?.[0]));
+            const sDistancePanel = pInfo.dashboard.panels.find((aPanel: any) => !isExtensionPanel(aPanel) && aPanel.type !== 'Tql chart' && isNumericBaseTimeBlock(aPanel.blockList?.[0]));
             const sBounds = await fetchBlockBaseMinMax(sDistancePanel?.blockList?.[0]);
             if (!sBounds) return;
             sFrom = sBounds.min;
@@ -192,7 +195,9 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
     };
     const HandleRefresh = async (aTimeRange: any) => {
         if (pInfo.dashboard.panels.length < 1) return;
+        const request = ++rangeRequest.current;
         const sSvrRes: { min: number; max: number } = await fetchTableTimeMinMax();
+        if (request !== rangeRequest.current) return;
         const sTimeMinMax = timeMinMaxConverter(aTimeRange.start, aTimeRange.end, sSvrRes) ?? { min: setUnitTime(aTimeRange.start), max: setUnitTime(aTimeRange.end) };
         sTimeMinMax.refresh = true;
         setBoardTimeMinMax(() => sTimeMinMax);
@@ -200,7 +205,9 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
     };
     const handleDashboardTimeRange = async (sStart: any, sEnd: any, aIsAutoRefresh?: boolean) => {
         // if (pInfo.dashboard.panels.length < 1) return;
+        const request = ++rangeRequest.current;
         const sSvrRes: { min: number; max: number } = await fetchTableTimeMinMax();
+        if (request !== rangeRequest.current) return;
         const sTimeMinMax = timeMinMaxConverter(sStart, sEnd, sSvrRes) ?? { min: setUnitTime(sStart), max: setUnitTime(sEnd) };
         // Tell panels this is an auto-refresh tick: markdown/text/csv sink TQL panels ignore it. The
         // Refresh button is unaffected (it bumps chartVariableId), and time-arrows / TimeRangeModal
@@ -208,7 +215,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
         setBoardTimeMinMax(() => (aIsAutoRefresh ? { ...sTimeMinMax, autoRefresh: true } : sTimeMinMax));
     };
     const handleSaveTimeRange = (sStart: any, sEnd: any) => {
-        const sChartpanelList = pInfo.dashboard.panels.filter((aPanel: any) => aPanel.type !== 'Tql chart');
+        const sChartpanelList = pInfo.dashboard.panels.filter((aPanel: any) => !isExtensionPanel(aPanel) && aPanel.type !== 'Tql chart');
         const sTqlChartPanelList = pInfo.dashboard.panels.filter((aPanel: any) => aPanel.type === 'Tql chart');
         if (sChartpanelList.length === 0 && sTqlChartPanelList.length > 0 && ((!Number(sStart) && sStart.includes('last')) || (!Number(sEnd) && sEnd.includes('last'))))
             Toast.info('"Last of data" time range is applied as current time for TQL-only dashboards.');
@@ -298,8 +305,8 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
     }, [sRefreshDelay]);
 
     return (
-        // Render after rollup info load
-        sLoadedRollupTable && (
+        <PanelExtensionProvider enabled={sCreateModal || Boolean(pInfo.dashboard?.panels?.some(isExtensionPanel))}>
+        {sLoadedRollupTable && (
             <>
                 <Page>
                     <Page.Header>
@@ -381,7 +388,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                                         return (
                                             <div key={aItem.id} data-grid={{ x: aItem.x, y: aItem.y, w: aItem.w, h: aItem.h }}>
                                                 <Panel
-                                                    pLoopMode={pInfo.dashboard.timeRange.refresh !== 'Off' || aItem.timeRange.refresh !== 'Off' ? true : false}
+                                                    pLoopMode={!isExtensionPanel(aItem) && (pInfo.dashboard.timeRange.refresh !== 'Off' || aItem.timeRange.refresh !== 'Off')}
                                                     pDragStat={pDragStat}
                                                     pType={sThisPanelStatus}
                                                     pShowEditPanel={showEditPanel}
@@ -445,12 +452,14 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                         pBoardTimeMinMax={sBoardTimeMinMax}
                         pChartVariableId={sChartVariableId}
                         pSetBoardTimeMinMax={setBoardTimeMinMax}
+                        pResolveBoardTimeRange={handleSaveTimeRange}
                     />
                 )}
                 {sVariableModal && <Variable pBoardInfo={pInfo} pSetModal={setVariableModal} />}
                 {sShareModal && <ShareModal isOpen={sShareModal} onClose={() => setShareModal(false)} boardInfo={pInfo} />}
             </>
-        )
+        )}
+        </PanelExtensionProvider>
     );
 };
 export default Dashboard;

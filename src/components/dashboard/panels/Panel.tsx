@@ -1,3 +1,5 @@
+import { ExtensionErrorBoundary, ExtensionView } from '../extensions/ExtensionPanels';
+import { isExtensionPanel } from '../extensions/types';
 import LineChart from './chart/LineChart';
 import VideoPanel from './video/VideoPanel';
 import PanelHeader from './PanelHeader';
@@ -6,7 +8,7 @@ import { useState, useRef, useEffect } from 'react';
 import { ChartThemeBackgroundColor } from '@/utils/constants';
 import { ChartTheme } from '@/type/eChart';
 
-const Panel = ({
+const BuiltInPanel = ({
     pLoopMode,
     pChartVariableId,
     pBoardInfo,
@@ -98,6 +100,29 @@ const Panel = ({
                 )
             ) : null}
         </div>
+    );
+};
+const Panel = (props: any) => {
+    const { pPanelInfo, pBoardInfo, pBoardTimeMinMax } = props;
+    if (!isExtensionPanel(pPanelInfo)) return <BuiltInPanel {...props} />;
+
+    const distance = pBoardInfo.dashboard.distanceRange;
+    const time = pBoardTimeMinMax;
+    const timeRange = Number.isFinite(time?.min) && Number.isFinite(time?.max) ? { start: time.min, end: time.max } : null;
+    return (
+        <ExtensionErrorBoundary key={pPanelInfo.id}>
+            <div className="panel-wrap" style={{ backgroundColor: ChartThemeBackgroundColor[pPanelInfo.theme as ChartTheme] }}>
+                <PanelHeader {...props} pResolvedTheme={pPanelInfo.theme} />
+                <ExtensionView
+                    data={pPanelInfo.extension}
+                    mode={props.pExtensionMode ?? 'dashboard'}
+                    timeRange={timeRange}
+                    distanceRange={{ start: distance?.start ?? '', end: distance?.end ?? '' }}
+                    title={pPanelInfo.title ?? ''}
+                    theme={pPanelInfo.theme}
+                />
+            </div>
+        </ExtensionErrorBoundary>
     );
 };
 export default Panel;

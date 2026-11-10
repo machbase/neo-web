@@ -1,3 +1,4 @@
+import { isExtensionPanel } from '../extensions/types';
 import moment from 'moment';
 import { Delete, GearFill, VscRecord, GoGrabber, VscGraphScatter, Download, VscSync, Duplicate, ZoomPan, Checkmark, VscMultipleWindows, VscScreenFull } from '@/assets/icons/Icon';
 import { gBoardList, GBoardListType, gSelectedTab, gRollupTableList } from '@/recoil/recoil';
@@ -47,7 +48,8 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
     // Only on panels that are actually refreshing: one with no interval of its own has nothing to
     // report, and a ring on every panel is noise. Turning one on is the panel editor's job; from here
     // the interval can be changed or switched off.
-    const sPanelRefresh = pPanelInfo?.timeRange?.refresh ?? 'Off';
+    const sIsExtension = isExtensionPanel(pPanelInfo);
+    const sPanelRefresh = sIsExtension ? 'Off' : pPanelInfo?.timeRange?.refresh ?? 'Off';
     const sHonorsPanelRefresh = pPanelInfo?.type !== 'Geomap' || !!pPanelInfo?.chartOptions?.useAutoRefresh;
     const sShowPanelRefresh = sPanelRefresh !== 'Off' && sHonorsPanelRefresh && pType === undefined;
 
@@ -457,12 +459,12 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                 <Menu.Item onClick={() => handleCopyPanel(pPanelInfo)} icon={<Duplicate />}>
                                     Duplicate
                                 </Menu.Item>
-                                {pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && pPanelInfo.type !== 'Video' && (
+                                {!sIsExtension && pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && pPanelInfo.type !== 'Video' && (
                                     <Menu.Item onClick={handleMoveTagz} icon={<MuiTagAnalyzerGray className="mui-svg-hover" width={13} />}>
                                         Show Taganalyzer
                                     </Menu.Item>
                                 )}
-                                {pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && pPanelInfo.type !== 'Video' && (
+                                {!sIsExtension && pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && pPanelInfo.type !== 'Video' && (
                                     <Menu.Item onClick={HandleDataDownload} icon={<Download />}>
                                         Download data
                                     </Menu.Item>
@@ -470,7 +472,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                 <Menu.Item onClick={handleDelete} icon={<Delete />}>
                                     Delete
                                 </Menu.Item>
-                                {pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && pPanelInfo.type !== 'Video' && (
+                                {!sIsExtension && pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && pPanelInfo.type !== 'Video' && (
                                     <Menu.Item onClick={HandleDownload} icon={<VscGraphScatter />}>
                                         Save to tql
                                     </Menu.Item>
@@ -490,7 +492,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                     {/* The dot marks a panel on its own range. A distance panel's window is numeric and
                         lives in its own field, so the tooltip has to read that one — `timeRange` is
                         empty there, and printing it would label an overridden panel ` ~ `. */}
-                    <a
+                    {!sIsExtension && <a
                         data-tooltip-place="bottom"
                         className={`panel-header-time-range${!pPanelInfo.useCustomTime && !pPanelInfo.useCustomDistance ? ' display-none' : ''}`}
                         id={sHeaderId}
@@ -505,7 +507,8 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                     : `${pPanelInfo.timeRange.start} ~ ${pPanelInfo.timeRange.end} , ${pPanelInfo.timeRange.refresh}`
                             }
                         />
-                    </a>
+                    </a>}
+                    {sIsExtension && <span>{pPanelInfo.title}</span>}
                     {/* {!pIsView && (
                         <>
                             <IconButton pWidth={25} pIcon={<VscGraphScatter className="mui-svg-hover" width={16} />} onClick={HandleDownload} />

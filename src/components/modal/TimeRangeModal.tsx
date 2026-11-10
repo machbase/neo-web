@@ -1,3 +1,4 @@
+import { isExtensionPanel } from '@/components/dashboard/extensions/types';
 import { Calendar } from '@/assets/icons/Icon';
 import { useState, useEffect } from 'react';
 import { useRecoilState } from 'recoil';
@@ -62,7 +63,7 @@ const TimeRangeModal = (props: TimeRangeModalProps) => {
     const sModalType = pUseRecoil ? (props as any)?.pType || 'dashboard' : undefined;
     const sBoard = pUseRecoil ? sBoardList.find((aItem) => aItem.id === sSelectedTab) : undefined;
     // First non-Tql panel whose base column is distance — its blockList[0] is the range reference.
-    const sDistancePanel = sBoard?.dashboard?.panels?.find((aPanel: any) => aPanel.type !== 'Tql chart' && isNumericBaseTimeBlock(aPanel.blockList?.[0]));
+    const sDistancePanel = sBoard?.dashboard?.panels?.find((aPanel: any) => !isExtensionPanel(aPanel) && aPanel.type !== 'Tql chart' && isNumericBaseTimeBlock(aPanel.blockList?.[0]));
     // Distance range is configurable on any dashboard (even before a distance panel exists), so the
     // tab is offered whenever the modal is in dashboard mode; bounds are only fetched when a panel exists.
     const sHasDistance = sModalType === 'dashboard';

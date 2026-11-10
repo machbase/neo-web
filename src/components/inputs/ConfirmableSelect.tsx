@@ -4,7 +4,7 @@ import { ConfirmModal } from '@/components/modal/ConfirmModal';
 import { Tooltip } from 'react-tooltip';
 
 export interface ConfirmableSelectProps {
-    pOptions: string[];
+    pOptions: (string | DropdownOption)[];
     onChange: React.ChangeEventHandler<HTMLInputElement>;
     pConfirmMessage: string;
     pConfirmTrigger: string;
@@ -40,13 +40,10 @@ export const ConfirmableSelect = (props: ConfirmableSelectProps) => {
     const [pendingIdx, setPendingIdx] = useState<number>(-1);
 
     // Convert string options to DropdownOption format
-    const dropdownOptions: DropdownOption[] = pOptions.map((option) => ({
-        label: option,
-        value: option,
-    }));
+    const dropdownOptions: DropdownOption[] = pOptions.map((option) => typeof option === 'string' ? { label: option, value: option } : option);
 
     const handleSelect = (value: string) => {
-        const idx = pOptions.indexOf(value);
+        const idx = dropdownOptions.findIndex((option) => option.value === value);
 
         if (pUseConfirmRule && pConfirmTrigger === value) {
             setPendingValue(value);

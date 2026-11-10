@@ -1,3 +1,4 @@
+import { CheckDataCompatibility } from './CheckDataCompatibility';
 import { loadTazBoard } from '@/components/tagAnalyzer/persistence/tazDocumentService';
 import {
     TAZ_FORMAT_VERSION,
@@ -292,4 +293,19 @@ describe('loadTazBoard', () => {
             'Invalid TagAnalyzer .taz board panels structure.',
         );
     });
+});
+
+test('opening a dashboard preserves an unavailable extension and its layout as stored', () => {
+    const extension = {
+        id: 'extension-panel',
+        type: 'Extension',
+        x: 2,
+        y: 1,
+        w: 6,
+        h: 3,
+        title: 'Saved note',
+        extension: { packageId: 'example/missing', typeId: 'note', settingsVersion: 1, settings: { schedule: { start: '2026-11-10' } } },
+    };
+    const saved = JSON.stringify({ dashboard: { panels: [extension] } });
+    expect(CheckDataCompatibility(saved, 'dsh').dashboard.panels).toEqual([extension]);
 });

@@ -15,6 +15,7 @@ const CreatePanelBody = ({ pLoopMode, pType, pPanelInfo, pBoardInfo, pInsetDragi
                     pSetModifyState={pSetModifyState}
                     pBoardTimeMinMax={pBoardTimeMinMax}
                     pIsHeader={false}
+                    pExtensionMode="preview"
                 />
             )}
         </Page>
