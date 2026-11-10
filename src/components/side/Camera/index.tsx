@@ -6,7 +6,7 @@ import { useRecoilState, useRecoilValue } from 'recoil';
 import { gActiveCamera, gBoardList, gCameraList, gSelectedTab, gCameraHealthTrigger } from '@/recoil/recoil';
 import { generateUUID } from '@/utils';
 import icons from '@/utils/icons';
-import { loadCameras, getCameraEventCount, buildBaseUrl, type CameraItem } from '@/components/dashboard/panels/video/utils/api';
+import { loadCameras, getCameraEventCount, getMediaServerBaseUrl, type CameraItem } from '@/components/dashboard/panels/video/utils/api';
 import type { CameraPageMode } from './cameraPage';
 import {
     deleteCamera,
@@ -65,7 +65,7 @@ export const CameraSide = () => {
     };
 
     const fetchServerCameras = async (config: MediaServerConfigItem) => {
-        const baseUrl = buildBaseUrl(config.ip, config.port);
+        const baseUrl = getMediaServerBaseUrl(config);
         const cameras = await loadCameras(baseUrl);
         setServerCameraMap((prev) => ({ ...prev, [config.alias]: cameras }));
         setServerLoadedMap((prev) => ({ ...prev, [config.alias]: true }));
@@ -73,7 +73,7 @@ export const CameraSide = () => {
 
     const fetchServerHealth = async (config: MediaServerConfigItem): Promise<boolean> => {
         try {
-            const baseUrl = buildBaseUrl(config.ip, config.port);
+            const baseUrl = getMediaServerBaseUrl(config);
             const res = await getCamerasHealth(baseUrl);
             if (res.data?.cameras?.length) {
                 const map: Record<string, CameraStatusResponse['status']> = {};
@@ -91,7 +91,7 @@ export const CameraSide = () => {
     };
 
     const fetchServerEventCount = async (config: MediaServerConfigItem) => {
-        const baseUrl = buildBaseUrl(config.ip, config.port);
+        const baseUrl = getMediaServerBaseUrl(config);
         const count = await getCameraEventCount(baseUrl);
         setServerEventCountMap((prev) => ({ ...prev, [config.alias]: count }));
     };
@@ -132,12 +132,12 @@ export const CameraSide = () => {
         setActiveName(`${config.alias}::${aInfo.id}`);
 
         if (aInfo?.id) {
-            const baseUrl = buildBaseUrl(config.ip, config.port);
+            const baseUrl = getMediaServerBaseUrl(config);
             sCode = await fetchCameraDetail(aInfo.id, baseUrl);
         }
 
         // Merge server config into camera data so CameraPage has ip/port/alias
-        const codeWithServer = sCode ? { ...sCode, ip: config.ip, port: config.port, alias: config.alias } : sCode;
+        const codeWithServer = sCode ? { ...sCode, ...config } : sCode;
 
         if (sExistKeyTab) {
             const aTarget = sBoardList.find((aBoard: any) => aBoard.type === PAGE_TYPE);
@@ -228,7 +228,7 @@ export const CameraSide = () => {
         if (!deleteCameraTarget) return;
         const { camera, config } = deleteCameraTarget;
         const cameraId = camera.id;
-        const baseUrl = buildBaseUrl(config.ip, config.port);
+        const baseUrl = getMediaServerBaseUrl(config);
 
         try {
             const res = await deleteCamera(cameraId, baseUrl);

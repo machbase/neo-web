@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Page } from '@/design-system/components';
-import { loadCameras, buildBaseUrl } from '@/components/dashboard/panels/video/utils/api';
-import { getMediaServerConfig } from '@/api/repository/mediaSvr';
+import { loadCameras, getMediaServerBaseUrl } from '@/components/dashboard/panels/video/utils/api';
+import { getMediaServerConfig, type MediaServerConfigItem } from '@/api/repository/mediaSvr';
 import { VideoBlockSource } from './VideoBlockSource';
 import { VideoBlockEvents } from './VideoBlockEvents';
 
 export interface SourceInfoType {
+    serverId?: string;
     table: string;
     camera: string;
     serverIp: string;
@@ -17,10 +18,9 @@ export interface SourceInfoType {
 
 interface CameraOption {
     label: string;
-    value: string; // composite key: "alias::cameraId"
-    serverIp: string;
-    serverPort: number;
-    serverAlias: string;
+    value: string;
+    cameraId: string;
+    server: MediaServerConfigItem;
 }
 
 interface VideoBlockProps {
@@ -36,10 +36,9 @@ export const VideoBlock = ({ pPanelOption, pSetPanelOption, pTableList = [] }: V
     const sourceInfo: SourceInfoType = pPanelOption.chartOptions.source;
     const cameraOptionsRef = useRef<CameraOption[]>([]);
 
-    // Build composite key from source info for dropdown value matching
-    const selectedCompositeValue = sourceInfo.serverAlias
-        ? `${sourceInfo.serverAlias}::${sourceInfo.camera}`
-        : sourceInfo.camera;
+    const selectedCompositeValue = sCameraList.find(({ cameraId, server }) => (
+        cameraId === sourceInfo.camera && server.id === sourceInfo.serverId
+    ))?.value ?? '';
 
     // Fetch cameras from all media servers
     const fetchCameraList = useCallback(async () => {
@@ -54,17 +53,16 @@ export const VideoBlock = ({ pPanelOption, pSetPanelOption, pTableList = [] }: V
 
             const allCameras: CameraOption[] = [];
             await Promise.all(
-                configs.map(async (config) => {
+                configs.filter((config) => config.id).map(async (config) => {
                     try {
-                        const base = buildBaseUrl(config.ip, config.port);
+                        const base = getMediaServerBaseUrl(config);
                         const cameras = await loadCameras(base);
                         cameras.forEach((cam) => {
                             allCameras.push({
                                 label: `${config.alias} / ${cam.label || cam.id}`,
-                                value: `${config.alias}::${cam.id}`,
-                                serverIp: config.ip,
-                                serverPort: config.port,
-                                serverAlias: config.alias,
+                                value: JSON.stringify([config.id, cam.id]),
+                                cameraId: cam.id,
+                                server: config,
                             });
                         });
                     } catch {
@@ -85,34 +83,10 @@ export const VideoBlock = ({ pPanelOption, pSetPanelOption, pTableList = [] }: V
         fetchCameraList();
     }, [fetchCameraList]);
 
-    useEffect(() => {
-        // Keep saved value when valid, otherwise choose the first available camera.
-        if (sCameraList.length === 0) return;
-        if (selectedCompositeValue && sCameraList.some((cam) => cam.value === selectedCompositeValue)) return;
-
-        const first = sCameraList[0];
-        const cameraId = first.value.includes('::') ? first.value.split('::').slice(1).join('::') : first.value;
-        pSetPanelOption((prev: any) => ({
-            ...prev,
-            chartOptions: {
-                ...prev.chartOptions,
-                source: {
-                    ...prev.chartOptions.source,
-                    camera: cameraId,
-                    serverIp: first.serverIp,
-                    serverPort: first.serverPort,
-                    serverAlias: first.serverAlias,
-                },
-            },
-        }));
-    }, [sCameraList, selectedCompositeValue, pSetPanelOption]);
-
     const handleCameraChange = useCallback(
-        (compositeValue: string) => {
-            const selected = cameraOptionsRef.current.find((cam) => cam.value === compositeValue);
+        (value: string) => {
+            const selected = cameraOptionsRef.current.find((cam) => cam.value === value);
             if (!selected) return;
-
-            const cameraId = compositeValue.includes('::') ? compositeValue.split('::').slice(1).join('::') : compositeValue;
 
             pSetPanelOption((prev: any) => ({
                 ...prev,
@@ -120,10 +94,11 @@ export const VideoBlock = ({ pPanelOption, pSetPanelOption, pTableList = [] }: V
                     ...prev.chartOptions,
                     source: {
                         ...prev.chartOptions.source,
-                        camera: cameraId,
-                        serverIp: selected.serverIp,
-                        serverPort: selected.serverPort,
-                        serverAlias: selected.serverAlias,
+                        camera: selected.cameraId,
+                        serverId: selected.server.id,
+                        serverIp: selected.server.ip,
+                        serverPort: selected.server.port,
+                        serverAlias: selected.server.alias,
                     },
                 },
             }));

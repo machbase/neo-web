@@ -12,16 +12,25 @@ function resolveUrl(path: string, baseUrl?: string): string {
 ////////////////////////////////////////////////////
 
 export interface MediaServerConfigItem {
+    id?: string;
     ip: string;
     port: number;
     alias: string;
+    useNeoHost?: boolean;
 }
 
 /**
  * Load media server list from neo-pkg-blackbox cgi-bin endpoint.
  * Envelope: { success, reason, elapse, data: MediaServerConfigItem[] }
  */
-export async function getMediaServerConfig(): Promise<MediaServerConfigItem[]> {
+let pendingMediaServers: Promise<MediaServerConfigItem[]> | undefined;
+
+export function getMediaServerConfig(): Promise<MediaServerConfigItem[]> {
+    pendingMediaServers ??= loadMediaServerConfig().finally(() => { pendingMediaServers = undefined; });
+    return pendingMediaServers;
+}
+
+async function loadMediaServerConfig(): Promise<MediaServerConfigItem[]> {
     try {
         const res = await fetch(SERVERS_ENDPOINT, { method: 'GET' });
         if (!res.ok) return [];
@@ -72,6 +81,7 @@ export interface CameraInfo extends MediaServerConfigItem {
     label?: string;
     desc?: string;
     rtsp_url?: string;
+    rtsp_path?: string;
     webrtc_url?: string;
     media_url?: string;
     model_id?: number;

@@ -24,7 +24,7 @@ import {
     disableCamera,
     pingCamera,
 } from '@/api/repository/mediaSvr';
-import { buildBaseUrl } from '@/components/dashboard/panels/video/utils/api';
+import { getMediaServerBaseUrl, resolveCameraWebRtcUrl } from '@/components/dashboard/panels/video/utils/api';
 import { CameraLivePreview } from './CameraLivePreview';
 
 export type CameraPageMode = 'create' | 'edit' | 'readonly';
@@ -42,7 +42,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
     const isCreateMode = mode === 'create';
     const isEditMode = mode === 'edit';
     const isReadOnlyMode = mode === 'readonly';
-    const baseUrl = pCode && pCode?.ip ? buildBaseUrl(pCode?.ip, pCode?.port) : undefined;
+    const baseUrl = pCode && pCode.ip ? getMediaServerBaseUrl(pCode) : undefined;
     const svrName = pCode ? pCode?.alias : undefined;
     const setSelectedTab = useSetRecoilState<any>(gSelectedTab);
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
@@ -279,7 +279,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                 ffmpeg_command: ffmpegConfig.ffmpegCommand || undefined,
                 output_dir: ffmpegConfig.outputDir || undefined,
                 archive_dir: ffmpegConfig.archiveDir || undefined,
-                server_url: pCode?.ip || undefined,
+                server_url: baseUrl ? new URL(baseUrl).hostname : undefined,
             };
 
             const res = await createCamera(payload, baseUrl);
@@ -299,12 +299,11 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                 setActiveName(`${serverAlias}::${createdCamera.camera_id}`);
 
                 // 3. Fetch full camera detail from server (same as openInfo flow)
-                const baseUrl = pCode?.ip ? buildBaseUrl(pCode.ip, pCode.port) : undefined;
                 const detailRes = await getCamera(createdCamera.camera_id, baseUrl);
                 const fullCamera =
                     detailRes.success && detailRes.data
-                        ? { ...detailRes.data, ip: pCode?.ip, port: pCode?.port, alias: serverAlias }
-                        : { ...createdCamera, ip: pCode?.ip, port: pCode?.port, alias: serverAlias };
+                        ? { ...detailRes.data, ip: pCode?.ip, port: pCode?.port, alias: serverAlias, useNeoHost: pCode?.useNeoHost }
+                        : { ...createdCamera, ip: pCode?.ip, port: pCode?.port, alias: serverAlias, useNeoHost: pCode?.useNeoHost };
 
                 // 4. Update current tab to readonly mode with full camera data
                 const currentTab = sBoardList.find((board: any) => board.type === 'camera' && board.mode === 'create');
@@ -524,7 +523,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                                             </Page.DpRow>
                                         </Page.DpRow>
                                     )}
-                                    {isReadOnlyMode && pCode && <CameraLivePreview webrtcUrl={cameraStatus === 'running' ? pCode.webrtc_url : undefined} />}
+                                    {isReadOnlyMode && pCode && <CameraLivePreview webrtcUrl={cameraStatus === 'running' ? resolveCameraWebRtcUrl(pCode, baseUrl) : undefined} />}
                                 </Page.DpRow>
                                 <Page.DpRow style={{ flexDirection: 'column', alignItems: 'start', paddingBottom: '8px' }}>
                                     <TextHighlight>{svrName}</TextHighlight>

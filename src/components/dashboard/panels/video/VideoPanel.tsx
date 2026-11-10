@@ -30,7 +30,7 @@ import { EventListModal } from './modals/EventListModal';
 import { IconButton, Dropdown, Badge, Input } from '@/design-system/components';
 import { ChartTheme } from '@/type/eChart';
 import { ChartThemeTextColor, ChartThemeBackgroundColor } from '@/utils/constants';
-import { resolveBaseUrl } from './utils/api';
+import { useVideoServer } from './hooks/useVideoServer';
 import { computeEventSeekRange, isOutOfRange } from './utils/eventSeekRange';
 import './VideoPanel.scss';
 
@@ -76,15 +76,12 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
         const showEventControl = pType !== 'create' && pType !== 'edit';
         const isPlaybackLocked = !pIsActiveTab || pType === 'create' || pType === 'edit';
 
-        const serverBaseUrl = useMemo(
-            () => resolveBaseUrl(pPanelInfo?.chartOptions?.source),
-            [pPanelInfo?.chartOptions?.source?.serverIp, pPanelInfo?.chartOptions?.source?.serverPort],
-        );
+        const { baseUrl: serverBaseUrl, server, loading: isServerLoading } = useVideoServer(pPanelInfo?.chartOptions?.source);
 
         const { state, fetchCameras, setTimeRange, setCurrentTime, setIsPlaying, setIsLoading } =
             useVideoState();
 
-        const liveMode = useLiveMode(videoRef, state.camera, undefined, serverBaseUrl);
+        const liveMode = useLiveMode(videoRef, state.camera, undefined, serverBaseUrl, !!server);
 
         const handleProbeProgress = useCallback(
             (time: Date) => {
@@ -245,16 +242,22 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
         // This only touches useVideoState.camera — playback/loadChunk happens in the effect below,
         // guaranteeing videoPlayer closures have the up-to-date state.camera.
         useEffect(() => {
+            if (isServerLoading) return;
+            const request = new AbortController();
             setIsLoading(true);
-            fetchCameras(pPanelInfo?.chartOptions?.source?.camera ?? null, serverBaseUrl).finally(() => {
-                setIsLoading(false);
+            fetchCameras(pPanelInfo?.chartOptions?.source?.camera ?? null, serverBaseUrl, request.signal).finally(() => {
+                if (!request.signal.aborted) setIsLoading(false);
             });
+            return () => request.abort();
             // eslint-disable-next-line react-hooks/exhaustive-deps
-        }, [pPanelInfo?.chartOptions?.source?.camera, serverBaseUrl]);
+        }, [pPanelInfo?.chartOptions?.source?.camera, serverBaseUrl, isServerLoading]);
 
         // Load the current chunk (or start live) once state.camera is in sync with the user's selection.
         useEffect(() => {
-            if (!state.camera) return;
+            if (!state.camera || !serverBaseUrl) {
+                liveMode.stopLive();
+                return;
+            }
             const run = async () => {
                 const isCurrentlyLiveOrConnecting = liveMode.isLive || liveMode.isConnecting;
                 const sLiveModeOnStart = pPanelInfo?.chartOptions?.source?.liveModeOnStart ?? false;
@@ -271,7 +274,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                         setTimeRange(initialStart, initialEnd);
                         setCurrentTime(initialStart);
                     }
-                    liveMode.startLive();
+                    liveMode.restartLive();
                 } else if (initialStart && initialEnd) {
                     setTimeRange(initialStart, initialEnd);
                     setCurrentTime(initialStart);
@@ -282,7 +285,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
             // ✅ CRITICAL: Do NOT include dashboardTimeRange in deps - that is handled by the
             // board-time-change effect below. This effect fires exactly once per camera switch.
             // eslint-disable-next-line react-hooks/exhaustive-deps
-        }, [state.camera, pPanelInfo?.chartOptions?.source?.liveModeOnStart]);
+        }, [state.camera, pPanelInfo?.chartOptions?.source?.liveModeOnStart, serverBaseUrl]);
 
         // Sync states
         useEffect(() => {
@@ -844,7 +847,7 @@ const VideoPanel = forwardRef<VideoPanelHandle, VideoPanelProps>(
                     onMouseMove={isFullscreen ? handleFullscreenMouseMove : undefined}
                     onClick={isFullscreen ? handleFullscreenVideoClick : undefined}
                 >
-                    <video ref={videoRef} playsInline muted />
+                    <video ref={videoRef} playsInline muted style={{ visibility: state.camera ? undefined : 'hidden' }} />
                     {/* Draggable Seek Step Control */}
                     {!liveMode.isLive && !state.isPlaying && (
                         <div

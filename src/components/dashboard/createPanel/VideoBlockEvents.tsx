@@ -1,7 +1,7 @@
 import { Dropdown, Page } from '@/design-system/components';
 import { SourceInfoType } from './VideoBlock';
 import { EventsConfig } from '@/components/side/Camera/eventsConfig';
-import { resolveBaseUrl } from '@/components/dashboard/panels/video/utils/api';
+import { useVideoServer } from '@/components/dashboard/panels/video/hooks/useVideoServer';
 
 interface VideoBlockEventsProps {
     sourceInfo: SourceInfoType;
@@ -14,7 +14,7 @@ interface VideoBlockEventsProps {
 }
 
 export const VideoBlockEvents = ({ cameraList, sourceInfo, isLoadingCameras, onCameraChange, selectedCompositeValue }: VideoBlockEventsProps) => {
-    const baseUrl = resolveBaseUrl(sourceInfo);
+    const { baseUrl } = useVideoServer(sourceInfo);
 
     return (
         <Page.ContentBlock pHoverNone style={{ padding: '0' }}>

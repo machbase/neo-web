@@ -1,4 +1,4 @@
-// Video API Utilities
+import type { CameraInfo, MediaServerConfigItem } from '@/api/repository/mediaSvr';
 
 /**
  * Build base URL from ip and port
@@ -12,9 +12,29 @@ export function buildBaseUrl(ip: string, port: number): string {
  * Resolve baseUrl from panel source config.
  * Returns undefined when server info is absent.
  */
-export function resolveBaseUrl(source?: { serverIp?: string; serverPort?: number }): string | undefined {
-    if (!source?.serverIp) return undefined;
-    return buildBaseUrl(source.serverIp, source.serverPort ?? 0);
+export function getMediaServerBaseUrl(server: MediaServerConfigItem): string {
+    const host = server.useNeoHost === true ? `${window.location.protocol}//${window.location.hostname}` : server.ip;
+    return buildBaseUrl(host, server.port);
+}
+
+export function findVideoServer(serverId: string | undefined, servers: MediaServerConfigItem[]): MediaServerConfigItem | undefined {
+    if (!serverId) return undefined;
+    return servers.find((server) => server.id === serverId);
+}
+
+export function resolveCameraWebRtcUrl(camera?: Pick<CameraInfo, 'webrtc_url' | 'rtsp_path'>, baseUrl?: string): string | undefined {
+    const storedUrl = camera?.webrtc_url;
+    if (!storedUrl || !camera?.rtsp_path || !baseUrl) return storedUrl;
+
+    try {
+        const url = new URL(storedUrl);
+        // Blackbox generates a WHEP URL for the camera's MediaMTX path.
+        if (!['http:', 'https:'].includes(url.protocol) || decodeURI(url.pathname) !== `/${camera.rtsp_path}/whep`) return storedUrl;
+        url.hostname = new URL(baseUrl).hostname;
+        return url.href;
+    } catch {
+        return storedUrl;
+    }
 }
 
 /**
@@ -58,10 +78,10 @@ interface CameraListResponse {
     };
 }
 
-export async function loadCameras(baseUrl?: string): Promise<CameraItem[]> {
+export async function loadCameras(baseUrl?: string, signal?: AbortSignal): Promise<CameraItem[]> {
     if (!baseUrl) return [];
     try {
-        const response = await fetch(`${baseUrl}/api/cameras`);
+        const response = await fetch(`${baseUrl}/api/cameras`, { signal });
         if (!response.ok) throw new Error(`${response.status}`);
         const res: CameraListResponse = await response.json();
         const cameras = res.data?.cameras;

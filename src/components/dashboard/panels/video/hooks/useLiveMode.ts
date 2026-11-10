@@ -2,6 +2,7 @@
 
 import { useRef, useCallback, useState } from 'react';
 import { getCamera } from '@/api/repository/mediaSvr';
+import { resolveCameraWebRtcUrl } from '../utils/api';
 
 interface LiveModeState {
     isLive: boolean;
@@ -15,7 +16,7 @@ const INITIAL_LIVE_MODE_STATE: LiveModeState = {
     error: null,
 };
 
-export function useLiveMode(videoRef: React.RefObject<HTMLVideoElement>, cameraId: string | null, onStatusChange?: (status: string, isError?: boolean) => void, baseUrl?: string) {
+export function useLiveMode(videoRef: React.RefObject<HTMLVideoElement>, cameraId: string | null, onStatusChange?: (status: string, isError?: boolean) => void, baseUrl?: string, useRegisteredAddress = false) {
     const [state, setState] = useState<LiveModeState>(INITIAL_LIVE_MODE_STATE);
 
     const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
@@ -85,7 +86,7 @@ export function useLiveMode(videoRef: React.RefObject<HTMLVideoElement>, cameraI
                 const cameraRes = await getCamera(cameraId, baseUrl);
                 if (isStaleConnection()) return;
 
-                const webrtcUrl = cameraRes?.data?.webrtc_url;
+                const webrtcUrl = resolveCameraWebRtcUrl(cameraRes?.data, useRegisteredAddress ? baseUrl : undefined);
 
                 if (!webrtcUrl) {
                     throw new Error(`Camera "${cameraId}" has no webrtc_url configured`);
@@ -198,7 +199,7 @@ export function useLiveMode(videoRef: React.RefObject<HTMLVideoElement>, cameraI
                 closeLiveResources();
             }
         },
-        [baseUrl, cameraId, closeLiveResources, closePeerConnection, onStatusChange, setLiveState, videoRef],
+        [baseUrl, cameraId, closeLiveResources, closePeerConnection, onStatusChange, setLiveState, useRegisteredAddress, videoRef],
     );
 
     // Start live mode via WebRTC WHEP

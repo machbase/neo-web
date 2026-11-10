@@ -31,10 +31,11 @@ export function useVideoState() {
     const [state, setState] = useState<VideoState>(initialState);
 
     // Camera management
-    const fetchCameras = useCallback(async (preferredCameraId?: string | null, baseUrl?: string) => {
-        const cameras = await loadCameras(baseUrl);
+    const fetchCameras = useCallback(async (preferredCameraId?: string | null, baseUrl?: string, signal?: AbortSignal) => {
+        const cameras = await loadCameras(baseUrl, signal);
+        if (signal?.aborted) return cameras;
         const preferredExists = !!preferredCameraId && cameras.some((cam) => cam.id === preferredCameraId);
-        const initialCamera = preferredExists ? preferredCameraId! : cameras.length > 0 ? cameras[0].id : null;
+        const initialCamera = preferredExists ? preferredCameraId! : null;
 
         let minTime: Date | null = null;
         let maxTime: Date | null = null;
@@ -47,6 +48,7 @@ export function useVideoState() {
             }
         }
 
+        if (signal?.aborted) return cameras;
         setState(prev => ({
             ...prev,
             cameras,
