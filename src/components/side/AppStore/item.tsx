@@ -363,6 +363,7 @@ export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
                     pIcon={pItem?.icon}
                     pInstalled={!!pItem?.installed_frontend}
                     pInstalledIcon={pItem?.installed_icon}
+                    pInstalledVersion={pItem?.installed_version}
                 />
                 <div className="app-store-item-head-contents">
                     <div className="app-store-item-head-top">

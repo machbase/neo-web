@@ -23,9 +23,10 @@
 // behavioural gain. Taking the class as a required prop keeps this component
 // purely about *which src to try* and leaves layout ownership where it already is.
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { VscExtensions } from 'react-icons/vsc';
 import { pkgIconSources } from './pkgIconSource';
+import { lightGlyphOf } from './pkgIconGlyph';
 
 export interface PkgIconProps {
     /** Package name; used to build the installed copy's icon path. */
@@ -46,12 +47,14 @@ export interface PkgIconProps {
      * owns the rule; passing it straight through is all this component does.
      */
     pInstalledIcon?: string;
+    /** The installed copy's version: a new one is a new icon address, so an update is not shown from the cache. */
+    pInstalledVersion?: string;
     /** Container class. Required — see the note at the top of this file. */
     className: string;
 }
 
-export const PkgIcon = ({ pName, pIcon, pInstalled, pInstalledIcon, className }: PkgIconProps) => {
-    const sources = useMemo(() => pkgIconSources(pName, pIcon, pInstalled, pInstalledIcon), [pName, pIcon, pInstalled, pInstalledIcon]);
+export const PkgIcon = ({ pName, pIcon, pInstalled, pInstalledIcon, pInstalledVersion, className }: PkgIconProps) => {
+    const sources = useMemo(() => pkgIconSources(pName, pIcon, pInstalled, pInstalledIcon, pInstalledVersion), [pName, pIcon, pInstalled, pInstalledIcon, pInstalledVersion]);
     const key = sources.join('|');
 
     // Render-time reset instead of a useEffect: when the component is reused for a
@@ -62,6 +65,28 @@ export const PkgIcon = ({ pName, pIcon, pInstalled, pInstalledIcon, className }:
     const idx = attempt.key === key ? attempt.idx : 0;
     const src = sources[idx];
 
+    // A white line drawing on a transparent ground is painted as a shape in the theme's text colour
+    // (pkgIconGlyph); until that is known, and for a logo, it is the image as it always was.
+    const [glyph, setGlyph] = useState<string | undefined>(undefined);
+    useEffect(() => {
+        if (!src) return;
+        let sLive = true;
+        lightGlyphOf(src).then((aIsGlyph) => {
+            if (sLive) setGlyph(aIsGlyph ? src : undefined);
+        });
+        return () => {
+            sLive = false;
+        };
+    }, [src]);
+
+    if (src && glyph === src) {
+        const sMask = `url("${src}") center / contain no-repeat`;
+        return (
+            <div className={className}>
+                <i className="pkg-icon-glyph" role="img" aria-hidden="true" style={{ WebkitMask: sMask, mask: sMask }} />
+            </div>
+        );
+    }
     return (
         <div className={className}>
             {src ? <img key={src} src={src} alt="" onError={() => setAttempt({ key, idx: idx + 1 })} /> : <VscExtensions />}

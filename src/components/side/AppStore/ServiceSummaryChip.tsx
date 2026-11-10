@@ -27,7 +27,7 @@ type Props = {
 export const ServiceSummaryChip = ({ summary, pkgName }: Props) => {
     if (!summary) return null;
     const { total, running, errors } = summary;
-    const dotColor = running > 0 ? 'var(--neo-success-main, #3fb950)' : 'var(--neo-text-disabled, #6e7681)';
+    const dotColor = running > 0 ? 'var(--neo-success-main, #37aa3b)' : 'var(--neo-status-none, #717171)';
     const tooltipId = `pkg-svc-errs-${pkgName}`;
     const hasErrors = errors.length > 0;
     return (
@@ -38,7 +38,7 @@ export const ServiceSummaryChip = ({ summary, pkgName }: Props) => {
             </span>
             {hasErrors && (
                 <>
-                    <VscWarning data-tooltip-id={tooltipId} style={{ color: 'var(--neo-warning-main, #FDB532)', flexShrink: 0, cursor: 'help' }} />
+                    <VscWarning data-tooltip-id={tooltipId} style={{ color: 'var(--neo-warning-text, #ff9800)', flexShrink: 0, cursor: 'help' }} />
                     <Tooltip id={tooltipId} content={errors.join('\n')} style={{ whiteSpace: 'pre-line' }} />
                 </>
             )}

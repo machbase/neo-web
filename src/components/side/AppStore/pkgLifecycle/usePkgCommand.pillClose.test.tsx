@@ -97,6 +97,30 @@ test('uninstalling a package with no pill leaves the switcher untouched', async 
     expect(result.current.activeView).toBe('neo-pkg-a');
 });
 
+test('uninstalling the package whose theme is in use goes back to the dark default', async () => {
+    localStorage.setItem('neo.theme', JSON.stringify({ pkg: 'neo-pkg-b', stylesheet: 'theme.css', label: 'B', scheme: 'light' }));
+    const { result } = renderCommand([], null);
+
+    await act(async () => {
+        await result.current.run(appNamed('neo-pkg-b'), 'uninstall');
+    });
+
+    expect(localStorage.getItem('neo.theme')).toBeNull();
+    localStorage.clear();
+});
+
+test('uninstalling another package leaves the theme in use', async () => {
+    localStorage.setItem('neo.theme', JSON.stringify({ pkg: 'neo-pkg-b', stylesheet: 'theme.css', label: 'B', scheme: 'light' }));
+    const { result } = renderCommand([], null);
+
+    await act(async () => {
+        await result.current.run(appNamed('neo-pkg-zzz'), 'uninstall');
+    });
+
+    expect(JSON.parse(localStorage.getItem('neo.theme') ?? 'null')?.pkg).toBe('neo-pkg-b');
+    localStorage.clear();
+});
+
 // A FAILED UNINSTALL LEAVES THE PACKAGE INSTALLED, so its view is still valid —
 // closing the pill would hide a package the user still has and still has to deal
 // with.

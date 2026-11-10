@@ -26,6 +26,17 @@ export interface PkgHtml {
     side: boolean;
 }
 
+/**
+ * The address a package's page is framed at, with the installed version in it
+ * (`/public/{name}/main.html?v=1.13.0`). The server sends these files with a
+ * Last-Modified date and no Cache-Control, so a browser may keep showing the page
+ * it cached before an update — the old page, against the web UI it is now beside —
+ * until it decides that copy is stale. A new version is a new address, so an update
+ * shows at once. Without a version (the manifest could not be read) the bare path.
+ */
+export const pkgPageUrl = (pkgName: string, page: 'main.html' | 'side.html', version: string) =>
+    `/public/${pkgName}/${page}${version ? `?v=${encodeURIComponent(version)}` : ''}`;
+
 const cache = new Map<string, Promise<PkgHtml>>();
 
 /**

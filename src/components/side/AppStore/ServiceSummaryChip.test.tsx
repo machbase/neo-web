@@ -8,11 +8,11 @@ jest.mock('react-icons/vsc', () => ({
 
 describe('ServiceSummaryChip', () => {
     // The dot was the dark panel's green/grey literal: on a light theme the green all but vanished.
-    test('the status dot takes the theme tokens, the dark colours as fallback', () => {
+    test('the status dot takes the theme tokens, each token\'s one dark value as fallback', () => {
         const { unmount } = render(<ServiceSummaryChip pkgName="a" summary={{ scope: 'a', total: 2, running: 1, errors: [] }} />);
-        expect(screen.getByTestId('service-dot')).toHaveAttribute('data-color', 'var(--neo-success-main, #3fb950)');
+        expect(screen.getByTestId('service-dot')).toHaveAttribute('data-color', 'var(--neo-success-main, #37aa3b)');
         unmount();
         render(<ServiceSummaryChip pkgName="b" summary={{ scope: 'b', total: 2, running: 0, errors: [] }} />);
-        expect(screen.getByTestId('service-dot')).toHaveAttribute('data-color', 'var(--neo-text-disabled, #6e7681)');
+        expect(screen.getByTestId('service-dot')).toHaveAttribute('data-color', 'var(--neo-status-none, #717171)');
     });
 });

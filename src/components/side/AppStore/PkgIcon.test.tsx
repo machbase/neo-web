@@ -1,6 +1,10 @@
-import { fireEvent, render } from '@testing-library/react';
+import { act, fireEvent, render } from '@testing-library/react';
 import { PkgIcon } from './PkgIcon';
 import { localIconPath, pkgIconSources } from './pkgIconSource';
+import { lightGlyphOf } from './pkgIconGlyph';
+
+jest.mock('./pkgIconGlyph', () => ({ ...jest.requireActual('./pkgIconGlyph'), lightGlyphOf: jest.fn(() => Promise.resolve(false)) }));
+const mockLightGlyphOf = lightGlyphOf as jest.MockedFunction<typeof lightGlyphOf>;
 
 const REMOTE = 'https://raw.githubusercontent.com/machbase/neo-pkg-demo/main/icon.png';
 
@@ -13,6 +17,12 @@ describe('localIconPath', () => {
     // neo-pkg-dbus (which ships icon.svg) 404'd and fell through to the glyph.
     test('uses the file name it is given — icon.svg is a real package (neo-pkg-dbus)', () => {
         expect(localIconPath('neo-pkg-dbus', 'icon.svg')).toBe('/public/neo-pkg-dbus/icon.svg');
+        // the installed version in the address: an update is a new address, so the browser does not show its cached icon
+        expect(localIconPath('neo-pkg-dbus', 'icon.svg', '1.13.51')).toBe('/public/neo-pkg-dbus/icon.svg?v=1.13.51');
+        expect(localIconPath('neo-pkg-dbus', 'icon.svg', ' 2.0.0-rc+1 ')).toBe('/public/neo-pkg-dbus/icon.svg?v=2.0.0-rc%2B1');
+        expect(localIconPath('neo-pkg-dbus', 'icon.svg', '')).toBe('/public/neo-pkg-dbus/icon.svg');
+        expect(pkgIconSources('neo-pkg-demo', 'https://example.com/i.png', true, 'icon.png', '1.0.1')).toEqual(['/public/neo-pkg-demo/icon.png?v=1.0.1']);
+        expect(pkgIconSources('neo-pkg-demo', 'https://example.com/i.png', false, 'icon.png', '1.0.1')).toEqual(['https://example.com/i.png']);
         expect(localIconPath('neo-pkg-a', 'icon.webp')).toBe('/public/neo-pkg-a/icon.webp');
     });
 
@@ -161,5 +171,27 @@ describe('PkgIcon', () => {
 
         rerender(<PkgIcon className="app-store-item-thumb" pName="neo-pkg-b" pIcon={REMOTE} pInstalled />);
         expect(container.querySelector('img')?.getAttribute('src')).toBe('/public/neo-pkg-b/icon.png');
+    });
+});
+
+// A white line drawing is painted as a shape in the theme's text colour; a logo stays an image.
+describe('PkgIcon: a white line-drawn icon follows the theme', () => {
+    afterEach(() => mockLightGlyphOf.mockImplementation(() => Promise.resolve(false)));
+
+    test('a light glyph is drawn as a mask of the same image, not as an <img>', async () => {
+        mockLightGlyphOf.mockImplementation(() => Promise.resolve(true));
+        const { container } = render(<PkgIcon className="app-store-item-thumb" pName="neo-pkg-demo" pIcon={REMOTE} />);
+        await act(async () => {});
+        const glyph = container.querySelector('.pkg-icon-glyph') as HTMLElement;
+        expect(glyph).not.toBeNull();
+        expect(glyph.style.mask || glyph.getAttribute('style')).toContain(REMOTE);
+        expect(container.querySelector('img')).toBeNull();
+    });
+
+    test('a logo, or an icon that cannot be read, stays the image it was', async () => {
+        const { container } = render(<PkgIcon className="app-store-item-thumb" pName="neo-pkg-demo" pIcon={REMOTE} />);
+        await act(async () => {});
+        expect(container.querySelector('img')?.getAttribute('src')).toBe(REMOTE);
+        expect(container.querySelector('.pkg-icon-glyph')).toBeNull();
     });
 });

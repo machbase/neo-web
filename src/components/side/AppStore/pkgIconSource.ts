@@ -45,10 +45,14 @@ export const DEFAULT_ICON_FILE = 'icon.png';
  * `/public/`, and both land in an `<img src>`, so `..`, `/`, `\` and a leading dot
  * are refused on either side.
  */
-export const localIconPath = (name?: string, file: string = DEFAULT_ICON_FILE): string | undefined => {
+export const localIconPath = (name?: string, file: string = DEFAULT_ICON_FILE, version?: string): string | undefined => {
     if (!name || !isSafeSegment(name)) return undefined;
     if (!file || !isSafeSegment(file)) return undefined;
-    return `/public/${name}/${file}`;
+    // With the installed version in it, as a package's page is framed (`pkgPageUrl`): the server sends
+    // these files with a Last-Modified date and no Cache-Control, so a browser kept showing the icon it
+    // had cached before an update. A new version is a new address. Without one, the bare path.
+    const sVersion = typeof version === 'string' ? version.trim() : '';
+    return `/public/${name}/${file}${sVersion ? `?v=${encodeURIComponent(sVersion)}` : ''}`;
 };
 
 /**
@@ -85,8 +89,10 @@ export const localIconPath = (name?: string, file: string = DEFAULT_ICON_FILE): 
  *
  *   Ignored entirely when `pInstalled` is false: an icon under `/public/{name}/`
  *   presupposes a `/public/{name}/`.
+ * @param pInstalledVersion - the installed copy's version (its package.json), put in the local address
+ *   so an update shows its new icon at once (`localIconPath`).
  */
-export const pkgIconSources = (pName?: string, pIcon?: string, pInstalled?: boolean, pInstalledIcon?: string): string[] => {
+export const pkgIconSources = (pName?: string, pIcon?: string, pInstalled?: boolean, pInstalledIcon?: string, pInstalledVersion?: string): string[] => {
     if (pInstalled) {
         // `''` is the ONE value that means "known to have none" — and it is exactly
         // the value a truthiness check would confuse with `undefined`. Compare the
@@ -95,7 +101,7 @@ export const pkgIconSources = (pName?: string, pIcon?: string, pInstalled?: bool
         const file = known ? pInstalledIcon.trim() : DEFAULT_ICON_FILE;
         // A known-empty name yields no candidate; a known non-empty one is still
         // validated (it came off the server's disk, not out of our own code).
-        const local = file ? localIconPath(pName, file) : undefined;
+        const local = file ? localIconPath(pName, file, pInstalledVersion) : undefined;
         return local ? [local] : [];
     }
     return typeof pIcon === 'string' && pIcon.trim() ? [pIcon] : [];

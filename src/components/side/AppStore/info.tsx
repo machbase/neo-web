@@ -208,6 +208,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                                             pIcon={pCode?.app?.icon}
                                             pInstalled={!!pCode?.app?.installed_frontend}
                                             pInstalledIcon={pCode?.app?.installed_icon}
+                                            pInstalledVersion={pCode?.app?.installed_version}
                                         />
                                         <div className="app-store-item-info-contents">
                                             {/* TITLE & VERSION */}
