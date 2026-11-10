@@ -698,6 +698,17 @@ $nb-fog-duration: 0.25s;
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
 
+    // A section has as many columns as it is wide, so a `1` is a quarter of the board at any depth.
+    &.nb-cols-1 {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    &.nb-cols-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    &.nb-cols-3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
     // A section given a height (dragged in Customize) is exactly that tall, taller or shorter than
     // its widgets: rows share the height, and a widget that does not fit scrolls inside itself.
     &.has-height {
@@ -757,7 +768,7 @@ $nb-fog-duration: 0.25s;
     min-width: 0;
     grid-column: span 4;
 
-    // Every row is four columns; a node spans one to four of them.
+    // A node spans one to four of the board's columns.
     &.nb-span-1 {
         grid-column: span 1;
     }
@@ -785,10 +796,10 @@ $nb-fog-duration: 0.25s;
 .nb-depth-2 > .nb-section-frame > .nb-section-resize {
     bottom: -7px;
 }
-// While editing, a nested section's outline is 12px below its body (its bottom padding).
+// While editing, a nested section's outline is 8px below its body (its bottom padding).
 .nb-board.is-editing .nb-depth-1 > .nb-section-frame > .nb-section-resize,
 .nb-board.is-editing .nb-depth-2 > .nb-section-frame > .nb-section-resize {
-    bottom: -19px;
+    bottom: -15px;
 }
 
 // Widgets sharing a row take the height of the tallest one: the grid cell stretches, and the
@@ -798,8 +809,8 @@ $nb-fog-duration: 0.25s;
     flex-direction: column;
 }
 .nb-widget-body {
-    // Widgets lay out by the room they really have (see the @container rules): a size is a share of
-    // the section the widget sits in, so a "half" widget in a narrow nested section can be tiny.
+    // Widgets lay out by the room they really have (see the @container rules): a narrow window
+    // gives the same size less room.
     container: nb-widget / inline-size;
     flex: 1;
     min-height: 0;
@@ -808,6 +819,28 @@ $nb-fog-duration: 0.25s;
 
     > * {
         flex: 1 1 auto;
+    }
+}
+
+// A widget given its own height is exactly that tall. Its row is as tall as the tallest of them, a
+// shorter one stays at the top of the row, and content that does not fit scrolls inside the widget.
+.nb-widget.has-own-height {
+    align-self: start;
+    min-height: 0;
+
+    > .nb-widget-body {
+        overflow-y: auto;
+    }
+    > .nb-widget-body .nb-folder {
+        flex: 1 1 0 !important;
+        height: auto !important;
+        min-height: 0;
+    }
+    > .nb-widget-body .nb-clock,
+    > .nb-widget-body .nb-weather,
+    > .nb-widget-body .nb-calendar,
+    > .nb-widget-body .nb-item-widget {
+        min-height: 0;
     }
 }
 
@@ -1057,13 +1090,18 @@ $nb-fog-duration: 0.25s;
     }
     // Nested sections draw their outline on their own edge and keep their content 12px in from it,
     // so each level's dashed line sits apart from its parent's and its children's (they shared one
-    // line when every nested outline sat 5px out). The 10px above (keeping the head's buttons off the
-    // outline) and 12px below are counted in LayoutBoard's editExtra (EDIT_NEST_PAD), so saved
-    // heights are unchanged.
+    // line when every nested outline sat 5px out). The 6px above (keeping the head's buttons off the
+    // outline), the 8px below and the shorter gap under the title are counted in LayoutBoard's
+    // editExtra (EDIT_NEST_PAD), so saved heights are unchanged. All kept small: a row holding a
+    // nested section should look as tall while editing as it will once saved.
     .nb-depth-1,
     .nb-depth-2 {
         outline-offset: 0;
-        padding: 10px 12px 12px;
+        padding: 6px 12px 8px;
+    }
+    .nb-depth-1 > .nb-section-head,
+    .nb-depth-2 > .nb-section-head {
+        margin-bottom: 6px;
     }
     // Hover lightens the outline of the innermost section or widget under the pointer only, so the
     // sections around it stay as they are. `:where` keeps it below the selected, drop and drag outlines.
@@ -1142,6 +1180,22 @@ $nb-fog-duration: 0.25s;
         outline-offset: 3px;
         border-radius: t.$border-radius-md;
         cursor: grab;
+    }
+    // In a nested section the title is already above the row, so the bars sit over the widget's top
+    // edge (they show under the pointer only) and the row takes no extra room.
+    .nb-depth-1 .nb-widget,
+    .nb-depth-2 .nb-widget {
+        margin-top: 0;
+    }
+    .nb-depth-1 .nb-widget-ctl,
+    .nb-depth-2 .nb-widget-ctl,
+    .nb-widget.in-section-row > .nb-widget-ctl {
+        top: 4px;
+    }
+    // Beside a nested section a widget is set down by what that section gains at least (EDIT_NEST_PAD
+    // in LayoutBoard), so the row's extra height is the section's whichever of the two is taller.
+    .nb-widget.in-section-row {
+        margin-top: 8px;
     }
     .nb-widget:hover {
         outline-color: rgba(255, 255, 255, 0.55);
@@ -1236,6 +1290,41 @@ $nb-fog-duration: 0.25s;
     font-size: 11px;
     color: $nb-accent;
     font-variant-numeric: tabular-nums;
+}
+
+// A widget's height handle sits inside its bottom edge, clear of the section's own handle below it.
+.nb-widget-resize {
+    position: absolute;
+    left: 50%;
+    bottom: 2px;
+    z-index: 4;
+    width: 88px;
+    height: 14px;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: ns-resize;
+    touch-action: none;
+    border-radius: t.$border-radius-sm;
+    @include nb-focus-ring;
+
+    &:hover .nb-section-resize-grip,
+    &.is-dragging .nb-section-resize-grip,
+    &:focus-visible .nb-section-resize-grip {
+        background: $nb-accent;
+        width: 64px;
+    }
+}
+@media (hover: hover) {
+    .nb-widget-resize {
+        opacity: 0;
+    }
+    .nb-widget:hover > .nb-widget-resize,
+    .nb-widget:focus-within > .nb-widget-resize,
+    .nb-widget-resize.is-dragging {
+        opacity: 1;
+    }
 }
 
 .nb-grip {
@@ -1501,8 +1590,9 @@ $nb-fog-duration: 0.25s;
     min-height: 196px;
 }
 
-// The small widgets share one frame so side by side they line up: 16px padding, a 20px title line at
-// the top and a 16px footer line pinned to the bottom (the analog clock's face takes the space between).
+// The small widgets share one frame: 16px padding, and in a taller row the digital clock keeps its
+// title line at the top and footer line at the bottom, while the analog clock and the calendar center
+// their content. `safe`: a widget shorter than its content scrolls from the top instead of losing it.
 .nb-clock {
     padding: 16px;
     display: flex;
@@ -1521,9 +1611,11 @@ $nb-fog-duration: 0.25s;
     // Nor does it overhang a narrow tile; the drawing keeps its proportions inside the box.
     max-width: 100%;
     aspect-ratio: 1;
-    margin: auto 0 10px;
+    margin: 0 0 10px;
 }
 .nb-clock--analog {
+    justify-content: safe center;
+
     .nb-clock-caption,
     .nb-clock-date {
         flex: none;
@@ -1601,6 +1693,7 @@ $nb-fog-duration: 0.25s;
     padding: 16px;
     display: flex;
     flex-direction: column;
+    justify-content: safe center;
     gap: 8px;
 }
 .nb-calendar-head {
@@ -2947,7 +3040,8 @@ $nb-fog-duration: 0.25s;
 
 @media (max-width: 900px) {
     // Two columns: quarter widgets pair up, anything wider takes the row.
-    .nb-section-body {
+    .nb-section-body,
+    .nb-section-body.nb-cols-3 {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
     // A set height is for the four-column rows. With fewer columns the same widgets take more rows,
@@ -2972,6 +3066,7 @@ $nb-fog-duration: 0.25s;
     // Heights are not applied here, so nothing to drag (nor a hint about it): a handle measured the
     // reflowed rows and saved a four-column height several times too tall.
     .nb-section-resize,
+    .nb-widget-resize,
     .nb-editbar-resize {
         display: none;
     }
@@ -2995,7 +3090,9 @@ $nb-fog-duration: 0.25s;
 }
 
 @media (max-width: 560px) {
-    .nb-section-body {
+    .nb-section-body,
+    .nb-section-body.nb-cols-2,
+    .nb-section-body.nb-cols-3 {
         grid-template-columns: minmax(0, 1fr);
     }
     .nb-node[class*='nb-span-'] {

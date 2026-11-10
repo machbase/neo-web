@@ -9,17 +9,16 @@ import {
     LayoutResult,
     moveNode,
     insertNode,
-    ROW_COLUMNS,
-    SECTION_SIZES,
+    resizeColumns,
     SectionNode,
     shiftNode,
+    sizesIn,
     updateNode,
     WidgetNode,
-    widgetSizes,
     WidgetSize,
 } from './layoutModel';
 import { getLayoutDrag, setLayoutDrag } from './layoutDrag';
-import { besideSections, leastSavedHeight, packRows, ROW_GAP, shapeOf, widgetRowHeight } from './rowModel';
+import { besideOwnHeight, besideSections, growthLimit, heldWithWidget, holdersAfter, leastSavedHeight, ownRowHeight, packRows, ROW_GAP, setWidgetHeight, shapeOf, WidgetHolder, widgetRowHeight } from './rowModel';
 
 
 // React 18 has no `inert` prop. While editing, a widget's own buttons must not open anything, and
@@ -32,47 +31,53 @@ const setInert = (aEl: HTMLElement | null, aOn: boolean) => {
 
 const CONFIGURABLE = new Set<WidgetNode['type']>(['clock', 'weather', 'calendar']);
 
-/** Room above a row of widgets for their control bars while editing (`.nb-widget` margin in index.scss). */
+/** Room above a top-level section's row of widgets for their control bars while editing (`.nb-widget` margin in index.scss). */
 const EDIT_BAR_ROOM = 18;
 /** Room under a last row of nested sections while editing, so their resize handle and this section's do not sit on top of each other. */
 const EDIT_FOOT_ROOM = 20;
-/** A nested section's own padding above and below while editing (`.nb-depth-1` in index.scss), so its outline clears its head's buttons and its content's lines. */
-const EDIT_NEST_PAD = 10 + 12;
+/** What a nested section adds while editing (`.nb-depth-1` in index.scss): its padding above and below, less the 6px its title's gap gives up. */
+const EDIT_NEST_PAD = 6 + 8 - 6;
 
 const endsWithSection = (aSection: SectionNode) => packRows(aSection).at(-1)?.some((aNode) => aNode.kind === 'section') ?? false;
 
 
 /**
- * How much taller section `aSection` is while editing than once saved: each row holding a widget gets
- * room for the control bars, plus whatever its tallest nested section gains. A section with a set
- * height grows by this while editing, so its widgets keep exactly the height they will have saved.
+ * How much taller section `aSection` is while editing than once saved: a top-level row of widgets gets
+ * room for the control bars, and a row holding nested sections what the tallest of them gains. A section
+ * with a set height grows by this while editing, so its widgets keep exactly the height they will have saved.
  */
-const editExtra = (aSection: SectionNode): number =>
+const editExtra = (aSection: SectionNode, aNested: boolean): number =>
     (endsWithSection(aSection) ? EDIT_FOOT_ROOM : 0) +
-    packRows(aSection).reduce(
-        // A widget's bar room and a nested section's own growth sit side by side in a row, not on top
-        // of each other: the row grows by the larger (summed, a section holding both was a bar's room
-        // short of what it needs, and a drag could take it below its nested section).
-        (aSum, aRow) =>
-            aSum + Math.max(aRow.some((aNode) => aNode.kind === 'widget') ? EDIT_BAR_ROOM : 0, ...aRow.map((aNode) => (aNode.kind === 'section' ? editExtra(aNode) + EDIT_NEST_PAD : 0))),
-        0
-    );
+    packRows(aSection).reduce((aSum, aRow) => {
+        // A row holding a nested section grows by what that section gains. A widget beside it is set
+        // down by the least a section gains (`.in-section-row`), so it never decides the row.
+        const sNested = aRow.filter((aNode): aNode is SectionNode => aNode.kind === 'section');
+        if (sNested.length) return aSum + Math.max(...sNested.map((aNode) => editExtra(aNode, true) + EDIT_NEST_PAD));
+        return aSum + (!aNested && aRow.length ? EDIT_BAR_ROOM : 0);
+    }, 0);
 
 /**
  * Row tracks for a section with a set height. A row holding a nested section is as tall as that
- * section (its set height, or its content); rows of widgets share what is left, and with none the
+ * section (its set height, or its content), and one with a widget of set height is as tall as the
+ * tallest of them; the other rows of widgets share what is left, and with none the
  * rest stays empty at the bottom. (All rows sharing equally held a nested section to its share: it
  * could not grow into space left under the sections below it, and one without a set height was
  * squeezed until its own sections spilled out.)
  */
-const rowTracks = (aSection: SectionNode, aHeight: number) => {
+const rowTracks = (aSection: SectionNode, aHeight: number, aBarRoom: number) => {
     const sRows = packRows(aSection);
     // A row of widgets keeps the least a widget may be, so a nested section taller than its share
     // (one without a height, on a narrower window) gives way and scrolls instead of squeezing the
     // widgets to a sliver. A section saved shorter than its rows need still shares what it has.
     const sShare = Math.floor((aHeight - ROW_GAP * Math.max(0, sRows.length - 1)) / Math.max(1, sRows.length));
     const sLeast = Math.max(0, Math.min(SECTION_MIN_HEIGHT, sShare));
-    return sRows.map((aRow) => (aRow.some((aNode) => aNode.kind === 'section') ? 'auto' : `minmax(${sLeast}px, 1fr)`)).join(' ');
+    return sRows
+        .map((aRow) => {
+            if (aRow.some((aNode) => aNode.kind === 'section')) return 'auto';
+            const sOwn = ownRowHeight(aRow);
+            return sOwn ? `${sOwn + aBarRoom}px` : `minmax(${sLeast}px, 1fr)`;
+        })
+        .join(' ');
 };
 
 /**
@@ -210,6 +215,9 @@ export const LayoutBoard = ({ pNodes, pEditing, pSelectedId, pOnSelect, pOnChang
     /** The node being dragged on the board, outlined in the accent colour until it is dropped. */
     const [sDraggingId, setDraggingId] = useState<string | undefined>(undefined);
     const [sLive, setLive] = useState<{ id: string; height: number; holders: { id: string; height: number }[] } | undefined>(undefined);
+    // Height while a widget's bottom edge is being dragged; written to the layout on release.
+    const [sLiveWidget, setLiveWidget] = useState<{ id: string; height: number; others: { id: string; height: number }[] } | undefined>(undefined);
+    const sDrawn = sLiveWidget ? setWidgetHeight(pNodes, sLiveWidget.id, sLiveWidget.height, sLiveWidget.others) : pNodes;
     const sRootRef = useRef<HTMLDivElement>(null);
     useDragAutoScroll(pEditing, sRootRef);
 
@@ -223,6 +231,10 @@ export const LayoutBoard = ({ pNodes, pEditing, pSelectedId, pOnSelect, pOnChang
         return () => document.removeEventListener('pointerdown', close, true);
     }, [sMoreId, pEditing]);
 
+    /** How much of its row a child takes as drawn: a nested section its own box (its cell may be taller), a widget its tile, each with its margin. */
+    const drawnHeight = (aEl: Element) =>
+        ((aEl.querySelector(':scope > .nb-section') ?? aEl).getBoundingClientRect().height) + (parseFloat(getComputedStyle(aEl).marginTop) || 0);
+
     /** The body a resize handle sits on (both live in the section's frame). */
     const bodyOf = (aHandle: HTMLElement) => aHandle.parentElement?.querySelector(':scope > .nb-section-body') as HTMLElement | null;
 
@@ -234,18 +246,19 @@ export const LayoutBoard = ({ pNodes, pEditing, pSelectedId, pOnSelect, pOnChang
     /**
      * How tall each row of a section body must stay: a nested section its own height, a widget the
      * smallest a section may be (plus its control bar's room while editing). Rows are read from where
-     * the children are drawn.
+     * the children are drawn. `aDrawn` gives how tall they are drawn right now instead.
      */
-    const usedHeight = (aBody: HTMLElement) => {
+    const usedHeight = (aBody: HTMLElement, aDrawn = false) => {
         const sRows = new Map<number, number>();
         [...aBody.children].forEach((aEl) => {
             if (!aEl.classList.contains('nb-node')) return;
             // From the top of its margin: while editing a widget sits lower than a section in the same
             // row (room for its control bar), and it was counted as a row of its own, so a section
             // holding both grew by a whole row on any edit and could not be made shorter.
-            const sTop = Math.round(aEl.getBoundingClientRect().top - (parseFloat(getComputedStyle(aEl).marginTop) || 0));
+            const sMargin = parseFloat(getComputedStyle(aEl).marginTop) || 0;
+            const sTop = Math.round(aEl.getBoundingClientRect().top - sMargin);
             const sInner = aEl.querySelector(':scope > .nb-section') as HTMLElement | null;
-            const sNeed = sInner ? sInner.getBoundingClientRect().height : SECTION_MIN_HEIGHT + (pEditing ? EDIT_BAR_ROOM : 0);
+            const sNeed = aDrawn ? drawnHeight(aEl) : sInner ? sInner.getBoundingClientRect().height : (Number((aEl as HTMLElement).dataset.ownHeight) || SECTION_MIN_HEIGHT) + sMargin;
             sRows.set(sTop, Math.max(sRows.get(sTop) ?? 0, sNeed));
         });
         const sStyle = getComputedStyle(aBody);
@@ -281,8 +294,11 @@ export const LayoutBoard = ({ pNodes, pEditing, pSelectedId, pOnSelect, pOnChang
     /** The least a section's body can be: what its rows need, so its nested sections never spill out. */
     const leastFor = (aBody: HTMLElement | null) => (aBody ? Math.ceil(usedHeight(aBody)) : SECTION_MIN_HEIGHT);
 
+    /** How much taller section `aNode` is drawn while editing than once saved. */
+    const extraOf = (aNode: SectionNode) => editExtra(aNode, (findNode(pNodes, aNode.id)?.depth ?? 0) > 0);
+
     /** A section's height as it will be once saved (what is drawn while editing has the control bars' room added). */
-    const savedHeight = (aNode: SectionNode, aBody: HTMLElement | null) => aNode.height ?? (aBody ? aBody.offsetHeight - editExtra(aNode) : SECTION_MIN_HEIGHT);
+    const savedHeight = (aNode: SectionNode, aBody: HTMLElement | null) => aNode.height ?? (aBody ? aBody.offsetHeight - extraOf(aNode) : SECTION_MIN_HEIGHT);
 
     /** The nearest section above `aBody` that has a set height (sections in between grow with their content). */
     const holderOf = (aBody: HTMLElement | null) => {
@@ -309,12 +325,12 @@ export const LayoutBoard = ({ pNodes, pEditing, pSelectedId, pOnSelect, pOnChang
             return {
                 id: aSection.id,
                 start: savedHeight(aSection, aSectionBody),
-                room: Math.min(SECTION_MAX_HEIGHT, roomFor(aSectionBody) - editExtra(aSection)),
+                room: Math.min(SECTION_MAX_HEIGHT, roomFor(aSectionBody) - extraOf(aSection)),
                 up: sHolder ? levelOf(sHolder.node, sHolder.body) : undefined,
             };
         };
         const sLevel = levelOf(aNode, aBody);
-        const sMin = leastFor(aBody) - editExtra(aNode);
+        const sMin = leastFor(aBody) - extraOf(aNode);
         const fit = (aLevel: Level, aWant: number, aHolders: Resize['holders']): number => {
             if (aWant <= aLevel.room || !aLevel.up) return Math.min(aWant, aLevel.room);
             const sUp = aLevel.up;
@@ -385,14 +401,14 @@ export const LayoutBoard = ({ pNodes, pEditing, pSelectedId, pOnSelect, pOnChang
             const sId = (sBody.closest('.nb-section') as HTMLElement | null)?.dataset.sectionId;
             const sNode = sId ? findNode(pNodes, sId)?.node : undefined;
             if (sNode?.kind !== 'section' || !sNode.height) continue;
-            if (getComputedStyle(sBody).gridTemplateColumns.split(' ').length !== ROW_COLUMNS) {
+            if (sNarrow) {
                 const sLeast = clampSectionHeight(leastSavedHeight(sNode));
                 if (sLeast <= sNode.height) continue;
                 pOnChange(updateNode(pNodes, sNode.id, { height: sLeast }), { automatic: true });
                 return;
             }
             if (Math.ceil(usedHeight(sBody)) - sBody.clientHeight <= 1) continue;
-            const sSize = resizePlan(sNode, sBody).at(leastFor(sBody) - editExtra(sNode));
+            const sSize = resizePlan(sNode, sBody).at(leastFor(sBody) - extraOf(sNode));
             // At the height cap nothing changes, and committing anyway would render forever.
             if (sSize.height === sNode.height && sSize.holders.every((aHolder) => heightOf(aHolder.id) === aHolder.height)) continue;
             commitResize(sNode.id, sSize, true);
@@ -402,6 +418,9 @@ export const LayoutBoard = ({ pNodes, pEditing, pSelectedId, pOnSelect, pOnChang
         sFitting.current = sNarrow;
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [pNodes, pEditing, sLive, sNarrow]);
+
+    /** A widget's height as drawn: its own, or the row's when it has none yet. */
+    const widgetHeightNow = (aHandle: HTMLElement, aNode: WidgetNode) => aNode.height ?? Math.round((aHandle.parentElement as HTMLElement).getBoundingClientRect().height);
 
     const startResize = (aEvent: React.PointerEvent<HTMLElement>, aNode: SectionNode) => {
         if (aEvent.button !== 0) return;
@@ -416,6 +435,64 @@ export const LayoutBoard = ({ pNodes, pEditing, pSelectedId, pOnSelect, pOnChang
             window.removeEventListener('pointerup', onUp);
             setLive(undefined);
             if (Math.abs(aUp.clientY - sStartY) > 2) commitResize(aNode.id, sizeAt(aUp.clientY));
+        };
+        window.addEventListener('pointermove', onMove);
+        window.addEventListener('pointerup', onUp);
+    };
+
+    /**
+     * Read from the board what resizing a widget touches, level by level up the sections holding it:
+     * the widgets that would change along with it, held at the height they are drawn at, and each
+     * section of set height with how far the widget can grow before that section has to (what the
+     * taller neighbours in its rows and the section's own free space already leave).
+     */
+    const widgetResizeContext = (aHandle: HTMLElement, aNode: WidgetNode) => {
+        const sKeep: { id: string; height: number }[] = [];
+        const sHolders: WidgetHolder[] = [];
+        let sSlack = 0;
+        let sEl = aHandle.parentElement;
+        let sFound = findNode(pNodes, aNode.id);
+        while (sEl?.parentElement && sFound?.parent) {
+            const sParent: SectionNode = sFound.parent;
+            const sBody = sEl.parentElement;
+            const sKids = [...sBody.children].filter((aKid) => aKid.classList.contains('nb-node'));
+            heldWithWidget(sParent, sFound.node.id).forEach((aWidget) => {
+                const sKid = sKids[sParent.children.indexOf(aWidget)];
+                if (sKid) sKeep.push({ id: aWidget.id, height: clampSectionHeight(Math.round(sKid.getBoundingClientRect().height)) });
+            });
+            const topOf = (aKid: Element) => Math.round(aKid.getBoundingClientRect().top - (parseFloat(getComputedStyle(aKid).marginTop) || 0));
+            const sTop = topOf(sEl);
+            const sCurrent = sEl;
+            const sTallest = Math.max(0, ...sKids.filter((aKid) => aKid !== sCurrent && topOf(aKid) === sTop).map(drawnHeight));
+            sSlack += Math.max(0, sTallest - drawnHeight(sEl));
+            if (sParent.height) {
+                sSlack += Math.max(0, sBody.clientHeight - usedHeight(sBody, true));
+                sHolders.push({ id: sParent.id, height: sParent.height, slack: Math.round(sSlack) });
+            }
+            sEl = sBody.closest('.nb-node');
+            sFound = findNode(pNodes, sParent.id);
+        }
+        return { keep: sKeep, holders: sHolders };
+    };
+
+    const startWidgetResize = (aEvent: React.PointerEvent<HTMLElement>, aNode: WidgetNode) => {
+        if (aEvent.button !== 0) return;
+        aEvent.preventDefault();
+        aEvent.stopPropagation();
+        const sStart = widgetHeightNow(aEvent.currentTarget, aNode);
+        const { keep: sKeep, holders: sHolders } = widgetResizeContext(aEvent.currentTarget, aNode);
+        const sStartY = aEvent.clientY;
+        const sizeAt = (aY: number) => clampSectionHeight(Math.min(sStart + aY - sStartY, sStart + growthLimit(sHolders)));
+        const othersAt = (aHeight: number) => [...sKeep, ...holdersAfter(sHolders, aHeight - sStart)];
+        const onMove = (aMove: PointerEvent) => {
+            const sHeight = sizeAt(aMove.clientY);
+            setLiveWidget({ id: aNode.id, height: sHeight, others: othersAt(sHeight) });
+        };
+        const onUp = (aUp: PointerEvent) => {
+            window.removeEventListener('pointermove', onMove);
+            window.removeEventListener('pointerup', onUp);
+            setLiveWidget(undefined);
+            if (Math.abs(aUp.clientY - sStartY) > 2) pOnChange(setWidgetHeight(pNodes, aNode.id, sizeAt(aUp.clientY), othersAt(sizeAt(aUp.clientY))));
         };
         window.addEventListener('pointermove', onMove);
         window.addEventListener('pointerup', onUp);
@@ -451,8 +528,7 @@ export const LayoutBoard = ({ pNodes, pEditing, pSelectedId, pOnSelect, pOnChang
     const fittedSize = (aNodes: SectionNode[], aId: string, aRoom: number): WidgetSize | undefined => {
         const sNode = findNode(aNodes, aId)?.node;
         if (!sNode) return undefined;
-        const sSizes = sNode.kind === 'section' ? SECTION_SIZES : widgetSizes(sNode.type);
-        const sFit = sSizes.filter((aSize) => aSize <= aRoom).pop();
+        const sFit = sizesIn(sNode, findNode(aNodes, aId)?.parent).filter((aSize) => aSize <= aRoom).pop();
         return sFit && sFit !== sNode.size ? sFit : undefined;
     };
 
@@ -481,7 +557,7 @@ export const LayoutBoard = ({ pNodes, pEditing, pSelectedId, pOnSelect, pOnChang
             } else sRows.push({ bottom: sRect.bottom, last: aIndex, used: sSpan });
         });
         const sRow = sRows.find((aRow) => aEvent.clientY <= aRow.bottom) ?? sRows[sRows.length - 1];
-        const sRoom = ROW_COLUMNS - sRow.used;
+        const sRoom = aSection.size - sRow.used;
         return { index: sRow === sRows[sRows.length - 1] ? undefined : sRow.last + 1, room: sRoom > 0 ? sRoom : undefined };
     };
 
@@ -608,7 +684,7 @@ export const LayoutBoard = ({ pNodes, pEditing, pSelectedId, pOnSelect, pOnChang
                         data-testid={`size-${aSize}`}
                         aria-pressed={aNode.size === aSize}
                         title={SIZE_TITLES[aSize]}
-                        onClick={() => pOnChange(updateNode(pNodes, aNode.id, { size: aSize }))}
+                        onClick={() => pOnChange(resizeColumns(pNodes, aNode.id, aSize))}
                     >
                         {aSize}
                     </button>
@@ -700,16 +776,18 @@ export const LayoutBoard = ({ pNodes, pEditing, pSelectedId, pOnSelect, pOnChang
 
         if (aNode.kind === 'widget') {
             const sLabel = pWidgetLabel(aNode);
-            const sSizes = widgetSizes(aNode.type);
+            const sSizes = sizesIn(aNode, aParent);
             const sUnavailable = pEditing ? pUnavailable?.(aNode) : undefined;
             // Beside nested sections in a section of set height: how tall they make its row (index.scss
             // uses it once the window is too narrow for four columns).
             const sBeside = aParent?.height ? besideSections(aParent).get(aNode.id) : undefined;
+            const sRowOwn = aParent?.height ? besideOwnHeight(aParent).get(aNode.id) : undefined;
             return (
                 <div
                     key={aNode.id}
-                    className={`nb-node nb-span-${sSizeClass} nb-widget${sDropClass}${sUnavailable ? ' is-unavailable' : ''}${sBeside ? ' is-beside-section' : ''}`}
-                    style={sBeside ? { ['--nb-row-min' as string]: `${sBeside}px` } : undefined}
+                    className={`nb-node nb-span-${sSizeClass} nb-widget${sDropClass}${sUnavailable ? ' is-unavailable' : ''}${sBeside ? ' is-beside-section' : ''}${aParent && besideSections(aParent).has(aNode.id) ? ' in-section-row' : ''}${aNode.height ? ' has-own-height' : ''}`}
+                    style={{ ...(sBeside ? { ['--nb-row-min' as string]: `${sBeside}px` } : {}), ...(sRowOwn ? { ['--nb-row-h' as string]: `${sRowOwn}px` } : {}), ...(aNode.height ? { height: aNode.height } : {}) }}
+                    data-own-height={aNode.height}
                     data-testid={`widget-${encodeURIComponent(aNode.id)}`}
                     data-widget-type={aNode.type}
                     {...dragProps(aNode.id)}
@@ -747,6 +825,31 @@ export const LayoutBoard = ({ pNodes, pEditing, pSelectedId, pOnSelect, pOnChang
                     <div className="nb-widget-body" ref={(aEl) => setInert(aEl, pEditing)}>
                         {sUnavailable ? <p className="nb-widget-unavailable">Not shown to this account. {sUnavailable}.</p> : <WidgetBoundary>{pRenderWidget(aNode)}</WidgetBoundary>}
                     </div>
+                    {pEditing ? (
+                        <div
+                            className={`nb-widget-resize${sLiveWidget?.id === aNode.id ? ' is-dragging' : ''}`}
+                            data-testid="widget-resize"
+                            role="separator"
+                            aria-orientation="horizontal"
+                            aria-label={`Height of ${sLabel}`}
+                            aria-valuenow={aNode.height}
+                            tabIndex={0}
+                            title={aNode.height ? `${aNode.height}px · drag to change, double-click for automatic height` : 'Drag to set the height of this widget'}
+                            onPointerDown={(aEvent) => startWidgetResize(aEvent, aNode)}
+                            onDoubleClick={() => pOnChange(updateNode(pNodes, aNode.id, { height: undefined }))}
+                            onKeyDown={(aEvent) => {
+                                if (aEvent.key !== 'ArrowUp' && aEvent.key !== 'ArrowDown') return;
+                                aEvent.preventDefault();
+                                const { keep: sKeep, holders: sHolders } = widgetResizeContext(aEvent.currentTarget, aNode);
+                                const sStart = widgetHeightNow(aEvent.currentTarget, aNode);
+                                const sHeight = clampSectionHeight(Math.min(sStart + (aEvent.key === 'ArrowDown' ? 20 : -20), sStart + growthLimit(sHolders)));
+                                pOnChange(setWidgetHeight(pNodes, aNode.id, sHeight, [...sKeep, ...holdersAfter(sHolders, sHeight - sStart)]));
+                            }}
+                        >
+                            <span className="nb-section-resize-grip" aria-hidden="true" />
+                            {sLiveWidget?.id === aNode.id ? <span className="nb-section-resize-value">{sLiveWidget.height}px</span> : null}
+                        </div>
+                    ) : null}
                 </div>
             );
         }
@@ -794,7 +897,7 @@ export const LayoutBoard = ({ pNodes, pEditing, pSelectedId, pOnSelect, pOnChang
                             {!pEditing && aNode.note ? <small>{aNode.note}</small> : null}
                             {pEditing ? (
                                 <span className="nb-section-ctl">
-                                    {aDepth > 0 ? moreMenu(aNode, sLabel, sizeControl(aNode, SECTION_SIZES)) : null}
+                                    {aDepth > 0 ? moreMenu(aNode, sLabel, sizeControl(aNode, sizesIn(aNode, aParent))) : null}
                                     <button type="button" className="nb-icon-btn nb-move" data-testid="move-up" aria-label={`Move ${sLabel} up`} title="Move up" onClick={() => apply(shiftNode(pNodes, aNode.id, -1))}>
                                         ↑
                                     </button>
@@ -813,8 +916,8 @@ export const LayoutBoard = ({ pNodes, pEditing, pSelectedId, pOnSelect, pOnChang
                     <div className="nb-section-frame">
                         <div
                             data-testid="body"
-                            className={`nb-section-body${sHeight ? ' has-height' : ''}${aNode.children.length ? '' : ' is-empty'}${endsWithSection(aNode) ? ' ends-with-section' : ''}`}
-                            style={sHeight ? { height: sHeight + (pEditing ? editExtra(aNode) : 0), gridTemplateRows: rowTracks(aNode, sHeight), ['--nb-row-h' as string]: `${widgetRowHeight(aNode, sHeight)}px` } : undefined}
+                            className={`nb-section-body nb-cols-${sSizeClass}${sHeight ? ' has-height' : ''}${aNode.children.length ? '' : ' is-empty'}${endsWithSection(aNode) ? ' ends-with-section' : ''}`}
+                            style={sHeight ? { height: sHeight + (pEditing ? extraOf(aNode) : 0), gridTemplateRows: rowTracks(aNode, sHeight, pEditing && aDepth === 0 ? EDIT_BAR_ROOM : 0), ['--nb-row-h' as string]: `${widgetRowHeight(aNode, sHeight)}px` } : undefined}
                             data-empty-hint={pEditing && !aNode.children.length ? 'Empty section. Drop a widget here, or select it and press + in the panel.' : undefined}
                             {...dropProps(`end:${aNode.id}`, aNode.id, undefined, aNode)}
                         >
@@ -875,7 +978,7 @@ export const LayoutBoard = ({ pNodes, pEditing, pSelectedId, pOnSelect, pOnChang
         <div ref={sRootRef} className={`nb-board${pEditing ? ' is-editing' : ''}`} data-testid="board" onPointerDownCapture={pEditing ? holdDragInField : undefined}>
             {insertBar(0)}
             {/* Keyed by the section, so moving one moves its widgets (and focus) with it instead of rebuilding them. */}
-            {pNodes.map((aNode, aIndex) => (
+            {sDrawn.map((aNode, aIndex) => (
                 <Fragment key={aNode.id}>
                     {renderNode(aNode, undefined, aIndex, 0)}
                     {insertBar(aIndex + 1)}

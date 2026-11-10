@@ -595,7 +595,7 @@ const NewBoard = (props: NewBoardProps) => {
                             ) : null}
                             {sEditing ? (
                                 <div className="nb-editbar" role="status" data-testid="new-board-editbar">
-                                    <span>Select a section to add widgets into it. Move sections with ⋮⋮ or ↑ ↓ and widgets with ⋮⋮ or ← →. 1–4 sets how many of the row's four columns a widget takes<span className="nb-editbar-resize" data-testid="resize-hint">; drag a section's bottom edge to change its height</span>.</span>
+                                    <span>Select a section to add widgets into it. Move sections with ⋮⋮ or ↑ ↓ and widgets with ⋮⋮ or ← →. 1–4 sets how many of the board's four columns a widget takes<span className="nb-editbar-resize" data-testid="resize-hint">; drag a section's or a widget's bottom edge to change its height</span>.</span>
                                 </div>
                             ) : null}
                             <LayoutBoard
