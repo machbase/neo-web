@@ -1,13 +1,8 @@
 @use './colors' as c;
-@use 'sass:string';
 
 :export {
     thumb: #{c.$scrollbar-thumb};
-    thumbHover: #{c.$scrollbar-thumb-hover};
+    thumbHover: #{c.$scrollbar-hover-thumb};
     border: #{c.$scrollbar-border};
     track: #{c.$scrollbar-track};
-    
-    thumbLight: #{string.unquote(c.$scrollbar-thumb-light-hex8)};
-    thumbLightHover: #{string.unquote(c.$scrollbar-thumb-light-hover-hex8)};
-    borderLight: #{c.$scrollbar-border-light};
 }

@@ -1,0 +1,13 @@
+/**
+ * Effect Tokens
+ *
+ * Not colours: switches a theme flips for an effect built into the web UI (the theme brings no
+ * code). Listed in theme-tokens.json like the colours.
+ *
+ *   --neo-fx-cursor: sandevistan — the pointer leaves neon after-images (design-system/theme/cursorFx.ts)
+ *   --neo-fx-cursor: comet       — shooting stars fall from where the pointer moves, some splitting in two
+ */
+
+@use './themed' as *;
+
+$fx-cursor: themed(fx-cursor, none);

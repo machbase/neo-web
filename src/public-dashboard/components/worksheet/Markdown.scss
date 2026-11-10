@@ -29,7 +29,7 @@
         cursor: pointer;
 
         &:hover {
-            background-color: var(--neo-bg-hover-light, #52535a);
+            background-color: var(--neo-toolbar-hover-bg, #52535a);
         }
 
         svg:hover {

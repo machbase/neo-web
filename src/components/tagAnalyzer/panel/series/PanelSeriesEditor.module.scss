@@ -74,28 +74,29 @@
         width: 48px;
         height: 32px;
         padding: 4px 8px;
-        border: 1px solid theme.$border-color;
+        border: 1px solid theme.$field-border;
         border-radius: theme.$radius;
-        background: theme.$surface-bg;
+        background: theme.$field-bg;
 
         &:focus-within {
-            outline: 2px solid theme.$accent;
-            outline-offset: 1px;
+            border-color: theme.$focus;
+            outline: 2px solid color-mix(in srgb, #{theme.$focus} 10%, transparent);
+            outline-offset: 0;
         }
     }
 
     input {
         @include text.role(body);
         width: 100%;
-        color: theme.$text-primary;
+        color: theme.$field-text;
     }
 }
 
 .selectedSeriesList {
     width: 100%;
     max-width: 100%;
-    background-color: t.$menu-bg;
-    border: 1px solid theme.$border-color;
+    background-color: var(--neo-field-bg, var(--neo-bg-elevated, #2c2c2c));
+    border: 1px solid theme.$field-border;
     border-radius: theme.$radius;
 }
 

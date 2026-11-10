@@ -1,8 +1,8 @@
 @use '@/design-system/tokens' as t;
 
 .popover {
-    background-color: var(--neo-bg-elevated, #2a2a2a);
-    border: 1px solid var(--neo-border-color-default, #3a3a3a);
+    background-color: var(--neo-bg-elevated, #2c2c2c);
+    border: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
     border-radius: calc(4px * var(--neo-radius-scale, 1));
     box-shadow: t.$shadow-lg;
     padding: 4px 8px;

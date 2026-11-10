@@ -16,13 +16,13 @@
 // store's CatalogSearchBand — is an inset, rounded, filled field, and two search boxes
 // one extension apart should not be different objects.
 $explorer-search-h: 28px;
-$explorer-link-fg: var(--neo-primary-light, #4199ff);
-$search-match-bg: rgba(65, 153, 255, 0.3);
+$explorer-link-fg: var(--neo-accent-text, #4199ff);
+$search-match-bg: color-mix(in srgb, var(--neo-accent-light, rgb(0, 108, 210)) 30%, transparent);
 // On a selected row (#005fb8) a blue wash is invisible, so the highlight inverts
 // to a white one rather than tinting blue on blue.
-$search-match-bg-onsel: var(--neo-bg-hover-light, rgba(255, 255, 255, 0.28));
-$filter-summary-bg: rgba(65, 153, 255, 0.06);
-$filter-badge-active: rgb(0, 83, 160);
+$search-match-bg-onsel: color-mix(in srgb, var(--neo-selected-text, rgb(243, 243, 243)) 28%, transparent);
+$filter-summary-bg: color-mix(in srgb, var(--neo-accent-light, rgb(0, 108, 210)) 6%, transparent);
+$filter-badge-active: var(--neo-side-selected-bg, var(--neo-selected-bg, rgb(0, 83, 160)));
 // Below this the panel drops to 6px side padding and gives up the secondary
 // counts; the name is the last thing to go.
 $explorer-narrow-bp: 220px;
@@ -42,19 +42,8 @@ $explorer-narrow-bp: 220px;
     // than as something to type in.
     margin: 6px 8px;
     padding: 0 8px;
-    border: 1px solid transparent;
     border-radius: calc(4px * var(--neo-radius-scale, 1));
-    background-color: t.$bg-elevated;
-    color: t.$text-disabled;
-
-    &:hover {
-        color: t.$text-secondary;
-    }
-
-    &:focus-within {
-        border-color: t.$border-color-focus;
-        background-color: t.$bg-input;
-    }
+    @include t.search-box(t.$side-icon);
 
     &.is-active .db-explorer-search-count {
         color: t.$text-secondary;
@@ -75,12 +64,12 @@ $explorer-narrow-bp: 220px;
     padding: 0;
     border: none;
     background: transparent;
-    color: t.$text-primary;
+    color: var(--neo-text-primary, #f1f1f1);
     font-size: 12px;
     outline: none;
 
     &::placeholder {
-        color: t.$text-disabled;
+        color: t.$side-text-muted;
     }
 }
 
@@ -90,7 +79,7 @@ $explorer-narrow-bp: 220px;
     // a proportional font makes it jitter under the cursor.
     font-family: 'D2Coding', monospace;
     font-size: 11px;
-    color: t.$text-disabled;
+    color: t.$side-text-muted;
     white-space: nowrap;
 }
 
@@ -107,11 +96,11 @@ $explorer-narrow-bp: 220px;
     // which would otherwise round this 16px box almost to a circle.
     border-radius: calc(2px * var(--neo-radius-scale, 1));
     background: transparent;
-    color: t.$text-disabled;
+    color: t.$side-icon;
     cursor: pointer;
 
     &:hover {
-        background-color: t.$bg-hover-block;
+        background-color: var(--neo-side-hover-bg, var(--neo-list-hover-bg, rgba(255, 255, 255, 0.13)));
         color: t.$text-primary;
     }
 }
@@ -174,7 +163,7 @@ $explorer-narrow-bp: 220px;
     padding: 4px 8px 6px 16px;
     font-size: 11px;
     line-height: 16px;
-    color: t.$text-disabled;
+    color: t.$side-text-muted;
 
     &-text {
         font-style: italic;
@@ -191,7 +180,7 @@ $explorer-narrow-bp: 220px;
     height: 22px;
     padding: 0 8px 0 28px;
     font-size: 11px;
-    color: t.$text-disabled;
+    color: t.$side-text-muted;
 
     &-text {
         font-style: italic;
@@ -231,7 +220,7 @@ $explorer-narrow-bp: 220px;
 
     &:hover,
     &:focus-visible {
-        background-color: t.$bg-hover-block;
+        background-color: var(--neo-side-hover-bg, var(--neo-list-hover-bg, rgba(255, 255, 255, 0.13)));
         color: t.$text-primary;
         opacity: 1;
     }
@@ -241,13 +230,13 @@ $explorer-narrow-bp: 220px;
     &.is-active {
         padding: 0 4px;
         border-radius: calc(3px * var(--neo-radius-scale, 1));
-        background-color: t.$primary-base;
+        background-color: t.$accent-main;
         color: t.$text-on-accent;
         opacity: 1;
 
         &:hover,
         &:focus-visible {
-            background-color: t.$primary-hover;
+            background-color: t.$accent-hover;
         }
 
         &:active {
@@ -268,7 +257,7 @@ $explorer-narrow-bp: 220px;
     margin-left: 6px;
     font-family: 'D2Coding', monospace;
     font-size: 11px;
-    color: t.$text-disabled;
+    color: t.$side-text-muted;
     white-space: nowrap;
 
     &.is-narrowed {
@@ -313,7 +302,7 @@ $explorer-narrow-bp: 220px;
 
 // Proportioned off `Dropdown.__menu / __list / __option` rather than invented: same
 // 12px option text, same 6px/8px option padding, same `$border-radius-sm` rows, same
-// `$dropdown-option-hover-bg` wash. The shared `Popover` supplies the shell (fill,
+// `$menu-item-hover-bg` wash. The shared `Popover` supplies the shell (fill,
 // border, radius, shadow), so nothing here restates it.
 //
 // 184px + the Popover's own 8px side padding = its 200px min-width exactly, so the
@@ -323,14 +312,14 @@ $explorer-narrow-bp: 220px;
     // name demands it) rather than fixing a width that has to be kept in sync with it.
     min-width: 184px;
     // The shared Popover hardcodes #2a2a2a; a dropdown in this design system is
-    // `$dropdown-bg`. Bleeding over the shell's own 4px/8px padding repaints it edge to
+    // `$menu-bg`. Bleeding over the shell's own 4px/8px padding repaints it edge to
     // edge without touching the shared component, and leaves the content box unmoved.
     margin: -4px -8px;
     padding: 4px 8px;
     border-radius: t.$border-radius-base;
-    background-color: t.$dropdown-bg;
+    background-color: t.$menu-bg;
     font-size: t.$font-size-sm;
-    color: t.$text-primary;
+    color: var(--neo-text-primary, #f1f1f1);
 
     // Dividers reach the shell's edges; the rows stay inside its padding.
     &-head,
@@ -345,11 +334,11 @@ $explorer-narrow-bp: 220px;
     }
 
     &-head {
-        border-bottom: 1px solid t.$dropdown-border;
+        border-bottom: 1px solid t.$menu-border;
     }
 
     &-foot {
-        border-top: 1px solid t.$dropdown-border;
+        border-top: 1px solid t.$menu-border;
     }
 
     &-title {
@@ -402,12 +391,12 @@ $explorer-narrow-bp: 220px;
     transition: background-color 0.15s ease;
 
     &:hover:not(:disabled) {
-        background-color: t.$dropdown-option-hover-bg;
+        background-color: t.$menu-item-hover-bg;
     }
 
     &:focus-visible {
         outline: none;
-        background-color: t.$dropdown-option-hover-bg;
+        background-color: t.$menu-item-hover-bg;
         box-shadow: 0 0 0 1px t.$border-color-focus inset;
     }
 
@@ -430,13 +419,13 @@ $explorer-narrow-bp: 220px;
     justify-content: center;
     width: 14px;
     height: 14px;
-    border: 1px solid t.$border-color-medium;
+    border: 1px solid t.$border-color-strong;
     border-radius: t.$border-radius-xs;
     color: t.$text-primary;
 
     &.is-checked {
-        border-color: t.$primary-base;
-        background-color: t.$primary-base;
+        border-color: t.$accent-main;
+        background-color: t.$accent-main;
     }
 }
 

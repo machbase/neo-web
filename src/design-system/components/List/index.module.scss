@@ -4,8 +4,9 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background-color: t.$menu-bg;
-    border: 1px solid t.$menu-border;
+    // a list box in a form: a field's colour, like the select beside it (its rows hover as a menu's)
+    background-color: var(--neo-field-bg, var(--neo-bg-elevated, #2c2c2c));
+    border: 1px solid var(--neo-field-border, var(--neo-border-color-default, rgba(255, 255, 255, 0.13)));
     border-radius: t.$border-radius-sm;
     max-height: 80vh;
     height: t.$list-default-height;
@@ -29,7 +30,7 @@
         text-align: left;
         border: none;
         background-color: transparent;
-        color: t.$menu-item-text;
+        color: t.$text-primary;
         cursor: pointer;
         border-radius: t.$border-radius-sm;
         transition: background-color 0.15s ease;

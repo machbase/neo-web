@@ -24,17 +24,17 @@
                 cursor: pointer;
                 font-size: 14px;
                 padding: 0 8px;
-                color: var(--neo-text-secondary, #f4f4f4c1);
-                border: solid 1px var(--neo-border-color-medium, rgba(255, 255, 255, 0.3));
+                color: var(--neo-text-secondary, #c4c4c4);
+                border: solid 1px var(--neo-border-color-strong, #767676);
                 border-radius: calc(4px * var(--neo-radius-scale, 1));
-                background-color: var(--neo-bg-secondary, rgb(36, 36, 36));
+                background-color: var(--neo-bg-secondary, #252525);
                 overflow: hidden;
                 text-wrap-mode: nowrap;
                 text-overflow: ellipsis;
 
                 &:hover {
-                    color: var(--neo-text-primary, #f4f4f4);
-                    background-color: var(--neo-bg-hover-light, rgb(69, 69, 69));
+                    color: var(--neo-text-primary, #f1f1f1);
+                    background-color: var(--neo-list-hover-bg, rgba(255, 255, 255, 0.13));
                 }
             }
         }

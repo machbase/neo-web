@@ -91,11 +91,11 @@
     cursor: help;
 
     &--offline {
-        color: t.$warning-main;
+        color: t.$warning-text;
     }
 
     &--failed {
-        color: t.$error-main;
+        color: t.$error-text;
     }
 }
 
@@ -135,7 +135,7 @@
     .app-store-scan-warnings-icon {
         display: flex;
         flex-shrink: 0;
-        color: t.$warning-main;
+        color: t.$warning-text;
         font-size: 14px;
     }
 
@@ -161,7 +161,7 @@
         cursor: pointer;
 
         &:hover {
-            background-color: t.$bg-hover;
+            background-color: var(--neo-side-hover-bg, var(--neo-list-hover-bg, rgba(255, 255, 255, 0.13)));
             color: t.$text-primary;
         }
     }

@@ -1,6 +1,6 @@
 .react-grid-item > .react-resizable-handle::after {
-    border-right: 2px solid var(--neo-border-color-medium, rgba(255, 255, 255, 0.4)) !important;
-    border-bottom: 2px solid var(--neo-border-color-medium, rgba(255, 255, 255, 0.4)) !important;
+    border-right: 2px solid var(--neo-border-color-strong, #767676) !important;
+    border-bottom: 2px solid var(--neo-border-color-strong, #767676) !important;
 }
 
 .non-set-panel {
@@ -23,7 +23,7 @@
     width: 100%;
     overflow: auto;
     height: calc(100%);
-    background: var(--neo-bg-primary, #1b1c21);
+    background: var(--neo-bg-canvas, var(--neo-bg-primary, #1e1e1e));
     position: relative;
     .react-split {
         height: calc(100% - 40px) !important;
@@ -35,7 +35,7 @@
         gap: 1px;
         position: relative;
         height: 40px;
-        background-color: var(--neo-bg-elevated, #262831);
+        background-color: var(--neo-bg-elevated, #2c2c2c);
         padding: 0 16px;
         display: flex;
         justify-content: space-between;
@@ -58,7 +58,7 @@
                 cursor: pointer;
             }
             .plus-btn {
-                border: 0.5px solid color-mix(in srgb, var(--neo-text-primary, rgb(255, 255, 255)) 50%, transparent);
+                border: 0.5px solid var(--neo-border-color-strong, #767676);
                 display: flex;
                 border-radius: calc(6px * var(--neo-radius-scale, 1));
                 height: 24px;
@@ -68,25 +68,25 @@
                 svg {
                     height: 16px;
                     width: 16px;
-                    color: var(--neo-text-disabled, rgba(255, 255, 255, 0.5));
+                    color: var(--neo-text-icon, #818181);
                 }
 
                 &:hover {
                     svg {
-                        color: var(--neo-text-primary, #f8f8f8);
+                        color: var(--neo-text-primary, #f1f1f1);
                     }
-                    border-color: var(--neo-color-white, #f8f8f8);
+                    border-color: var(--neo-border-color-strong, #767676);
                 }
             }
             .set-global-option-btn {
                 &:hover {
-                    color: var(--neo-text-primary, #f8f8f8);
+                    color: var(--neo-text-primary, #f1f1f1);
                 }
-                color: var(--neo-text-tertiary, #939498);
+                color: var(--neo-text-tertiary, #a3a3a3);
                 display: flex;
                 align-items: center;
                 background-color: transparent;
-                border: 0.5px solid color-mix(in srgb, var(--neo-text-primary, rgb(255, 255, 255)) 50%, transparent);
+                border: 0.5px solid var(--neo-border-color-strong, #767676);
                 height: 26px;
                 font-size: 13px;
                 border-radius: calc(6px * var(--neo-radius-scale, 1));
@@ -106,7 +106,7 @@
         position: relative;
     }
     .variable-header-warp {
-        border-top: solid 1px var(--neo-border-color-light, rgb(60, 69, 73));
+        border-top: solid 1px var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
         position: absolute;
         display: flex;
         top: 40px;
@@ -117,7 +117,7 @@
         flex-direction: column;
 
         .variable-header-close {
-            background-color: var(--neo-bg-elevated, #262831);
+            background-color: var(--neo-bg-elevated, #2c2c2c);
             padding: 4px 16px;
             justify-content: end;
             display: flex;
@@ -130,11 +130,11 @@
         gap: 4px;
         font-size: 14px;
         align-items: center;
-        color: var(--neo-text-disabled, rgba(255, 255, 255, 0.5));
+        color: var(--neo-text-muted, #818181);
         padding-left: 5px;
 
         &:hover {
-            color: var(--neo-text-primary, #f8f8f8);
+            color: var(--neo-text-primary, #f1f1f1);
         }
     }
 }

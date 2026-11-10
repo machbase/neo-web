@@ -11,7 +11,7 @@
         white-space: nowrap;
     }
     &__save-button--unsaved, &__save-button--unsaved svg {
-        color: theme.$warning !important;
+        color: theme.$warning-text !important;
     }
 }
 

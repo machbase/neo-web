@@ -14,17 +14,16 @@ $bg-secondary: themed(bg-secondary, #252525);
 $bg-header: themed(bg-header, $bg-primary);
 $bg-elevated: themed(bg-elevated, #2c2c2c);
 $bg-panel: themed(bg-panel, #252525);
-$bg-tab-active: themed(bg-tab-active, #252525);
-$bg-sub-tab-active: themed(bg-sub-tab-active, #2e2e2e);
-$bg-tab-hover: themed(bg-tab-hover, rgba(255, 255, 255, 0.08));
-$bg-input: themed(bg-input, rgba(255, 255, 255, 0.13));
-$bg-input-dark: themed(bg-input-dark, #353535);
-$bg-hover: themed(bg-hover, rgba(255, 255, 255, 0.08));
-$bg-hover-light: themed(bg-hover-light, rgb(75, 75, 75));
-$bg-hover-block: themed(bg-hover-block, rgba(255, 255, 255, 0.13));
-$bg-active: themed(bg-active, rgb(0, 83, 160));
-$bg-active-hover: themed(bg-active-hover, rgb(0, 108, 210));
-$bg-user-message: themed(bg-user-message, rgb(50, 50, 51));
+$sub-tab-active-bg: themed(sub-tab-active-bg, #2e2e2e);
+// Under the pointer, named for where it is, as VS Code's are: hover-bg anywhere, a list's or a tree's row list-hover-bg,
+// a button or an icon in a toolbar toolbar-hover-bg (a part of the screen has its own, below)
+$hover-bg: themed(hover-bg, rgba(255, 255, 255, 0.08));
+$list-hover-bg: themed(list-hover-bg, rgba(255, 255, 255, 0.13));
+$toolbar-hover-bg: themed(toolbar-hover-bg, rgba(255, 255, 255, 0.13));
+// selected: what was picked in a list. active (active-bg, a part's *-active-*): a control that is on, where you are
+$selected-bg: themed(selected-bg, rgb(0, 83, 160));
+$selected-hover-bg: themed(selected-hover-bg, rgb(0, 108, 210));
+$active-bg: themed(active-bg, $selected-bg);
 
 // ============================================
 // Text Colors
@@ -32,45 +31,56 @@ $bg-user-message: themed(bg-user-message, rgb(50, 50, 51));
 $text-primary: themed(text-primary, #f1f1f1);
 $text-secondary: themed(text-secondary, #c4c4c4);
 $text-tertiary: themed(text-tertiary, #a3a3a3);
+// a disabled control's text
 $text-disabled: themed(text-disabled, #818181);
-$text-muted: themed(text-muted, #727272);
-$text-hint: themed(text-hint, #aaaaaa);
-$text-row-number: themed(text-row-number, #3b3b3b);
-$text-active: themed(text-active, rgb(243, 243, 243));
+// Muted text — counts, empty lists, notes, placeholders, inactive tabs, the server version: text, so
+// it is not the icons' colour (text-icon) and not a disabled control's (text-disabled)
+$text-muted: themed(text-muted, #818181);
+// toolbar and icon-button icons; the GNB's, the side panel's and the console's icons fall back to it
+// (a menu's and a field's icons have their own dark default, brighter on those surfaces; the theme builder
+// still works them out from Icons)
+$text-icon: themed(text-icon, #818181);
+$selected-text: themed(selected-text, rgb(243, 243, 243));
+$active-text: themed(active-text, $selected-text);
 // Text and icons drawn ON an accent fill (primary/create/delete/error/warning backgrounds). Kept apart
 // from text-primary because a light theme's text-primary is dark and sinks into a saturated fill.
-$text-on-accent: themed(text-on-accent, #f1f1f1);
+$text-on-accent: themed(text-on-accent, #ffffff);
 
 // ============================================
 // Border Colors
 // ============================================
 $border-color-default: themed(border-color-default, rgba(255, 255, 255, 0.13));
-$border-color-light: themed(border-color-light, #f1f1f125);
-$border-color-medium: themed(border-color-medium, #626263);
+$border-color-strong: themed(border-color-strong, #767676);
 $border-color-focus: themed(border-color-focus, rgb(0, 108, 210));
 $border-color-active: themed(border-color-active, #005fb8);
 
 // ============================================
 // Primary Colors
 // ============================================
-$primary-base: themed(primary-base, #005fb8);
-$primary-hover: themed(primary-hover, #0075e2);
-$primary-light: themed(primary-light, rgb(0, 108, 210));
-$primary-dark: themed(primary-dark, rgb(0, 83, 160));
+$accent-main: themed(accent-main, #005fb8);
+$accent-hover: themed(accent-hover, #0075e2);
+$accent-light: themed(accent-light, rgb(0, 108, 210));
+// the accent as text: links and accent words, readable on the content (the fills and lines keep primary-light)
+$accent-text: themed(accent-text, #4199ff);
+$accent-dark: themed(accent-dark, rgb(0, 83, 160));
 
 // ============================================
 // Semantic Colors
 // ============================================
 // Success
-$success-main: themed(success-main, #71e071);
-$success-light: themed(success-light, #9df486);
+$success-main: themed(success-main, #37aa3b);
+// success as text and as a status dot: readable on the content
+$success-text: themed(success-text, #9df486);
 
 // Error
 $error-main: themed(error-main, rgb(255, 83, 83));
-$error-light: themed(error-light, #fa6464);
+// an error as text and as a status dot: readable on the content
+$error-text: themed(error-text, #fa6464);
 
 // Warning
-$warning-main: themed(warning-main, #ff9800);
+$warning-main: themed(warning-main, #d67f00);
+// a warning as text: readable on the content (warning-main is the fill)
+$warning-text: themed(warning-text, #ff9800);
 
 // Info
 $info-main: themed(info-main, #005fb8);
@@ -81,62 +91,38 @@ $event-match-main: themed(event-match-main, #ffdc72);
 // ============================================
 // Button Colors
 // ============================================
-$btn-delete: themed(btn-delete, #ff4747);
-$btn-create: themed(btn-create, #005fb8);
-$btn-copy: themed(btn-copy, #6f7173);
-$btn-status: themed(btn-status, #009688);
-$btn-disabled: themed(btn-disabled, #6f7173);
-$btn-send: themed(btn-send, #5b5b5b);
-$btn-send-border: themed(btn-send-border, #626263);
+$button-danger-bg: themed(button-danger-bg, #e53935);
+$button-primary-bg: themed(button-primary-bg, #005fb8);
+$neutral-main: themed(neutral-main, #6f7173);
+$success-fill: themed(success-fill, #009688);
+$button-disabled-bg: themed(button-disabled-bg, #6f7173);
 
 // ============================================
 // Status Circle Colors
 // ============================================
-$status-true: themed(status-true, #9df486);
-$status-false: themed(status-false, #fa6464);
 $status-none: themed(status-none, #717171);
 
 // ============================================
 // Scrollbar Colors
 // ============================================
 $scrollbar-thumb: themed(scrollbar-thumb, #5c5c5c);
-$scrollbar-thumb-hover: themed(scrollbar-thumb-hover, #868686);
+$scrollbar-hover-thumb: themed(scrollbar-hover-thumb, #868686);
 $scrollbar-border: themed(scrollbar-border, #686868);
 $scrollbar-track: transparent;
 $scrollbar-track-bg: themed(scrollbar-track-bg, #2a2a2a);
-
-$scrollbar-thumb-light: themed(scrollbar-thumb-light, #ffffffcc);
-$scrollbar-thumb-light-hover: themed(scrollbar-thumb-light-hover, #ffffff);
-$scrollbar-border-light: themed(scrollbar-border-light, #ffffffcc);
-$scrollbar-track-light-bg: themed(scrollbar-track-light-bg, #ffffff0f);
-
-$scrollbar-thumb-light-hex8: '#ffffffcc';
-$scrollbar-thumb-light-hover-hex8: '#ffffff';
 
 // ============================================
 // Switch Colors
 // ============================================
 $switch-bg: themed(switch-bg, rgba(255, 255, 255, 0.13));
-$switch-bg-hover: themed(switch-bg-hover, rgba(255, 255, 255, 0.1));
-$switch-bg-active: themed(switch-bg-active, #005fb8);
-$switch-bg-active-hover: themed(switch-bg-active-hover, #0075e2);
+$switch-hover-bg: themed(switch-hover-bg, rgba(255, 255, 255, 0.1));
 $switch-thumb: themed(switch-thumb, rgba(255, 255, 255, 0.3));
-$switch-thumb-active: themed(switch-thumb-active, #f1f1f1);
+$switch-active-thumb: themed(switch-active-thumb, #f1f1f1);
 $switch-border: themed(switch-border, rgba(255, 255, 255, 0.13));
-$switch-border-active: themed(switch-border-active, #0075e2);
-
-// ============================================
-// Selector/Dropdown Colors
-// ============================================
-$selector-bg: themed(selector-bg, rgba(255, 255, 255, 0.13));
-$selector-border: themed(selector-border, rgba(255, 255, 255, 0.13));
-$selector-hover: themed(selector-hover, #005fb8);
-$selector-selected: themed(selector-selected, #005fb8);
 
 // ============================================
 // Overlay/Shadow Colors
 // ============================================
-$overlay-shadow: themed(overlay-shadow, #00000020);
 // The dimming layer behind a modal or drawer. Its own token: mapped onto bg-primary or color-black,
 // a theme's solid colour turned it into a wall that hid the page.
 $bg-backdrop: themed(bg-backdrop, rgba(0, 0, 0, 0.5));
@@ -149,35 +135,20 @@ $color-white: themed(color-white, #ffffff);
 $color-transparent: transparent;
 
 // ============================================
-// Material UI Integration
+// Menu Colors — context menus and every open dropdown list, select, combobox and picker
 // ============================================
-$mui-selected: themed(mui-selected, #005fb8);
-$mui-text: themed(mui-text, #c4c4c4);
-
-// ============================================
-// Dropdown/Menu Colors
-// ============================================
-$dropdown-bg: themed(dropdown-bg, #2d2d2d);
-$dropdown-border: themed(dropdown-border, $border-color-default);
-$dropdown-shadow: themed(dropdown-shadow, 0 4px 12px rgba(0, 0, 0, 0.3));
-$dropdown-option-hover-bg: themed(dropdown-option-hover-bg, #3d3d3d);
+$menu-shadow: themed(menu-shadow, 0 4px 12px rgba(0, 0, 0, 0.3));
 $dropdown-option-selected-bg: transparent;
-$dropdown-trigger-icon-color: themed(dropdown-trigger-icon-color, #7a7a7a);
-$dropdown-option-hover-bg-light: themed(dropdown-option-hover-bg-light, rgba(255, 255, 255, 0.05));
-
-// ============================================
-// Menu Colors (Alias for Dropdown)
-// ============================================
-$menu-bg: themed(menu-bg, $dropdown-bg);
-$menu-border: themed(menu-border, $dropdown-border);
-$menu-item-text: themed(menu-item-text, #e8e8e8);
-$menu-item-hover-bg: themed(menu-item-hover-bg, $dropdown-option-hover-bg);
+$menu-bg: themed(menu-bg, #2d2d2d);
+$menu-border: themed(menu-border, $border-color-default);
+// a menu's words are the page's text (text-primary): a menu sits on a layer, not on a ground of its own brightness
+$menu-item-hover-bg: themed(menu-item-hover-bg, #3d3d3d);
 $menu-item-icon: themed(menu-item-icon, #b0b0b0);
 
 // ============================================
 // Modal Colors
 // ============================================
-$modal-border: themed(modal-border, $border-color-default);
+$dialog-border: themed(dialog-border, $border-color-default);
 
 // ============================================
 // Tooltip Colors (react-tooltip's --rt-color-dark / --rt-color-white, global.scss)
@@ -186,14 +157,36 @@ $tooltip-bg: themed(tooltip-bg, #222222);
 $tooltip-text: themed(tooltip-text, #ffffff);
 $tooltip-border: themed(tooltip-border, transparent);
 
-// Table color
-$tag-table: themed(tag-table, $info-main);
-$log-table: themed(log-table, $btn-delete);
-$kv-table: themed(kv-table, $btn-status);
-$vol-table: themed(vol-table, $warning-main);
-$etc-table: themed(etc-table, #ffdc72);
-
 // ============================================
+// Content's deep background: what sits behind the data viewer, SQL results, the sign-in and error
+// screens — content, drawn the frame's dark on the dark screen (the call sites keep their literals). Not the frame.
+$bg-canvas: themed(bg-canvas, $bg-primary);
+
+// File-type icons (the Material icon colours; the SVGs read them as var(--neo-icon-…, <colour>)).
+// A light scheme starts from deeper shades of the same hues (global.scss); a theme can set any.
+$icon-folder: themed(icon-folder, #ffca28); // folders
+$icon-folder-git: themed(icon-folder-git, #ff7043); // git folders
+$icon-folder-git-mark: themed(icon-folder-git-mark, #ffccbc); // the git mark on them
+$icon-folder-public: themed(icon-folder-public, rgb(66, 165, 245)); // the public folder
+$icon-sql: themed(icon-sql, #ffca28); // .sql
+$icon-tql: themed(icon-tql, #4caf50); // .tql
+$icon-taz: themed(icon-taz, #26a69a); // .taz
+$icon-taz-gray: themed(icon-taz-gray, #9fa2ab); // Tag Analyzer, grey (panel menus)
+$icon-wrk: themed(icon-wrk, #42a5f5); // .wrk
+$icon-md: themed(icon-md, #42a5f5); // .md
+$icon-json: themed(icon-json, #fbc02d); // .json
+$icon-csv: themed(icon-csv, #8bc34a); // .csv
+$icon-doc: themed(icon-doc, #78909c); // .txt and other files
+$icon-image: themed(icon-image, #26a69a); // images
+$icon-svg: themed(icon-svg, #ffb300); // .svg
+$icon-shell: themed(icon-shell, #ff7043); // shells
+$icon-powershell: themed(icon-powershell, #03a9f4); // PowerShell
+$icon-new: themed(icon-new, #c4c4c4); // a new, unsaved file
+$icon-html: themed(icon-html, #fc7976); // .html
+$icon-css: themed(icon-css, #399af6); // .css
+$icon-js: themed(icon-js, #fdda19); // .js
+$icon-dsh: themed(icon-dsh, #fc7676); // .dsh
+
 // Areas
 // ============================================
 // One part of the screen's own colours. Each falls back to the system token that part drew with
@@ -201,50 +194,77 @@ $etc-table: themed(etc-table, #ffdc72);
 // a theme that sets one changes that part alone (the theme builder colours the screen part by
 // part this way — Frame no longer moves the side panel, say).
 //
-// Text a part inherits from the page keeps the page's own fallback (index.css :root), which is
-// not text-primary's dark default.
-$text-inherited: var(--neo-text-primary, rgba(255, 255, 255, 0.87));
 
 // The GNB — the icon column on the left
 $gnb-bg: themed(gnb-bg, $bg-primary);
-$gnb-icon: themed(gnb-icon, $text-disabled);
-$gnb-icon-active: themed(gnb-icon-active, $text-primary);
-$gnb-marker: themed(gnb-marker, $primary-base);
+$gnb-icon: themed(gnb-icon, $text-icon);
+$gnb-active-icon: themed(gnb-active-icon, $text-primary);
+$gnb-marker: themed(gnb-marker, $accent-main);
+// an icon under the pointer
+$gnb-hover-bg: themed(gnb-hover-bg, $hover-bg);
 
 // The tab bar above the editors
 $tabbar-bg: themed(tabbar-bg, $bg-primary);
-$tabbar-text: themed(tabbar-text, $text-primary);
-$tabbar-text-inactive: themed(tabbar-text-inactive, $text-tertiary);
-$tabbar-marker: themed(tabbar-marker, $primary-base);
+$tabbar-active-text: themed(tabbar-active-text, $text-primary);
+$tabbar-inactive-text: themed(tabbar-inactive-text, $text-tertiary);
+$tabbar-marker: themed(tabbar-marker, $accent-main);
+// the open tab and the header row of its page (Page.Header): the content's colour by default, so the
+// tab, its header and the page under it read as one
+$tabbar-active-bg: themed(tabbar-active-bg, $bg-secondary);
+// a tab under the pointer
+$tabbar-hover-bg: themed(tabbar-hover-bg, $hover-bg);
 
 // The side panel (explorer, DB explorer, packages, …) and its section headers
 $side-bg: themed(side-bg, $bg-panel);
 $side-header-bg: themed(side-header-bg, $bg-header);
-$side-text: themed(side-text, $text-inherited);
-$side-text-muted: themed(side-text-muted, $text-disabled);
-$side-icon: themed(side-icon, $text-disabled);
-$side-active-bg: themed(side-active-bg, $bg-hover-block);
+$side-text: themed(side-text, $text-primary);
+// muted text — counts, the server version, meta lines
+$side-text-muted: themed(side-text-muted, $text-muted);
+$side-icon: themed(side-icon, $text-icon);
+// a row under the pointer (hover) and the selected row (a selection): each its own kind's colour, with no theme too
+$side-hover-bg: themed(side-hover-bg, $list-hover-bg);
+$side-selected-bg: themed(side-selected-bg, $selected-bg);
 
 // The console at the bottom
 $console-bg: themed(console-bg, $bg-primary);
-$console-body-bg: themed(console-body-bg, $bg-tab-active);
-$console-text: themed(console-text, $text-inherited);
+$console-body-bg: themed(console-body-bg, $bg-secondary);
+$console-text: themed(console-text, $text-primary);
 $console-text-muted: themed(console-text-muted, $text-secondary);
-$console-icon: themed(console-icon, $text-disabled);
+// the names of the console's tabs, in its header bar: their own, so the log lines' colour leaves the header be
+$console-tab-text: themed(console-tab-text, $console-text-muted);
+// the line under the console's open tab: its own, as the GNB's and the tab bar's markers are
+$console-marker: themed(console-marker, $border-color-active);
+$console-icon: themed(console-icon, $text-icon);
+// a button in its bar under the pointer, as its icon buttons draw it (Hover)
+$console-hover-bg: themed(console-hover-bg, $hover-bg);
+// the selected task's lines: a selection, like a selected row
+$console-selected-bg: themed(console-selected-bg, $selected-bg);
 
 // Tables (result grids, column lists)
 $table-header-bg: themed(table-header-bg, $bg-elevated);
-$table-header-text: themed(table-header-text, $text-disabled);
-$table-text: themed(table-text, $text-secondary);
+// column names: a kind of text of their own (no shared token is it); a table's values are the page's
+// secondary text (text-secondary)
+$table-header-text: themed(table-header-text, $text-muted);
+// the numbers at the start of each row: the column names' colour unless a theme gives them their own
+$table-row-number-text: themed(table-row-number-text, $table-header-text);
 $table-stripe-bg: themed(table-stripe-bg, $bg-elevated);
+// a row under the pointer (a call site keeps the hover it drew before as the fallback)
+$table-row-hover-bg: themed(table-row-hover-bg, $list-hover-bg);
+// the selected row: the table's own selection colour, as the side panel and the console have theirs
+$table-row-selected-bg: themed(table-row-selected-bg, $selected-bg);
 
-// Input fields (inputs, dropdowns, comboboxes)
+// Input fields (inputs, dropdowns, comboboxes); what is typed in one is the page's text (text-primary)
 $field-bg: themed(field-bg, $bg-elevated);
-$field-border: themed(field-border, $border-color-light);
-$field-text: themed(field-text, $text-primary);
+$field-border: themed(field-border, $border-color-default);
 $field-icon: themed(field-icon, $text-tertiary);
+// the outline of a field that holds an error
+$field-error-border: themed(field-error-border, $error-main);
+// a disabled field (inputs, selects, text areas)
+$field-disabled-bg: themed(field-disabled-bg, $bg-primary);
 
 // Dialogs
 $dialog-bg: themed(dialog-bg, $bg-elevated);
-$dialog-text: themed(dialog-text, $text-primary);
-$dialog-text-muted: themed(dialog-text-muted, $text-secondary);
+// a dialog's title; every other word in it is the page's text (text-primary, text-muted…): a dialog sits on a
+// layer of the page's brightness, so the shared text reads on it — a part has text of its own only where its
+// ground can be the other brightness (the GNB, the tab bar, the side panel, the console, tooltips)
+$dialog-title-text: themed(dialog-title-text, $text-primary);

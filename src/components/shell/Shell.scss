@@ -11,7 +11,7 @@
     padding-top: 4px;
     padding-left: 8px;
     /* The terminal theme's background (Shell.tsx paintTerminal), so the padding is terminal. */
-    background-color: var(--neo-terminal-bg, transparent);
+    background-color: var(--shell-terminal-bg, transparent);
     position: relative;
     user-select: none;
     -ms-user-select: none;
@@ -50,7 +50,7 @@
 .xterm .composition-view {
     /* TODO: Composition position got messed up somewhere */
     background: var(--neo-bg-secondary, #000);
-    color: var(--neo-text-primary, #fff);
+    color: var(--neo-text-primary, #f1f1f1);
     display: none;
     position: absolute;
     white-space: nowrap;
@@ -64,7 +64,7 @@
 .xterm .xterm-viewport {
     /* On OS X this is required in order for the scroll bar to appear fully opaque. The app's
        editors' surface, as the Default terminal theme's background (appTerminalTheme). */
-    background-color: var(--neo-terminal-bg, var(--neo-bg-secondary, #000));
+    background-color: var(--shell-terminal-bg, var(--neo-bg-secondary, #000));
     overflow-y: scroll;
     cursor: default;
     position: absolute;

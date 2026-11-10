@@ -90,12 +90,12 @@
     transition: background-color 0.15s ease, color 0.15s ease;
 
     &:hover {
-        background-color: c.$bg-hover-block;
+        background-color: c.$toolbar-hover-bg;
         color: c.$text-primary;
     }
 
     &:active {
-        background-color: c.$bg-hover-light;
+        background-color: c.$hover-bg;
     }
 
     svg {

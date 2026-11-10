@@ -59,12 +59,12 @@
 }
 
 .badge--soon {
-    color: t.$warning-main;
-    background-color: color-mix(in srgb, var(--neo-warning-main, rgb(255, 152, 0)) 14%, transparent);
+    color: t.$warning-text;
+    background-color: color-mix(in srgb, var(--neo-warning-main, #d67f00) 14%, transparent);
 }
 
 .badge--expired {
-    color: t.$error-main;
+    color: t.$error-text;
     background-color: color-mix(in srgb, var(--neo-error-main, rgb(255, 83, 83)) 14%, transparent);
 }
 
@@ -120,7 +120,7 @@
     height: 6px;
     border-radius: 3px;
     // a groove (bg-input) rather than a raised strip, which a light theme draws white on white
-    background-color: var(--neo-bg-input, #2c2c2c);
+    background-color: var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
     overflow: hidden;
 }
 
@@ -128,7 +128,7 @@
     position: absolute;
     inset: 0 auto 0 0;
     border-radius: calc(3px * var(--neo-radius-scale, 1));
-    background-color: t.$text-muted;
+    background-color: var(--neo-border-color-strong, #767676);
     transition: width 0.25s ease;
 }
 
@@ -181,11 +181,11 @@
 }
 
 .factValue--soon {
-    color: t.$warning-main;
+    color: t.$warning-text;
 }
 
 .factValue--expired {
-    color: t.$error-main;
+    color: t.$error-text;
 }
 
 .factValueRow {
@@ -242,6 +242,6 @@
 
 // required marker next to a base-form field title
 .req {
-    color: t.$error-main;
+    color: t.$error-text;
     margin-left: 4px;
 }

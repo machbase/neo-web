@@ -23,11 +23,11 @@
         padding: 8px 12px;
         border-top: 1px solid theme.$border-color;
         border-bottom: 1px solid theme.$border-color;
-        background: theme.$surface-inset;
+        background: theme.$panel-bg;
         color: theme.$text-secondary;
 
         strong {
-            color: var(--neo-error-light, #ff8a3d);
+            color: var(--neo-warning-text, #ff9800);
             font-weight: 600;
         }
     }
@@ -56,11 +56,11 @@
     gap: 4px;
     pointer-events: none;
     padding: 4px 8px;
-    border: 1px solid color-mix(in srgb, var(--neo-warning-main, rgb(253, 181, 50)) 45%, transparent);
+    border: 1px solid color-mix(in srgb, var(--neo-warning-main, #d67f00) 45%, transparent);
     border-radius: calc(4px * var(--neo-radius-scale, 1));
     // a raised note over the chart (bg-primary was a theme's solid frame colour)
-    background: var(--neo-bg-elevated, rgba(22, 22, 22, 0.92));
-    color: theme.$warning;
+    background: var(--neo-bg-elevated, #2c2c2c);
+    color: theme.$warning-text;
     @include text.role(caption);
     white-space: nowrap;
     box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28);
@@ -71,13 +71,13 @@
 }
 
 .panel-chart-interaction-hint--valid {
-    border-color: color-mix(in srgb, var(--neo-success-main, rgb(87, 214, 141)) 50%, transparent);
-    color: var(--neo-success-main, #57d68d);
+    border-color: color-mix(in srgb, var(--neo-success-main, #37aa3b) 50%, transparent);
+    color: var(--neo-success-text, #9df486);
 }
 
 .panel-chart-interaction-hint--invalid {
-    border-color: color-mix(in srgb, var(--neo-error-light, rgb(255, 138, 61)) 50%, transparent);
-    color: var(--neo-error-light, #ff8a3d);
+    border-color: color-mix(in srgb, var(--neo-warning-main, #d67f00) 50%, transparent);
+    color: var(--neo-warning-text, #ff9800);
 }
 
 .panel-main-chart-loading-overlay,
@@ -94,13 +94,13 @@
 
 .panel-main-chart-loading-overlay {
     pointer-events: auto;
-    background: color-mix(in srgb, var(--neo-bg-secondary, rgb(37, 37, 37)) 22%, transparent);
+    background: color-mix(in srgb, var(--neo-bg-secondary, #252525) 22%, transparent);
     color: theme.$text-secondary;
 }
 
 .panel-main-chart-notice-overlay {
     pointer-events: none;
-    background: color-mix(in srgb, var(--neo-bg-secondary, rgb(37, 37, 37)) 58%, transparent);
+    background: color-mix(in srgb, var(--neo-bg-secondary, #252525) 58%, transparent);
     color: theme.$text-primary;
     font-weight: 600;
 }
@@ -108,8 +108,8 @@
 .panel-main-chart-loading-spinner {
     width: 20px;
     height: 20px;
-    border: 3px solid color-mix(in srgb, var(--neo-primary-light, rgb(65, 153, 255)) 26%, transparent);
-    border-top-color: var(--neo-primary-light, #4199ff);
+    border: 3px solid color-mix(in srgb, var(--neo-accent-light, rgb(0, 108, 210)) 26%, transparent);
+    border-top-color: var(--neo-accent-light, rgb(0, 108, 210));
     border-radius: 50%;
     animation: panel-main-chart-loading-spin 0.8s linear infinite;
 }

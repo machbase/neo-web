@@ -126,7 +126,7 @@
     height: 0.25em;
     padding: 0;
     margin: 24px 0;
-    background-color: var(--neo-bg-input-dark, #30363d);
+    background-color: var(--neo-bg-elevated, #30363d);
     border: 0;
 }
 
@@ -255,8 +255,8 @@
     color: var(--neo-text-secondary, #c9d1d9);
     vertical-align: middle;
     background-color: var(--neo-bg-primary, #161b22);
-    border: solid 1px var(--neo-border-color-light, rgba(110, 118, 129, 0.4));
-    border-bottom-color: var(--neo-border-color-light, rgba(110, 118, 129, 0.4));
+    border: solid 1px var(--neo-border-color-default, rgba(110, 118, 129, 0.4));
+    border-bottom-color: var(--neo-border-color-default, rgba(110, 118, 129, 0.4));
     border-radius: calc(6px * var(--neo-radius-scale, 1));
     box-shadow: inset 0 -1px 0 rgba(110, 118, 129, 0.4);
 }
@@ -687,7 +687,7 @@
     margin: 0;
     font-size: 85%;
     white-space: break-spaces;
-    background-color: var(--neo-bg-input, rgba(110, 118, 129, 0.4));
+    background-color: var(--neo-hover-bg, rgba(110, 118, 129, 0.4));
     border-radius: calc(6px * var(--neo-radius-scale, 1));
 }
 
@@ -812,7 +812,7 @@
     left: -24px;
     pointer-events: none;
     content: '';
-    border: 2px solid var(--neo-primary-hover, #1f6feb);
+    border: 2px solid var(--neo-accent-hover, #1f6feb);
     border-radius: calc(6px * var(--neo-radius-scale, 1));
 }
 
@@ -848,7 +848,7 @@
 }
 
 .markdown-body .pl-k {
-    color: var(--neo-error-light, #ff7b72);
+    color: var(--neo-error-text, #ff7b72);
 }
 
 .markdown-body .pl-s,
@@ -893,7 +893,7 @@
 .markdown-body .pl-mh .pl-en,
 .markdown-body .pl-ms {
     font-weight: bold;
-    color: var(--neo-primary-hover, #1f6feb);
+    color: var(--neo-accent-hover, #1f6feb);
 }
 
 .markdown-body .pl-mi {
@@ -912,7 +912,7 @@
 }
 
 .markdown-body .pl-mi1 {
-    color: var(--neo-success-light, #aff5b4);
+    color: var(--neo-success-text, #aff5b4);
     background-color: #033a16;
 }
 
@@ -923,7 +923,7 @@
 
 .markdown-body .pl-mi2 {
     color: var(--neo-text-secondary, #c9d1d9);
-    background-color: var(--neo-primary-base, #1158c7);
+    background-color: var(--neo-accent-main, #1158c7);
 }
 
 .markdown-body .pl-mdr {

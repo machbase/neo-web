@@ -12,7 +12,7 @@ $spinner-height: 35px;
     .spinner {
         width: $spinner-width;
         padding: 5px;
-        background: #c2c2c2;
+        background: var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
         border-radius: 50%;
         aspect-ratio: 1;
 

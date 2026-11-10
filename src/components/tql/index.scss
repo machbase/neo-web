@@ -14,10 +14,10 @@
     svg {
         border-radius: calc(5px * var(--neo-radius-scale, 1));
         font-size: 18px;
-        color: var(--neo-text-tertiary, #939498);
+        color: var(--neo-text-tertiary, #a3a3a3);
         cursor: pointer;
         &:hover {
-            color: var(--neo-text-primary, #f8f8f8);
+            color: var(--neo-text-primary, #f1f1f1);
         }
     }
 }
@@ -43,24 +43,24 @@
     svg {
         border-radius: calc(5px * var(--neo-radius-scale, 1));
         font-size: 18px;
-        color: var(--neo-text-tertiary, #939498);
+        color: var(--neo-text-tertiary, #a3a3a3);
         cursor: pointer;
         &:hover {
-            color: var(--neo-text-primary, #f8f8f8);
+            color: var(--neo-text-primary, #f1f1f1);
         }
     }
 
     .result-icon {
-        color: var(--neo-warning-main, #fdb532);
+        color: var(--neo-warning-text, #ff9800);
         svg {
             cursor: initial;
             font-size: 16px;
-            color: var(--neo-text-tertiary, #939498);
+            color: var(--neo-text-tertiary, #a3a3a3);
         }
     }
     .divider {
         width: 1px;
-        background-color: var(--neo-bg-input, rgba(255, 255, 255, 0.2));
+        background-color: var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
 
         justify-content: center;
         align-items: center;
@@ -115,7 +115,7 @@
     border-top-left-radius: 8px;
     border-top-right-radius: 8px;
 
-    background-color: var(--neo-bg-primary, #1b1c21);
+    background-color: var(--neo-bg-primary, #1e1e1e);
 
     position: relative;
 
@@ -124,7 +124,7 @@
     .round_right_wrap {
         width: 15px;
         height: 15px;
-        background-color: var(--neo-bg-primary, #1b1c21);
+        background-color: var(--neo-bg-primary, #1e1e1e);
         position: absolute;
         bottom: 0px;
         left: -15px;
@@ -134,7 +134,7 @@
             width: 15px;
             height: 15px;
             border-radius: 0 0 80% 0;
-            background-color: var(--neo-bg-elevated, #272831);
+            background-color: var(--neo-bg-elevated, #2c2c2c);
             position: absolute;
             bottom: 0;
             left: 0px;
@@ -144,7 +144,7 @@
     .round_left_wrap {
         width: 15px;
         height: 15px;
-        background-color: var(--neo-bg-primary, #1b1c21);
+        background-color: var(--neo-bg-primary, #1e1e1e);
         position: absolute;
         bottom: 0px;
         right: -15px;
@@ -155,7 +155,7 @@
             width: 15px;
             height: 15px;
             border-radius: 0 0 0 80%;
-            background-color: var(--neo-bg-elevated, #272831);
+            background-color: var(--neo-bg-elevated, #2c2c2c);
             position: absolute;
             bottom: 0;
             right: 0;

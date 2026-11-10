@@ -13,8 +13,8 @@
     font-size: 13px;
     border-radius: calc(6px * var(--neo-radius-scale, 1));
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.16);
-    border: solid 0.5px color-mix(in srgb, var(--neo-text-primary, rgb(255, 255, 255)) 50%, transparent);
-    background-color: var(--neo-bg-hover-light, #404457);
+    border: solid 0.5px var(--neo-menu-border, var(--neo-border-color-default, rgba(255, 255, 255, 0.13)));
+    background-color: var(--neo-menu-bg, #2d2d2d);
     z-index: $menu-modal-idx;
     transform: translate3d(0, 0, 0);
 }
@@ -29,12 +29,12 @@
     align-items: center;
     gap: 0.3rem;
     border-radius: calc(6px * var(--neo-radius-scale, 1));
-    color: var(--neo-text-disabled, rgba(255, 255, 255, 0.5));
+    color: var(--neo-text-primary, #f1f1f1);
     cursor: pointer;
 
     &:hover {
-        background-color: var(--neo-bg-hover, rgba(255, 255, 255, 0.08));
-        color: white;
+        background-color: var(--neo-menu-item-hover-bg, #3d3d3d);
+        color: var(--neo-text-primary, #f1f1f1);
     }
 
     box-sizing: border-box;

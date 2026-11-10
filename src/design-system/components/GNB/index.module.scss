@@ -8,7 +8,8 @@
     width: 52px;
     background-color: var(--gnb-bg, t.$gnb-bg);
     --ghost-icon: #{t.$gnb-icon};
-    --ghost-icon-hover: #{t.$gnb-icon-active};
+    --ghost-icon-hover: #{t.$gnb-active-icon};
+    --ghost-hover-bg: #{t.$gnb-hover-bg};
     // border-right: solid 0.5px t.$border-color-default;
     overflow-y: auto;
     overflow-x: hidden;
@@ -26,7 +27,7 @@
         border-radius: calc(2px * var(--neo-radius-scale, 1));
 
         &:hover {
-            background: t.$scrollbar-thumb-hover;
+            background: t.$scrollbar-hover-thumb;
         }
     }
 }
@@ -77,8 +78,8 @@
     border-radius: calc(6px * var(--neo-radius-scale, 1));
 
     &:hover {
-        color: var(--gnb-item-hover-color, t.$gnb-icon-active);
-        background-color: var(--gnb-item-hover-bg, var(--neo-bg-hover, rgba(255, 255, 255, 0.08)));
+        color: var(--gnb-item-hover-color, t.$gnb-active-icon);
+        background-color: var(--gnb-item-hover-bg, t.$gnb-hover-bg);
     }
 
     &:focus-visible {
@@ -91,15 +92,15 @@
 .gnb__item__wrapper--selected {
     opacity: 1;
     .gnb__item {
-        color: var(--gnb-item-selected-color, t.$gnb-icon-active);
+        color: var(--gnb-item-selected-color, t.$gnb-active-icon);
         opacity: inherit;
         .gnb__item__icon {
             opacity: inherit;
             svg {
-                fill: var(--gnb-item-selected-color, t.$gnb-icon-active);
+                fill: var(--gnb-item-selected-color, t.$gnb-active-icon);
                 opacity: inherit;
                 path {
-                    fill: var(--gnb-item-selected-color, t.$gnb-icon-active);
+                    fill: var(--gnb-item-selected-color, t.$gnb-active-icon);
                     opacity: inherit;
                 }
             }

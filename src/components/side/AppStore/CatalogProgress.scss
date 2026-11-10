@@ -15,7 +15,7 @@
     overflow: hidden;
     // A faint track, so the sliding segment reads as travelling along something
     // rather than as a stray mark drifting across the panel.
-    background-color: var(--neo-bg-hover, rgba(255, 255, 255, 0.06));
+    background-color: var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
     // The bar is a status report, not a control — it must never eat a click meant
     // for the search band above it or the first card below it.
     pointer-events: none;
@@ -26,7 +26,7 @@
         top: 0;
         bottom: 0;
         width: 40%;
-        background-color: t.$primary-base;
+        background-color: t.$accent-main;
         // 250% = 100 / 40: the distance a 40%-wide segment must travel to clear a
         // 100%-wide track completely. `translateX` percentages are relative to the
         // ELEMENT's own width, not the container's, so this number is tied to the

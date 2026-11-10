@@ -1,7 +1,7 @@
 @import '/src/assets/scss/theme.scss';
 
 .panel-wrap {
-    border: 1px solid var(--neo-border-color-light, #b8c8da41);
+    border: 1px solid var(--neo-border-color-default, #b8c8da41);
     background-color: var(--neo-bg-primary, #141518);
     border-radius: calc(4px * var(--neo-radius-scale, 1));
     width: 100%;
@@ -29,7 +29,7 @@
         margin-right: 4px;
     }
     .draggable-panel-header-menu-icon:hover {
-        background-color: var(--neo-bg-input, #b8c8da41);
+        background-color: var(--neo-toolbar-hover-bg, #b8c8da41);
         border-radius: calc(4px * var(--neo-radius-scale, 1));
     }
 }

@@ -31,7 +31,7 @@
     background: transparent;
     border: none;
     border-radius: calc(4px * var(--neo-radius-scale, 1));
-    color: t.$primary-light;
+    color: t.$accent-text;
     cursor: pointer;
     padding: 4px 8px;
     text-align: left;
@@ -40,8 +40,8 @@
     outline: none;
 
     &:hover {
-        color: t.$primary-hover;
-        background-color: t.$bg-hover;
+        color: t.$accent-text;
+        background-color: t.$hover-bg;
     }
     &:active { opacity: 0.5; }
     &:focus-visible {

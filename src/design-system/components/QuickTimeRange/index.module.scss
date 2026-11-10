@@ -28,7 +28,7 @@
     &__button {
         background: transparent;
         border: none;
-        color: t.$primary-light;
+        color: t.$accent-text;
         cursor: pointer;
         font-size: t.$font-size-sm;
         padding: 4px 8px;
@@ -41,8 +41,8 @@
         border-radius: calc(4px * var(--neo-radius-scale, 1));
 
         &:hover {
-            color: t.$primary-hover;
-            background-color: t.$bg-hover;
+            color: t.$accent-text;
+            background-color: t.$hover-bg;
         }
 
         &:active {

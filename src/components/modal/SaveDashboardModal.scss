@@ -15,7 +15,7 @@
         flex-direction: row;
         padding: 0 t.$spacing-20 t.$spacing-4 t.$spacing-20;
         gap: t.$spacing-8;
-        border-bottom: 1px solid var(--neo-border-color-light, #3e3e3e);
+        border-bottom: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
         align-items: center;
     }
 
@@ -38,11 +38,11 @@
         transition: background-color 0.15s ease;
 
         &:hover {
-            background-color: var(--neo-bg-hover, rgba(255, 255, 255, 0.05));
+            background-color: var(--neo-hover-bg, rgba(255, 255, 255, 0.08));
         }
 
         &--selected {
-            background-color: var(--neo-bg-hover, rgba(255, 255, 255, 0.08));
+            background-color: var(--neo-selected-bg, rgb(0, 83, 160));
         }
     }
 
@@ -67,7 +67,7 @@
     &__file-size {
         flex: 1;
         font-size: t.$font-size-sm;
-        color: t.$text-secondary;
+        color: var(--neo-text-primary, #f1f1f1);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -92,7 +92,7 @@
 
     &__option-label {
         font-size: t.$font-size-sm;
-        color: t.$text-primary;
+        color: var(--neo-text-primary, #f1f1f1);
         white-space: nowrap;
     }
 

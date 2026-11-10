@@ -59,7 +59,7 @@
  * Hover background effect
  * Used in ExtensionTab hover states
  */
-@mixin hover-bg($bg-color: c.$bg-hover) {
+@mixin hover-bg($bg-color: c.$hover-bg) {
     // transition: tr.$transition-default;
 
     &:hover {
@@ -76,7 +76,7 @@
     cursor: pointer;
 
     &:hover {
-        background-color: c.$primary-hover;
+        background-color: c.$accent-hover;
     }
 }
 
@@ -85,8 +85,8 @@
  * Used in tables and selectable items
  */
 @mixin active-state {
-    background-color: c.$bg-active;
-    color: c.$text-active;
+    background-color: c.$selected-bg;
+    color: c.$selected-text;
 }
 
 /**
@@ -137,8 +137,8 @@
  * Provides consistent border, background, and transition effects
  */
 @mixin interactive-field-base {
-    background-color: var(--neo-field-bg, var(--neo-bg-elevated, #2a2a2a));
-    border: 1px solid var(--neo-field-border, var(--neo-border-color-light, #3e3e3e));
+    background-color: var(--neo-field-bg, var(--neo-bg-elevated, #2c2c2c));
+    border: 1px solid var(--neo-field-border, var(--neo-border-color-default, rgba(255, 255, 255, 0.13)));
     border-radius: br.$border-radius-base;
     transition: border-color 0.3s ease;
 }
@@ -149,7 +149,7 @@
  */
 @mixin interactive-field-hover {
     &:hover:not(:disabled):not(.active):not(.open) {
-        border-color: var(--neo-border-color-medium, #5a5a5a);
+        border-color: var(--neo-border-color-strong, #767676);
     }
 }
 
@@ -164,20 +164,39 @@
 }
 
 /**
+ * A search box: an icon and an input in one box (the DB explorer's, the package list's, a New tab
+ * panel's). It is a field and looks like every other one: its fill and line at rest, a stronger
+ * line under the pointer, the focus line while typing; the fill does not change.
+ * `$ink` is the icon's (and a count's) colour — the part's: the side panel's icons there.
+ */
+@mixin search-box($ink: c.$field-icon) {
+    @include interactive-field-base;
+    color: $ink;
+
+    &:hover {
+        border-color: var(--neo-border-color-strong, #767676);
+    }
+
+    &:focus-within {
+        @include interactive-field-active;
+    }
+}
+
+/**
  * Base input styling
  * Used across ExtensionTab inputs
  */
 @mixin input-base {
-    background-color: c.$bg-input;
-    color: c.$text-primary;
-    border: b.$border-default;
+    background-color: var(--neo-field-bg, var(--neo-bg-elevated, #2c2c2c));
+    color: var(--neo-text-primary, #f1f1f1);
+    border: solid 1px var(--neo-field-border, var(--neo-border-color-default, rgba(255, 255, 255, 0.13)));
     border-radius: br.$border-radius-sm;
     padding: s.$input-padding-y s.$input-padding-x;
     font-size: t.$font-size-md;
     transition: tr.$transition-default;
 
     &::placeholder {
-        color: c.$text-disabled;
+        color: c.$text-muted;
         font-size: t.$font-size-sm;
     }
 
@@ -216,7 +235,7 @@
  */
 @mixin button-text {
     @include flex-center;
-    height: s.$button-height;
+    height: sz.$button-height;
     padding: s.$spacing-4;
     color: c.$text-primary;
     font-size: t.$font-size-base;
@@ -246,11 +265,11 @@
     transition: tr.$transition-default;
 
     &:hover {
-        background-color: c.$primary-base;
+        background-color: c.$accent-main;
     }
 
     &.active {
-        background-color: c.$primary-base;
+        background-color: c.$accent-main;
     }
 }
 
@@ -258,11 +277,11 @@
  * Primary button variant
  */
 @mixin button-primary {
-    background-color: c.$btn-create;
+    background-color: c.$button-primary-bg;
     color: c.$text-on-accent;
 
     &:hover {
-        background-color: c.$primary-hover;
+        background-color: c.$accent-hover;
     }
 }
 
@@ -270,7 +289,7 @@
  * Danger button variant
  */
 @mixin button-danger {
-    background-color: c.$btn-delete;
+    background-color: c.$button-danger-bg;
     color: c.$text-on-accent;
 
     &:hover {
@@ -290,7 +309,7 @@
     padding: s.$content-block-padding-y s.$content-block-padding-x;
     border-radius: br.$border-radius-base;
 
-    @include hover-bg(c.$bg-hover-block);
+    @include hover-bg(c.$list-hover-bg);
 }
 
 /**
@@ -309,7 +328,7 @@
  * Wrapper for inputs with border
  */
 @mixin input-container {
-    background-color: c.$bg-input;
+    background-color: var(--neo-field-bg, var(--neo-bg-elevated, #2c2c2c));
     border: b.$border-light;
     border-radius: br.$border-radius-sm;
     padding: 0 s.$spacing-4;
@@ -335,11 +354,11 @@
     font-size: t.$font-size-md;
     font-weight: t.$font-weight-semibold;
     font-family: t.$font-family-initial;
-    color: c.$text-disabled;
+    color: c.$table-header-text;
 
     th {
         padding: s.$table-header-padding-y s.$table-cell-padding-x;
-        background-color: c.$bg-elevated;
+        background-color: var(--neo-table-header-bg, var(--neo-bg-elevated, #2c2c2c));
     }
 }
 
@@ -359,7 +378,7 @@
     thead {
         font-size: 14px;
         font-weight: t.$font-weight-semibold;
-        color: c.$text-disabled;
+        color: c.$table-header-text;
         position: sticky;
         top: 0;
         z-index: 10;
@@ -367,21 +386,21 @@
         th {
             min-width: 20px;
             padding: 4px 8px;
-            background-color: c.$bg-elevated;
+            background-color: var(--neo-table-header-bg, var(--neo-bg-elevated, #2c2c2c));
         }
     }
 
     tbody {
-        color: c.$text-secondary;
+        color: var(--neo-text-secondary, #c4c4c4);
         font-size: t.$font-size-base;
 
         tr {
             &:nth-child(2n) {
-                background-color: var(--neo-bg-elevated, rgb(43, 43, 43));
+                background-color: var(--neo-table-stripe-bg, var(--neo-bg-elevated, #2c2c2c));
             }
 
             &:hover {
-                background-color: c.$bg-hover-light;
+                background-color: c.$table-row-hover-bg;
             }
         }
 
@@ -393,7 +412,7 @@
             max-width: 50vw;
 
             &:hover {
-                color: c.$primary-light;
+                color: c.$accent-text;
                 filter: brightness(1.5) saturate(1.2);
             }
         }
@@ -404,7 +423,7 @@
  * Table body
  */
 @mixin table-body {
-    color: c.$text-secondary;
+    color: var(--neo-text-secondary, #c4c4c4);
     text-align: left;
     font-size: t.$font-size-base;
 
@@ -413,7 +432,7 @@
     }
 
     tr {
-        @include hover-bg(c.$bg-hover);
+        @include hover-bg(c.$hover-bg);
 
         &.active {
             @include active-state;
@@ -473,11 +492,11 @@
     }
 
     &::-webkit-scrollbar-thumb {
-        background: var(--neo-bg-input, rgba(255, 255, 255, 0.2));
+        background: var(--neo-scrollbar-thumb, #5c5c5c);
         border-radius: calc(3px * var(--neo-radius-scale, 1));
 
         &:hover {
-            background: var(--neo-btn-copy, rgba(255, 255, 255, 0.3));
+            background: var(--neo-neutral-main, #6f7173);
         }
     }
 }
@@ -510,7 +529,7 @@
 @mixin divider {
     width: 100%;
     height: 1px;
-    background-color: c.$border-medium;
+    background-color: c.$border-color-strong;
 }
 
 /**
@@ -631,9 +650,9 @@
     border-left: 2px solid transparent;
 
     &:hover:not(&--selected) {
-        background-color: c.$dropdown-option-hover-bg-light;
+        background-color: var(--neo-menu-item-hover-bg, #3d3d3d);
         // text-primary (white on the dark screen): color-white stayed white on a light theme's menu
-        color: var(--neo-text-primary, #ffffff);
+        color: var(--neo-text-primary, #f1f1f1);
     }
 }
 
@@ -642,8 +661,8 @@
  */
 @mixin hierarchical-combobox-category-selected {
     background-color: c.$dropdown-option-selected-bg;
-    color: var(--neo-text-primary, #ffffff);
-    border-left-color: c.$primary-light;
+    color: var(--neo-text-primary, #f1f1f1);
+    border-left-color: c.$accent-light;
     border-radius: 0;
 
     &:hover {
@@ -690,7 +709,7 @@
         inset: 0;
         opacity: 0;
         transition: opacity 0.2s ease;
-        background: radial-gradient(closest-side, var(--neo-bg-active-hover, rgb(0, 108, 210)) 0%, rgba(0, 95, 184, 0) 100%);
+        background: radial-gradient(closest-side, var(--neo-selected-hover-bg, rgb(0, 108, 210)) 0%, rgba(0, 95, 184, 0) 100%);
         pointer-events: none;
     }
 
@@ -761,7 +780,7 @@
         bottom: 0;
         opacity: 0;
         transition: opacity 0.2s ease;
-        background: radial-gradient(closest-side, var(--neo-bg-active-hover, rgb(0, 108, 210)) 0%, rgba(0, 95, 184, 0) 100%);
+        background: radial-gradient(closest-side, var(--neo-selected-hover-bg, rgb(0, 108, 210)) 0%, rgba(0, 95, 184, 0) 100%);
         pointer-events: none;
     }
 

@@ -44,10 +44,10 @@
     margin: 0;
     cursor: pointer;
 
-    // Checked state - background changes to match design system primary button
+    // Checked: a control switched on (switch-bg-active), as a switch is
     &:checked + .checkbox-checkmark {
-        background-color: var(--neo-bg-active-hover, rgb(0, 108, 210));
-        border-color: var(--neo-border-color-focus, rgb(0, 108, 210));
+        background-color: var(--neo-accent-main, #005fb8);
+        border-color: var(--neo-accent-main, #005fb8);
 
         svg {
             opacity: 1;
@@ -60,8 +60,8 @@
     }
 
     &:checked:not(:disabled):hover + .checkbox-checkmark {
-        background-color: var(--neo-primary-base, rgb(0, 90, 180));
-        border-color: var(--neo-border-color-active, rgb(0, 90, 180));
+        background-color: var(--neo-accent-hover, #0075e2);
+        border-color: var(--neo-accent-hover, #0075e2);
     }
 
     // Focus state
@@ -72,8 +72,8 @@
 
     // Indeterminate state
     &:indeterminate + .checkbox-checkmark {
-        background-color: var(--neo-bg-active-hover, rgb(0, 108, 210));
-        border-color: var(--neo-border-color-focus, rgb(0, 108, 210));
+        background-color: var(--neo-accent-main, #005fb8);
+        border-color: var(--neo-accent-main, #005fb8);
 
         svg {
             opacity: 1;
@@ -101,14 +101,15 @@
     flex-shrink: 0;
     width: 16px;
     height: 16px;
-    background-color: t.$bg-input;
+    background-color: var(--neo-field-bg, var(--neo-bg-elevated, #2c2c2c));
     border: 1px solid t.$border-color-default;
     border-radius: t.$border-radius-sm;
     transition: t.$transition-default;
 
     svg {
         opacity: 0;
-        color: t.$text-primary;
+        // drawn only on a checked box, on the switched-on fill
+        color: var(--neo-text-on-accent, #ffffff);
         transition: opacity t.$transition-duration-fast t.$transition-easing-default;
     }
 
@@ -163,10 +164,10 @@
 // Helper text
 .checkbox-helper-text {
     font-size: t.$font-size-sm;
-    color: t.$text-secondary;
+    color: var(--label-text, t.$text-secondary);
     margin-left: 24px; // Align with checkbox label
 
     &--error {
-        color: t.$error-main;
+        color: t.$error-text;
     }
 }

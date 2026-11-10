@@ -2,7 +2,7 @@
 .edit-shell-modal-cover {
     width: 100vw;
     height: 100vh;
-    background-color: var(--neo-bg-primary, #121212);
+    background-color: var(--neo-bg-backdrop, rgba(0, 0, 0, 0.5));
     opacity: 0.4;
     top: 0;
     left: 0;
@@ -16,10 +16,12 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background-color: var(--neo-bg-hover-light, #404457);
+    background-color: var(--neo-dialog-bg, var(--neo-bg-elevated, #2c2c2c));
+    // a field's label and helper text in a dialog are its body text (Input, Textarea, Dropdown…: --label-text)
+    --label-text: var(--neo-text-primary, #f1f1f1);
     z-index: $modal-idx;
     border-radius: calc(8px * var(--neo-radius-scale, 1));
-    border: solid 0.5px color-mix(in srgb, var(--neo-text-primary, rgb(255, 255, 255)) 50%, transparent);
+    border: solid 0.5px var(--neo-dialog-border, var(--neo-border-color-default, rgba(255, 255, 255, 0.13)));
     font-size: 14px;
     display: flex;
     flex-direction: column;
@@ -59,7 +61,7 @@
                 flex-wrap: wrap;
                 .selected-icons {
                     svg {
-                        color: var(--neo-primary-light, #4199ff) !important;
+                        color: var(--neo-accent-text, #4199ff) !important;
                     }
                 }
                 .icon {

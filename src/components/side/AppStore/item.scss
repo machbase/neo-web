@@ -20,19 +20,21 @@
 //
 // The two are now separated by HUE, not by opacity:
 //
-//   open      grey bar, no fill   — you have this open somewhere
-//   selected  blue bar + fill     — you are looking at this right now
+//   open      grey bar, no fill     — you have this open somewhere
+//   selected  accent bar + a wash   — you are looking at this right now
 //
 // Colour plus fill survives a glance; two shades of the same blue did not.
 .app-store-row--open {
-    box-shadow: inset 2px 0 0 0 t.$text-tertiary;
+    box-shadow: inset 2px 0 0 0 t.$border-color-strong;
 }
 
 // Wins whenever both apply: it is declared after `--open`, and the class order in
 // `item.tsx` puts them on the same element rather than nesting them.
 .app-store-row--selected {
-    box-shadow: inset 2px 0 0 0 t.$primary-base;
-    background: var(--neo-bg-input, rgba(255, 255, 255, 0.15));
+    // The accent bar is the mark. The fill is the panel's hover wash, not the selection: a selection is
+    // the accent's own hue (Dark: #0053a0 under a #005fb8 bar, 1.2:1), and the bar sank into it.
+    box-shadow: inset 2px 0 0 0 t.$accent-main;
+    background: t.$side-hover-bg;
 }
 
 .app-store-item {
@@ -42,10 +44,10 @@
     width: 100%;
     cursor: pointer;
     gap: 6px;
-    border-bottom: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.06));
+    border-bottom: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
 
     &:hover {
-        background-color: t.$bg-hover;
+        background-color: var(--neo-side-hover-bg, var(--neo-list-hover-bg, rgba(255, 255, 255, 0.13)));
     }
 
     // Top area: icon (left) + (title row + publisher) on the right
@@ -69,6 +71,13 @@
             img {
                 width: 42px;
                 height: 42px;
+            }
+            // a white line-drawn icon, painted as a shape in the text colour (PkgIcon, pkgIconGlyph)
+            .pkg-icon-glyph {
+                display: block;
+                width: 42px;
+                height: 42px;
+                background-color: var(--neo-side-text, var(--neo-text-primary, #f1f1f1));
             }
         }
 
@@ -95,7 +104,8 @@
             text-overflow: ellipsis;
             font-size: 13px;
             font-weight: 500;
-            color: var(--neo-text-primary, #dfdfdf);
+            // a name in the side panel is the side panel's text, as the explorers' names are
+            color: var(--neo-side-text, var(--neo-text-primary, #f1f1f1));
             min-width: 0;
             flex: 1;
 
@@ -118,7 +128,7 @@
             justify-content: space-between;
             gap: 6px;
             font-size: 11px;
-            color: var(--neo-text-hint, #aaaaaa);
+            color: var(--neo-text-tertiary, #a3a3a3);
             min-width: 0;
             width: 100%;
 
@@ -139,7 +149,7 @@
             }
 
             .app-store-item-verified {
-                color: var(--neo-primary-light, #1d9bf0);
+                color: var(--neo-accent-text, #4199ff);
                 flex-shrink: 0;
             }
         }
@@ -194,18 +204,18 @@
             padding: 0 6px;
             height: 18px;
             border-radius: calc(4px * var(--neo-radius-scale, 1));
-            background-color: var(--neo-btn-copy, #606060);
-            color: var(--neo-text-primary, #ffffff);
+            background-color: var(--neo-neutral-main, #6f7173);
+            color: var(--neo-text-primary, #f1f1f1);
             white-space: nowrap;
         }
         // Text on an accent fill takes text-on-accent, not text-primary: a light theme's text-primary is dark.
         span.install {
-            background-color: var(--neo-primary-base, #005fb8);
+            background-color: var(--neo-accent-main, #005fb8);
             color: var(--neo-text-on-accent, #ffffff);
         }
         span.update {
-            background-color: var(--neo-warning-main, #bf7b00);
-            color: var(--neo-text-on-accent, #fff);
+            background-color: var(--neo-warning-main, #d67f00);
+            color: var(--neo-text-on-accent, #ffffff);
         }
         // the default button's target version is backed by the server's local
         // package archive (issue #1452) — informational, so a neutral blue that
@@ -213,8 +223,8 @@
         // Padding/height/radius come from the shared `span` rule above, which is
         // what keeps it aligned with the neighbouring chips.
         span.local {
-            background-color: color-mix(in srgb, var(--neo-primary-hover, rgb(45, 156, 219)) 18%, transparent);
-            color: var(--neo-primary-light, #7cc4f0);
+            background-color: color-mix(in srgb, var(--neo-accent-hover, #0075e2) 18%, transparent);
+            color: var(--neo-accent-text, #4199ff);
             gap: 3px;
             cursor: help;
 
@@ -227,8 +237,8 @@
         // Amber, like `.incompat`: both say "this is not the state you think it
         // is", and both are conditions the user has to act on rather than choices.
         span.stray {
-            background-color: color-mix(in srgb, var(--neo-warning-main, rgb(209, 134, 22)) 18%, transparent);
-            color: var(--neo-event-match-main, #e0a458);
+            background-color: color-mix(in srgb, var(--neo-warning-main, #d67f00) 18%, transparent);
+            color: var(--neo-event-match-main, #ffdc72);
             gap: 3px;
             cursor: help;
 
@@ -239,8 +249,8 @@
 
         // server-downgrade incompatibility warning (issue #1369)
         span.incompat {
-            background-color: color-mix(in srgb, var(--neo-warning-main, rgb(209, 134, 22)) 18%, transparent);
-            color: var(--neo-event-match-main, #e0a458);
+            background-color: color-mix(in srgb, var(--neo-warning-main, #d67f00) 18%, transparent);
+            color: var(--neo-event-match-main, #ffdc72);
             gap: 3px;
             cursor: help;
 
@@ -259,9 +269,9 @@
     // ground, which is the conventional "provisional / not part of the set"
     // treatment and survives the theme without new tokens.
     &--stray {
-        border: 1px dashed color-mix(in srgb, var(--neo-error-light, rgb(224, 164, 88)) 38%, transparent);
-        border-bottom: 1px dashed color-mix(in srgb, var(--neo-error-light, rgb(224, 164, 88)) 38%, transparent);
-        background-color: color-mix(in srgb, var(--neo-warning-main, rgb(209, 134, 22)) 4%, transparent);
+        border: 1px dashed color-mix(in srgb, var(--neo-warning-main, #d67f00) 38%, transparent);
+        border-bottom: 1px dashed color-mix(in srgb, var(--neo-warning-main, #d67f00) 38%, transparent);
+        background-color: color-mix(in srgb, var(--neo-warning-main, #d67f00) 4%, transparent);
 
         // issue #1452 — INERT, AND IT MUST LOOK INERT. The base `.app-store-item`
         // is a clickable row (pointer cursor + hover tint) because clicking it
@@ -273,7 +283,7 @@
         cursor: default;
 
         &:hover {
-            background-color: color-mix(in srgb, var(--neo-warning-main, rgb(209, 134, 22)) 4%, transparent);
+            background-color: color-mix(in srgb, var(--neo-warning-main, #d67f00) 4%, transparent);
         }
     }
 
@@ -283,7 +293,7 @@
     .app-store-item-stray-dir {
         font-family: monospace;
         font-size: 11px;
-        color: var(--neo-warning-main, #d0a06a);
+        color: var(--neo-warning-text, #ff9800);
         overflow: hidden;
         white-space: nowrap;
         text-overflow: ellipsis;
@@ -320,14 +330,14 @@
         height: 12px;
         padding: 0;
         border: none;
-        background-color: var(--neo-bg-hover-light, #555);
+        background-color: var(--neo-switch-bg, rgba(255, 255, 255, 0.13));
         border-radius: 6px;
         cursor: pointer;
         transition: background-color 0.15s ease;
         flex-shrink: 0;
 
         &:hover:not(:disabled) {
-            background-color: var(--neo-btn-copy, #6a6a6a);
+            background-color: var(--neo-neutral-main, #6f7173);
         }
         &:disabled {
             opacity: 0.55;
@@ -340,26 +350,26 @@
             left: 2px;
             width: 8px;
             height: 8px;
-            background-color: var(--neo-color-white, #ffffff);
-            // a ring so the knob reads on a theme's light track (transparent on the dark screen)
-            box-shadow: 0 0 0 1px var(--neo-border-color-medium, transparent);
+            background-color: var(--neo-switch-active-thumb, #f1f1f1);
+            // a ring so the knob reads on a light track
+            box-shadow: 0 0 0 1px var(--neo-border-color-strong, #767676);
             border-radius: 50%;
             transition: left 0.15s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--neo-status-none, #555);
+            color: var(--neo-text-icon, #818181);
         }
 
         &--on {
-            // the switch's on colour (a theme's bg-active is a light tint the white knob vanished on)
-            background-color: var(--neo-switch-bg-active, #0e639c);
+            // the switch's on colour (a theme's selected-bg is a light tint the white knob vanished on)
+            background-color: var(--neo-accent-main, #005fb8);
             &:hover:not(:disabled) {
-                background-color: var(--neo-switch-bg-active-hover, #1177bb);
+                background-color: var(--neo-accent-hover, #0075e2);
             }
             .app-store-item-switch-thumb {
                 left: 12px;
-                color: var(--neo-primary-dark, #0e639c);
+                color: var(--neo-accent-text, #4199ff);
             }
         }
     }
@@ -375,7 +385,7 @@
         font-size: 11px;
         font-weight: 500;
         line-height: 1;
-        color: var(--neo-text-primary, #ffffff);
+        color: var(--neo-text-primary, #f1f1f1);
         border-radius: calc(3px * var(--neo-radius-scale, 1));
         cursor: pointer;
         white-space: nowrap;
@@ -386,29 +396,29 @@
             cursor: not-allowed;
         }
 
-        // A neutral filled button on a card: bg-hover-light reads as a fill on a theme's card (the
+        // A neutral filled button on a card: a layer's fill reads on a theme's card (the
         // menu-hover token it had was a near-white tint there, and Uninstall looked like plain text).
         &--default {
-            background-color: var(--neo-bg-hover-light, #3a3a3a);
-            // A theme's selected or hovered card is tinted like this fill: the ring keeps the button's
-            // shape (transparent on the dark screen, which draws none).
-            box-shadow: inset 0 0 0 1px var(--neo-border-color-medium, transparent);
+            background-color: var(--neo-bg-elevated, #2c2c2c);
+            // A selected or hovered card is tinted like this fill: the ring keeps the button's shape.
+            box-shadow: inset 0 0 0 1px var(--neo-border-color-strong, #767676);
             &:hover:not(:disabled) {
-                background-color: var(--neo-bg-active, #4a4a4a);
+                background-color: var(--neo-side-hover-bg, var(--neo-list-hover-bg, rgba(255, 255, 255, 0.13)));
             }
         }
         &--primary {
-            background-color: var(--neo-bg-active, #0e639c);
+            background-color: var(--neo-button-primary-bg, #005fb8);
+            color: var(--neo-text-on-accent, #ffffff);
             &:hover:not(:disabled) {
-                background-color: var(--neo-primary-base, #1177bb);
+                background-color: var(--neo-accent-hover, #0075e2);
                 color: var(--neo-text-on-accent, #ffffff);
             }
         }
         &--danger {
-            background-color: var(--neo-btn-delete, #a1260d);
+            background-color: var(--neo-button-danger-bg, #e53935);
             color: var(--neo-text-on-accent, #ffffff);
             &:hover:not(:disabled) {
-                background-color: var(--neo-error-main, #c42b1c);
+                background-color: var(--neo-error-main, rgb(255, 83, 83));
             }
         }
     }
@@ -428,7 +438,7 @@
             // each half's inner corners and makes the split look like two detached
             // pills — flatten them so only the container's radius rounds the outer edge.
             border-radius: 0;
-            color: var(--neo-text-primary, #ffffff);
+            color: var(--neo-text-primary, #f1f1f1);
             font-size: 11px;
             font-weight: 500;
             line-height: 1;
@@ -450,23 +460,24 @@
         &-caret {
             padding: 0 5px;
             // crisp divider line between the primary action and the caret
-            box-shadow: inset 1px 0 0 rgba(0, 0, 0, 0.32);
+            box-shadow: inset 1px 0 0 color-mix(in srgb, var(--neo-bg-primary, #1e1e1e) 32%, transparent);
         }
 
-        // On bg-active (a theme's light tint) the text stays text-primary; on the accent hover fill
-        // and on the warning fill it is text-on-accent.
+        // A filled button: the Primary button colour with the text drawn on an accent fill; the warning
+        // fill takes the same text.
         &--primary button {
-            background-color: var(--neo-bg-active, #0e639c);
+            background-color: var(--neo-button-primary-bg, #005fb8);
+            color: var(--neo-text-on-accent, #ffffff);
             &:hover:not(:disabled) {
-                background-color: var(--neo-primary-base, #1177bb);
+                background-color: var(--neo-accent-hover, #0075e2);
                 color: var(--neo-text-on-accent, #ffffff);
             }
         }
         &--update button {
-            background-color: var(--neo-warning-main, #bf7b00);
+            background-color: var(--neo-warning-main, #d67f00);
             color: var(--neo-text-on-accent, #ffffff);
             &:hover:not(:disabled) {
-                background-color: var(--neo-warning-main, #d68b00);
+                background-color: color-mix(in srgb, var(--neo-warning-main, #d67f00) 82%, var(--neo-color-black, #000000));
             }
         }
     }

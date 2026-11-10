@@ -8,7 +8,7 @@
  *
  * // Using tokens
  * .button {
- *   background-color: t.$btn-create;
+ *   background-color: t.$button-primary-bg;
  *   color: t.$text-on-accent;
  *   padding: t.$spacing-8 t.$spacing-16;
  * }
@@ -33,3 +33,4 @@
 @forward './borders';
 @forward './mixins';
 @forward './scrollbar';
+@forward './effects';

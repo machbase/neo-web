@@ -51,25 +51,25 @@
 
     // Color variants
     &--primary {
-        border-color: t.$primary-base;
-        background-color: color-mix(in srgb, var(--neo-primary-base, rgb(0, 95, 184)) 10%, transparent);
+        border-color: t.$accent-main;
+        background-color: color-mix(in srgb, var(--neo-accent-main, #005fb8) 10%, transparent);
 
         .text {
-            color: t.$primary-base;
+            color: t.$accent-text;
             -webkit-text-stroke: 0.5px currentColor;
         }
 
         .dot {
-            background-color: t.$primary-base;
+            background-color: t.$accent-main;
         }
     }
 
     &--success {
-        border-color: color-mix(in srgb, var(--neo-success-main, rgb(113, 224, 113)) 30%, transparent);
-        background-color: color-mix(in srgb, var(--neo-success-main, rgb(113, 224, 113)) 15%, transparent);
+        border-color: color-mix(in srgb, var(--neo-success-main, #37aa3b) 30%, transparent);
+        background-color: color-mix(in srgb, var(--neo-success-main, #37aa3b) 15%, transparent);
 
         .text {
-            color: t.$success-main;
+            color: t.$success-text;
         }
 
         .dot {
@@ -82,7 +82,7 @@
         background-color: color-mix(in srgb, var(--neo-error-main, rgb(255, 83, 83)) 15%, transparent);
 
         .text {
-            color: t.$error-main;
+            color: t.$error-text;
         }
 
         .dot {
@@ -91,11 +91,11 @@
     }
 
     &--warning {
-        border-color: color-mix(in srgb, var(--neo-warning-main, rgb(255, 152, 0)) 30%, transparent);
-        background-color: color-mix(in srgb, var(--neo-warning-main, rgb(255, 152, 0)) 15%, transparent);
+        border-color: color-mix(in srgb, var(--neo-warning-main, #d67f00) 30%, transparent);
+        background-color: color-mix(in srgb, var(--neo-warning-main, #d67f00) 15%, transparent);
 
         .text {
-            color: t.$warning-main;
+            color: t.$warning-text;
         }
 
         .dot {
@@ -103,12 +103,14 @@
         }
     }
 
+    // the info family throughout (it had Accent's border, ground and words): there is no info text
+    // colour, so its words are the page's text
     &--info {
-        border-color: color-mix(in srgb, var(--neo-border-color-active, rgb(0, 95, 184)) 30%, transparent);
-        background-color: color-mix(in srgb, var(--neo-primary-base, rgb(0, 95, 184)) 15%, transparent);
+        border-color: color-mix(in srgb, var(--neo-info-main, #005fb8) 30%, transparent);
+        background-color: color-mix(in srgb, var(--neo-info-main, #005fb8) 15%, transparent);
 
         .text {
-            color: t.$info-main;
+            color: t.$text-primary;
         }
 
         .dot {
@@ -116,29 +118,30 @@
         }
     }
 
+    // the neutral (grey) family: the grey of a version chip and a neutral status dot (neutral-main)
     &--neutral {
-        border-color: t.$border-color-default;
-        background-color: t.$bg-secondary;
+        border-color: color-mix(in srgb, var(--neo-neutral-main, #6f7173) 30%, transparent);
+        background-color: color-mix(in srgb, var(--neo-neutral-main, #6f7173) 15%, transparent);
 
         .text {
             color: t.$text-secondary;
         }
 
         .dot {
-            background-color: t.$text-secondary;
+            background-color: t.$neutral-main;
         }
     }
 
     &--muted {
-        border-color: var(--neo-border-color-default, rgba(128, 128, 128, 0.2));
-        background-color: var(--neo-bg-hover, rgba(128, 128, 128, 0.1));
+        border-color: var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
+        background-color: var(--neo-bg-elevated, #2c2c2c);
 
         .text {
-            color: t.$text-disabled;
+            color: t.$text-muted;
         }
 
         .dot {
-            background-color: t.$text-disabled;
+            background-color: t.$status-none;
         }
     }
 }

@@ -6,7 +6,7 @@
     border-radius: t.$border-radius-md;
     margin: 0 !important;
     padding: 0 !important;
-    border: 0.5px solid var(--neo-border-color-default, rgba(60, 60, 60, 0.5));
+    border: 0.5px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
     box-shadow: t.$shadow-xl;
     background-color: t.$bg-elevated;
     animation: toastSlideIn t.$transition-duration-normal ease-out;
@@ -19,7 +19,7 @@
 
 // Toast content
 .toast {
-    color: t.themed(text-primary, #ffffff);
+    color: t.$text-primary;
     display: flex;
     border-radius: t.$border-radius-md;
     pointer-events: auto;

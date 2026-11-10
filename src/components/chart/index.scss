@@ -14,7 +14,7 @@
             justify-content: center;
 
             span {
-                color: var(--neo-warning-main, #fdb532);
+                color: var(--neo-warning-text, #ff9800);
             }
 
             .chart-control-drop {
@@ -24,8 +24,8 @@
 
             .chart-control-select-wrapper {
                 display: flex;
-                background-color: var(--neo-bg-hover-light, #404457);
-                border: solid 1px color-mix(in srgb, var(--neo-text-primary, rgb(255, 255, 255)) 50%, transparent);
+                background-color: var(--neo-field-bg, var(--neo-bg-elevated, #2c2c2c));
+                border: solid 1px var(--neo-border-color-strong, #767676);
                 height: 22px;
                 border-radius: calc(4px * var(--neo-radius-scale, 1));
                 min-width: 86px;
@@ -33,8 +33,8 @@
 
                 select {
                     padding: 0 2px;
-                    background-color: var(--neo-bg-hover-light, #404457);
-                    color: var(--neo-text-secondary, rgba(255, 255, 255, 0.8));
+                    background-color: var(--neo-field-bg, var(--neo-bg-elevated, #2c2c2c));
+                    color: var(--neo-text-primary, #f1f1f1);
                     border: none;
                     min-width: 86px;
                     font-size: 12px;
@@ -49,11 +49,11 @@
             justify-content: center;
 
             .chart-control-play-btn-item {
-                fill: var(--neo-warning-main, #fdb532);
+                fill: var(--neo-warning-text, #ff9800);
             }
 
             :hover {
-                background-color: var(--neo-bg-input, rgba(255, 255, 255, 0.2));
+                background-color: var(--neo-toolbar-hover-bg, rgba(255, 255, 255, 0.13));
                 border-radius: calc(5px * var(--neo-radius-scale, 1));
             }
         }

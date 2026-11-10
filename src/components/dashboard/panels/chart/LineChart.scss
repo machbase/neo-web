@@ -43,11 +43,11 @@
     }
 }
 .chart-message-error {
-    color: var(--neo-error-light, rgb(231, 65, 131));
+    color: var(--neo-error-text, #fa6464);
 }
 
 .chart-message-success {
-    color: var(--neo-primary-light, rgb(65, 153, 255));
+    color: var(--neo-accent-text, #4199ff);
 }
 
 .chart-non-header {

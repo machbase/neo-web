@@ -1,19 +1,5 @@
-@use 'sass:color';
 @use '@/design-system/tokens' as t;
 @use '@/design-system/tokens/mixins' as m;
-
-// THE DRAWER TAKES ITS ACCENT FROM THE README, NOT FROM THE APP.
-//
-// `--color-accent-fg` out of `src/assets/md/md.css` — the blue the rendered
-// markdown already uses for its links. The app's own `$primary-base` (#005fb8) is
-// a different, darker blue, and sitting it beside markdown links inside the same
-// 320px column read as two accent colours arguing.
-//
-// Hardcoded because md.css is injected into a shadow root as an inline string;
-// there is no build-time value to import. If that palette changes, this follows.
-// (Its `--color-border-default` is already identical to `$border-color-default`,
-// which is why the resting edge below needs no equivalent.)
-$readme-accent: #0075e2;
 
 // THE DRAWER FLOATS OVER THE APP, IT DOES NOT PUSH IT.
 //
@@ -124,8 +110,8 @@ $readme-accent: #0075e2;
     margin-right: auto;
     padding: 1px 6px;
     border-radius: calc(3px * var(--neo-radius-scale, 1));
-    background-color: var(--neo-primary-base, #{$readme-accent});
-    color: var(--neo-text-on-accent, #fff);
+    background-color: var(--neo-accent-main, #005fb8);
+    color: var(--neo-text-on-accent, #ffffff);
     font-size: 10px;
     font-weight: 600;
 }
@@ -151,7 +137,7 @@ $readme-accent: #0075e2;
     cursor: pointer;
 
     &:hover {
-        background-color: t.$bg-hover;
+        background-color: t.$hover-bg;
         color: t.$text-primary;
     }
 }
@@ -181,7 +167,7 @@ $readme-accent: #0075e2;
     cursor: pointer;
 
     &:hover {
-        background-color: t.$bg-hover;
+        background-color: t.$hover-bg;
         color: t.$text-primary;
     }
 
@@ -193,13 +179,13 @@ $readme-accent: #0075e2;
     // the app chrome around them.
     &--on {
         // the theme's accent and the ink on it (the literal blue is the dark screen's fallback)
-        border-color: var(--neo-primary-base, #{$readme-accent});
-        background-color: var(--neo-primary-base, #{$readme-accent});
-        color: var(--neo-text-on-accent, #fff);
+        border-color: var(--neo-accent-main, #005fb8);
+        background-color: var(--neo-accent-main, #005fb8);
+        color: var(--neo-text-on-accent, #ffffff);
 
         &:hover {
-            background-color: var(--neo-primary-hover, #{color.adjust($readme-accent, $lightness: 6%)});
-            color: var(--neo-text-on-accent, #fff);
+            background-color: var(--neo-accent-hover, #0075e2);
+            color: var(--neo-text-on-accent, #ffffff);
         }
     }
 }

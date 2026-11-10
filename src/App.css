@@ -43,5 +43,5 @@ button {
 }
 
 .read-the-docs {
-    color: var(--neo-text-disabled, #888);
+    color: var(--neo-text-muted, #818181);
 }

@@ -18,7 +18,7 @@
 $chip-height: 24px;
 $menu-width: 286px;
 // The accent this app already uses for "active / selected" marks in a dozen places.
-$chip-accent: var(--neo-primary-light, #4199ff);
+$chip-accent: var(--neo-accent-text, #4199ff);
 
 .target-db {
     display: inline-flex;
@@ -38,12 +38,12 @@ $chip-accent: var(--neo-primary-light, #4199ff);
         overflow: hidden;
 
         &:hover:not(&--open) {
-            border-color: var(--neo-border-color-medium, #5a5a5a);
+            border-color: var(--neo-border-color-strong, #767676);
         }
 
         &:focus-visible {
             border-color: t.$border-color-focus;
-            box-shadow: 0 0 0 2px rgba(0, 108, 210, 0.2);
+            box-shadow: 0 0 0 2px color-mix(in srgb, var(--neo-border-color-focus, rgb(0, 108, 210)) 20%, transparent);
         }
 
         &--open {
@@ -54,7 +54,7 @@ $chip-accent: var(--neo-primary-light, #4199ff);
             display: inline-flex;
             align-items: center;
             flex-shrink: 0;
-            color: t.$dropdown-trigger-icon-color;
+            color: var(--neo-field-icon, var(--neo-text-tertiary, #a3a3a3));
         }
 
         &-label {
@@ -74,14 +74,14 @@ $chip-accent: var(--neo-primary-light, #4199ff);
             border: none;
             border-radius: t.$border-radius-circle;
             background: transparent;
-            color: t.$text-hint;
+            color: t.$text-tertiary;
             cursor: pointer;
             flex-shrink: 0;
             transition: t.$transition-default;
 
             &:hover {
                 color: t.$text-primary;
-                background-color: t.$bg-hover;
+                background-color: t.$hover-bg;
             }
         }
 
@@ -89,7 +89,7 @@ $chip-accent: var(--neo-primary-light, #4199ff);
             display: inline-flex;
             align-items: center;
             flex-shrink: 0;
-            color: t.$dropdown-trigger-icon-color;
+            color: var(--neo-field-icon, var(--neo-text-tertiary, #a3a3a3));
             transition: transform 0.2s ease;
         }
 
@@ -109,7 +109,7 @@ $chip-accent: var(--neo-primary-light, #4199ff);
             }
 
             .target-db__chip-label {
-                color: var(--neo-text-primary, #e0e0e0);
+                color: var(--neo-text-primary, #f1f1f1);
             }
         }
 
@@ -122,11 +122,11 @@ $chip-accent: var(--neo-primary-light, #4199ff);
             }
 
             .target-db__chip-icon {
-                color: t.$warning-main;
+                color: t.$warning-text;
             }
 
             .target-db__chip-label {
-                color: t.$error-light;
+                color: t.$error-text;
             }
         }
     }
@@ -138,10 +138,10 @@ $chip-accent: var(--neo-primary-light, #4199ff);
     display: flex;
     flex-direction: column;
     width: $menu-width;
-    background-color: t.$dropdown-bg;
-    border: 1px solid t.$dropdown-border;
+    background-color: t.$menu-bg;
+    border: 1px solid t.$menu-border;
     border-radius: t.$border-radius-base;
-    box-shadow: t.$dropdown-shadow;
+    box-shadow: t.$menu-shadow;
     overflow: hidden;
     @include t.fade-in(0.15s);
     animation: targetDbSlideDown 0.15s ease-out;
@@ -154,10 +154,10 @@ $chip-accent: var(--neo-primary-light, #4199ff);
         width: 100%;
         height: $chip-height;
         padding: 0 t.$spacing-8;
-        background-color: var(--neo-bg-elevated, #2b2b2b);
-        border: 1px solid var(--neo-border-color-default, #3a3a3a);
+        background-color: var(--neo-field-bg, var(--neo-bg-elevated, #2c2c2c));
+        border: 1px solid var(--neo-field-border, var(--neo-border-color-default, rgba(255, 255, 255, 0.13)));
         border-radius: t.$border-radius-base;
-        color: t.$text-primary;
+        color: var(--neo-text-primary, #f1f1f1);
         font-family: t.$font-family-pretendard;
         font-size: t.$font-size-sm;
         box-sizing: border-box;
@@ -165,7 +165,7 @@ $chip-accent: var(--neo-primary-light, #4199ff);
         transition: border-color 0.15s ease;
 
         &::placeholder {
-            color: t.$text-disabled;
+            color: t.$text-muted;
         }
 
         &:focus {
@@ -198,7 +198,7 @@ $chip-accent: var(--neo-primary-light, #4199ff);
 
     &--focused,
     &:hover {
-        background-color: t.$dropdown-option-hover-bg;
+        background-color: t.$menu-item-hover-bg;
     }
 
     /* the server would refuse this one as a target — listed so it is not simply missing */
@@ -215,7 +215,7 @@ $chip-accent: var(--neo-primary-light, #4199ff);
         }
 
         .target-db__row-icon {
-            color: t.$warning-main;
+            color: t.$warning-text;
         }
     }
 
@@ -252,7 +252,7 @@ $chip-accent: var(--neo-primary-light, #4199ff);
         display: inline-flex;
         align-items: center;
         flex-shrink: 0;
-        color: var(--neo-text-primary, #e0e0e0);
+        color: var(--neo-text-primary, #f1f1f1);
     }
 }
 
@@ -280,7 +280,7 @@ $chip-accent: var(--neo-primary-light, #4199ff);
     border: none;
     border-radius: t.$border-radius-sm;
     background: transparent;
-    color: t.$menu-item-text;
+    color: t.$text-primary;
     cursor: pointer;
     text-align: left;
     transition: background-color 0.15s ease;
@@ -302,7 +302,7 @@ $chip-accent: var(--neo-primary-light, #4199ff);
     align-items: center;
     gap: t.$spacing-10;
     padding: t.$spacing-4 t.$spacing-12;
-    border-top: 1px solid t.$dropdown-border;
+    border-top: 1px solid t.$menu-border;
 
     span {
         display: inline-flex;
@@ -316,7 +316,7 @@ $chip-accent: var(--neo-primary-light, #4199ff);
     kbd {
         font-family: 'D2Coding', monospace;
         font-size: t.$font-size-xs;
-        color: t.$text-disabled;
+        color: t.$text-muted;
     }
 }
 
@@ -345,5 +345,5 @@ $chip-accent: var(--neo-primary-light, #4199ff);
     display: block;
     width: 1px;
     height: 18px;
-    background-color: var(--neo-dropdown-option-hover-bg, #393b41);
+    background-color: var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
 }

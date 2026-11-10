@@ -38,7 +38,7 @@
 .label {
     font-size: t.$font-size-base;
     font-weight: 500;
-    color: t.$text-secondary;
+    color: var(--label-text, t.$text-secondary);
     user-select: none;
 }
 
@@ -54,13 +54,13 @@
     display: flex;
     flex-grow: 1;
     @include t.interactive-field-base;
-    color: t.$text-primary;
+    color: var(--neo-text-primary, #f1f1f1);
     min-height: 25px;
     flex-direction: row;
     overflow: hidden;
 
     &:hover:not(.disabled):not(&--open) {
-        border-color: var(--neo-border-color-medium, #5a5a5a);
+        border-color: var(--neo-border-color-strong, #767676);
     }
 
     &--open:not(.disabled) {
@@ -70,7 +70,7 @@
     &.disabled {
         cursor: not-allowed;
         opacity: 0.5;
-        background-color: var(--neo-bg-primary, #1e1e1e);
+        background-color: var(--neo-field-disabled-bg, var(--neo-bg-primary, #1e1e1e));
     }
 }
 
@@ -126,10 +126,10 @@
     display: flex;
     flex-grow: 1;
     flex-direction: column;
-    background-color: t.$dropdown-bg;
-    border: 1px solid t.$dropdown-border;
+    background-color: t.$menu-bg;
+    border: 1px solid t.$menu-border;
     border-radius: t.$border-radius-base;
-    box-shadow: t.$dropdown-shadow;
+    box-shadow: t.$menu-shadow;
     padding: 4px;
     gap: 2px;
     @include t.scrollbar-dark;
@@ -152,17 +152,17 @@
     transition: background-color 0.2s ease;
 
     &:hover {
-        background-color: t.$dropdown-option-hover-bg !important;
+        background-color: t.$menu-item-hover-bg !important;
     }
 
     &.activeItem {
-        background-color: var(--neo-bg-hover-light, #575757);
+        background-color: var(--neo-selected-bg, rgb(0, 83, 160));
     }
 }
 
 .dropdownItemText {
     padding: 4px 8px;
-    color: t.$text-primary;
+    color: var(--neo-text-primary, #f1f1f1);
     overflow: hidden;
     text-overflow: ellipsis;
     text-wrap: nowrap;
@@ -170,7 +170,7 @@
 
 .badgeItem {
     padding-left: 4px;
-    background-color: var(--neo-bg-hover-light, #575757);
+    background-color: var(--neo-bg-elevated, #2c2c2c);
     border-radius: calc(2px * var(--neo-radius-scale, 1));
     border-top-right-radius: calc(4px * var(--neo-radius-scale, 1));
     border-bottom-right-radius: calc(4px * var(--neo-radius-scale, 1));

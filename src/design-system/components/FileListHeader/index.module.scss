@@ -5,9 +5,9 @@
     flex-direction: row;
     padding: t.$spacing-2 t.$spacing-20;
     font-size: t.$font-size-sm;
-    color: t.$text-secondary;
-    background-color: var(--neo-bg-primary, #1e1e1e);
-    border-bottom: 1px solid var(--neo-border-color-light, #3e3e3e);
+    color: var(--neo-table-header-text, var(--neo-text-muted, #818181));
+    background-color: var(--neo-table-header-bg, var(--neo-bg-elevated, #2c2c2c));
+    border-bottom: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
 
     &__column {
         flex: 1;

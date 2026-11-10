@@ -62,7 +62,7 @@
 .tabs__panel {
     width: 100%;
     height: 100%;
-    background-color: t.$bg-tab-active;
+    background-color: t.$bg-secondary;
 }
 
 .tabs__item {
@@ -74,7 +74,7 @@
     background-color: t.$tabbar-bg;
     border: none;
     border-top: 2px solid t.$tabbar-bg;
-    color: t.$tabbar-text-inactive;
+    color: t.$tabbar-inactive-text;
     width: 150px;
     cursor: pointer;
     font-size: t.$font-size-sm;
@@ -86,8 +86,8 @@
     text-wrap-mode: nowrap;
 
     &--selected {
-        color: t.$tabbar-text;
-        background-color: t.$bg-tab-active;
+        color: t.$tabbar-active-text;
+        background-color: t.$bg-secondary;
         border-top: 1px solid t.$tabbar-marker;
     }
 
@@ -118,7 +118,7 @@
         &.tabs__item--selected {
             background-color: transparent;
             color: t.$text-primary;
-            border-bottom: 1px solid t.$primary-hover;
+            border-bottom: 1px solid t.$accent-hover;
         }
     }
 }

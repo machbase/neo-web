@@ -20,7 +20,7 @@
 
 // Keyboard navigation focus highlight for dropdown options
 .detect-option--focused {
-    background-color: t.$dropdown-option-hover-bg;
+    background-color: t.$menu-item-hover-bg;
 }
 
 // Detect object remove button
@@ -35,7 +35,7 @@
     transition: background-color 0.15s;
 
     &:hover {
-        background-color: var(--neo-bg-input, rgba(255, 255, 255, 0.15));
+        background-color: var(--neo-toolbar-hover-bg, rgba(255, 255, 255, 0.13));
     }
 }
 
@@ -59,12 +59,12 @@
         font-weight: 600;
         letter-spacing: 1.2px;
         text-transform: uppercase;
-        color: t.$text-secondary;
+        color: var(--neo-text-primary, #f1f1f1);
     }
 
     &__hint {
         font-size: 11px;
-        color: t.$primary-light;
+        color: t.$accent-text;
         font-style: italic;
     }
 }
@@ -128,7 +128,7 @@
 
     // Color variants
     &--blue {
-        background-color: var(--neo-primary-base, #1565c0);
+        background-color: var(--neo-accent-main, #005fb8);
     }
 
     &--green {
@@ -136,7 +136,7 @@
     }
 
     &--cyan {
-        background-color: var(--neo-btn-status, #00838f);
+        background-color: var(--neo-success-fill, #009688);
     }
 
     &--orange {
@@ -148,17 +148,17 @@
     }
 
     &--red {
-        background-color: var(--neo-btn-delete, #c62828);
+        background-color: var(--neo-error-main, rgb(255, 83, 83));
     }
 
     &--teal {
-        background-color: var(--neo-btn-status, #00695c);
+        background-color: var(--neo-success-fill, #009688);
     }
 
     &--indigo {
-        background-color: var(--neo-bg-active, #283593);
-        // bg-active is a light tint on a light theme: its ink is text-primary
-        color: var(--neo-text-primary, #ffffff);
+        background-color: #283593;
+        // selected-bg is a light tint on a light theme: its ink is text-primary
+        color: var(--neo-text-primary, #f1f1f1);
     }
 }
 
@@ -171,7 +171,7 @@
         background: none;
         border: none;
         outline: none;
-        color: t.$text-hint;
+        color: var(--neo-text-primary, #f1f1f1);
         font-size: 13px;
         width: 100px;
 
@@ -191,7 +191,7 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    background-color: var(--neo-bg-primary, rgba(0, 0, 0, 0.25));
+    background-color: var(--neo-bg-canvas, var(--neo-bg-primary, #1e1e1e));
     border: 1px solid t.$border-color-default;
     border-radius: t.$border-radius-base;
     overflow: hidden;
@@ -208,12 +208,12 @@
         background: none;
         border: none;
         outline: none;
-        color: t.$text-primary;
+        color: var(--neo-text-primary, #f1f1f1);
         font-family: 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
         font-size: 15px;
         line-height: 1.6;
         resize: none;
-        caret-color: t.$primary-light;
+        caret-color: t.$accent-text;
     }
 
     &__badge {
@@ -258,11 +258,11 @@
         font-weight: 500;
 
         &--valid {
-            color: t.$success-main;
+            color: t.$success-text;
         }
 
         &--invalid {
-            color: t.$error-main;
+            color: t.$error-text;
         }
     }
 
@@ -301,7 +301,7 @@
 // Version badge
 .version-badge {
     font-size: 11px;
-    color: t.$primary-light;
+    color: t.$accent-text;
     letter-spacing: 0.5px;
 }
 
@@ -310,7 +310,7 @@
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background-color: t.$text-disabled;
+    background-color: t.$status-none;
 
     &--match {
         background-color: t.$event-match-main;
@@ -329,7 +329,7 @@
     }
 
     &--unknown {
-        background-color: t.$text-disabled;
+        background-color: t.$status-none;
     }
 }
 
@@ -360,11 +360,11 @@
         }
 
         tbody tr {
-            border-bottom: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.05));
+            border-bottom: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
             transition: background-color 0.15s;
 
             &:hover {
-                background-color: t.$bg-hover;
+                background-color: var(--neo-table-row-hover-bg, var(--neo-list-hover-bg, rgba(255, 255, 255, 0.13)));
             }
 
             &:last-child {
@@ -377,7 +377,7 @@
     &__name {
         font-size: 13px;
         font-weight: 600;
-        color: t.$text-primary;
+        color: var(--neo-text-primary, #f1f1f1);
         line-height: 1.3;
     }
 
@@ -405,8 +405,8 @@
         font-weight: 600;
         letter-spacing: 0.5px;
         white-space: nowrap;
-        background-color: t.$bg-input;
-        color: t.$text-secondary;
+        background-color: var(--neo-field-bg, var(--neo-bg-elevated, #2c2c2c));
+        color: var(--neo-text-primary, #f1f1f1);
     }
 
     // Actions cell

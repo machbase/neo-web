@@ -5,8 +5,8 @@
     font-size: 12px;
 
     &-button {
-        color: var(--neo-text-primary, #dbdbdb);
-        background: var(--neo-bg-input, rgba(255, 255, 255, 0.13));
+        color: var(--neo-text-primary, #f1f1f1);
+        background: var(--neo-bg-elevated, #2c2c2c);
         border: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
         white-space: nowrap;
         text-overflow: ellipsis;
@@ -14,7 +14,7 @@
         min-width: 74px;
 
         &:hover {
-            background-color: var(--neo-bg-elevated, #262831);
+            background-color: var(--neo-hover-bg, rgba(255, 255, 255, 0.08));
         }
     }
 }

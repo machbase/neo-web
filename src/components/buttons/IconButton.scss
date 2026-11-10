@@ -9,13 +9,21 @@
     svg,
     img,
     div {
-        color: var(--neo-text-disabled, rgba(255, 255, 255, 0.5));
+        color: var(--neo-text-icon, #818181);
     }
 
     &:hover {
         svg,
         div {
-            color: var(--neo-text-primary, #f8f8f8);
+            color: var(--neo-text-primary, #f1f1f1);
+        }
+    }
+
+    // a toggled-on button sits on the selection colour: its icon takes the selected text colour
+    &.icon-btn-toggled {
+        svg,
+        div {
+            color: var(--neo-active-text, var(--neo-selected-text, rgb(243, 243, 243)));
         }
     }
 }
@@ -24,12 +32,12 @@
     cursor: auto;
     svg,
     .tooltip-icon {
-        color: color-mix(in srgb, var(--neo-text-primary, rgb(255, 255, 255)) 20.5%, transparent) !important;
+        color: color-mix(in srgb, var(--neo-text-primary, #f1f1f1) 20.5%, transparent) !important;
     }
 }
 
 .tooltip-div {
-    color: var(--neo-tooltip-text, rgba(255, 255, 255, 1)) !important;
+    color: var(--neo-tooltip-text, #ffffff) !important;
     max-width: 500px;
     width: auto;
     overflow: hidden;
@@ -50,6 +58,6 @@
 .icon-btn-active-hover {
     background-color: transparent;
     &:hover {
-        background-color: var(--neo-bg-hover-light, #52535a);
+        background-color: var(--neo-toolbar-hover-bg, rgba(255, 255, 255, 0.13));
     }
 }

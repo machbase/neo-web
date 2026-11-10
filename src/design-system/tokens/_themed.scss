@@ -5,9 +5,8 @@
  * written here. With no theme loaded none of the variables is set and the dark defaults draw
  * the screen unchanged; a theme package sets the ones it changes (see README.md, Themes).
  *
- * `themed` is also how a colour that is not a token yet follows the theme without changing
- * the dark screen: `color: t.themed(text-secondary, #c3c3c3)` stays #c3c3c3 until a theme sets
- * `--neo-text-secondary`.
+ * `themed` is for the token sources: a call site writes the token (`t.$text-secondary`, or that
+ * written out), never `themed(text-secondary, <a colour of its own>)` — styleRules.test.ts fails on it.
  */
 
 @function themed($name, $fallback) {

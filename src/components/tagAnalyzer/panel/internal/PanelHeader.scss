@@ -23,7 +23,7 @@
         border-radius: theme.$radius;
         padding: 0;
         background: transparent;
-        color: theme.$warning;
+        color: theme.$warning-text;
         cursor: pointer;
 
         &:hover, &:focus-visible {
@@ -44,7 +44,7 @@
         height: 22px;
         padding: 2px 4px;
         border-color: theme.$warning;
-        color: theme.$warning;
+        color: theme.$warning-text;
         @include text.role(body);
     }
     &__title {
@@ -64,12 +64,12 @@
         flex: 0 0 auto;
     }
     &__action--active button, &__extra--active button, &__extra-item--active {
-        color: theme.$warning !important;
+        color: theme.$warning-text !important;
         background: theme.$warning-wash !important;
     }
     &__action--active, &__extra--active, &__extra-item--active {
         svg, .panel-header__raw-label {
-            color: theme.$warning !important;
+            color: theme.$warning-text !important;
         }
     }
     &__extra button {

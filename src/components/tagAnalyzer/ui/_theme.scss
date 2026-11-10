@@ -1,15 +1,34 @@
-$text-primary: var(--neo-text-primary, rgba(255, 255, 255, 0.92));
+$text-primary: var(--neo-text-primary, #f1f1f1);
 $text-secondary: var(--neo-text-secondary, #c4c4c4);
 $text-muted: var(--neo-text-tertiary, #a3a3a3);
-$text-subtle: var(--neo-text-disabled, rgba(255, 255, 255, 0.5));
-$border-color: var(--neo-border-color-light, rgba(255, 255, 255, 0.16));
-$border-hover: var(--neo-border-color-medium, rgba(255, 255, 255, 0.28));
-$surface-inset: var(--neo-bg-hover, rgba(255, 255, 255, 0.04));
-$surface-hover: var(--neo-bg-hover, rgba(255, 255, 255, 0.08));
+$text-subtle: var(--neo-text-muted, #818181);
+$border-color: var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
+$border-hover: var(--neo-border-color-strong, #767676);
+$surface-hover: var(--neo-hover-bg, rgba(255, 255, 255, 0.08));
+/** The panel's own bars (its header, the footer badge): the frame's colour. */
 $surface-bg: var(--neo-bg-primary, #1e1e1e);
-$accent: var(--neo-primary-light, #4199ff);
-$warning: var(--neo-warning-main, #fdb532);
+// What the rest is (tokens/README, "What a colour is for"), each keeping the dark screen's value last:
+// a popover is a dialog, an input a field, a grouped box a panel, a chip a raised chip — not the
+// frame's colour or a hover's, which they borrowed before.
+$dialog-bg: var(--neo-dialog-bg, var(--neo-bg-elevated, #2c2c2c));
+$dialog-text: var(--neo-text-primary, #f1f1f1);
+$field-bg: var(--neo-field-bg, var(--neo-bg-elevated, #2c2c2c));
+$field-border: var(--neo-field-border, var(--neo-border-color-default, rgba(255, 255, 255, 0.13)));
+$field-text: var(--neo-text-primary, #f1f1f1);
+$field-disabled-bg: var(--neo-field-disabled-bg, var(--neo-bg-primary, #1e1e1e));
+$panel-bg: var(--neo-bg-panel, #252525);
+$chip-bg: var(--neo-bg-elevated, #2c2c2c);
+$accent: var(--neo-accent-light, rgb(0, 108, 210));
+// the accent as text or an icon: made to read on the page
+$accent-text: var(--neo-accent-text, #4199ff);
+/** A field's focus line: the app's, as on every other field (tokens/_mixins interactive-field-active). */
+$focus: var(--neo-border-color-focus, rgb(0, 108, 210));
+$warning: var(--neo-warning-main, #d67f00);
+// a warning as text (an unsaved board, a hint): the warning made to read on the page
+$warning-text: var(--neo-warning-text, #ff9800);
 /** Behind warning-coloured text; a light scheme sets its own (global.scss). */
 $warning-wash: var(--tag-analyzer-warning-wash, color-mix(in srgb, #{$warning} 12%, transparent));
-$danger: var(--neo-error-light, #ff6b6b);
+// an error's lines and fills; as text, $danger-text (made to read on the page)
+$danger: var(--neo-error-main, rgb(255, 83, 83));
+$danger-text: var(--neo-error-text, #fa6464);
 $radius: calc(4px * var(--neo-radius-scale, 1));

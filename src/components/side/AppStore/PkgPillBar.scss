@@ -97,7 +97,7 @@
     height: 16px;
     // Sits in the middle of the bar's 4px gap rather than adding width of its own.
     margin: 0 2px;
-    background-color: t.$border-color-medium;
+    background-color: t.$border-color-strong;
 }
 
 .pkg-pill-bar-scroll {
@@ -133,19 +133,19 @@
     cursor: pointer;
 
     &:hover {
-        background-color: t.$bg-hover;
+        background-color: var(--neo-side-hover-bg, var(--neo-list-hover-bg, rgba(255, 255, 255, 0.13)));
         color: t.$text-primary;
     }
 
     &--active {
-        border-color: t.$primary-base;
-        background-color: t.$primary-base;
-        color: var(--neo-text-on-accent, #fff);
+        border-color: t.$accent-main;
+        background-color: t.$accent-main;
+        color: var(--neo-text-on-accent, #ffffff);
     }
 
     &--active:hover {
-        background-color: t.$primary-hover;
-        color: var(--neo-text-on-accent, #fff);
+        background-color: t.$accent-hover;
+        color: var(--neo-text-on-accent, #ffffff);
     }
 }
 
@@ -169,11 +169,11 @@
 
     &--active {
         border-color: t.$border-color-active;
-        background-color: t.$bg-active;
+        background-color: var(--neo-active-bg, var(--neo-selected-bg, rgb(0, 83, 160)));
     }
 
     &:hover {
-        background-color: t.$bg-hover;
+        background-color: var(--neo-side-hover-bg, var(--neo-list-hover-bg, rgba(255, 255, 255, 0.13)));
     }
 }
 
@@ -220,7 +220,7 @@
     cursor: pointer;
 
     &:hover {
-        background-color: t.$bg-hover-light;
+        background-color: var(--neo-side-hover-bg, var(--neo-list-hover-bg, rgba(255, 255, 255, 0.13)));
         color: t.$text-primary;
     }
 }

@@ -14,18 +14,21 @@ $nb-mono: D2Coding, ui-monospace, SFMono-Regular, Menlo, monospace;
 // one tone ($nb-tone) carries every coloured state in the widgets (sparklines, today, switches) while
 // editing keeps the app's blue ($nb-accent). Item icons keep the explorer's colours.
 $nb-surface: t.$bg-elevated;
-$nb-preview-bg: var(--neo-bg-secondary, #282828);
+$nb-preview-bg: var(--neo-bg-secondary, #252525);
 // the page's ink at 7%: white on the dark screen (exactly the old rgba), a theme's ink on a light one
-$nb-line: color-mix(in srgb, var(--neo-text-primary, rgb(255, 255, 255)) 7%, transparent);
-$nb-border-strong: var(--neo-border-color-light, rgba(255, 255, 255, 0.18));
-$nb-accent: t.$primary-hover;
+$nb-line: var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
+$nb-border-strong: var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
+$nb-accent: t.$accent-hover;
+// the same blue as text (a link, a value): the accent made to read on the page
+$nb-accent-text: t.$accent-text;
 // The tone follows the theme's accent, and the ink on it is the theme's text-on-accent (bg-primary
 // was its inverse on dark only: a light theme's frame is light, and read 3.7:1 on the crimson).
-$nb-tone: var(--neo-primary-light, #6d8bff);
-$nb-tone-hover: var(--neo-primary-hover, #8ea4ff);
-$nb-tone-ink: var(--neo-text-on-accent, #0d1020);
-$nb-tone-soft: color-mix(in srgb, var(--neo-primary-light, rgb(109, 139, 255)) 35%, transparent);
-$nb-weekend: var(--neo-text-tertiary, #9a9aa3);
+$nb-tone: var(--neo-accent-light, rgb(0, 108, 210));
+$nb-tone-text: var(--neo-accent-text, #4199ff);
+$nb-tone-hover: var(--neo-accent-hover, #0075e2);
+$nb-tone-ink: var(--neo-text-on-accent, #ffffff);
+$nb-tone-soft: color-mix(in srgb, var(--neo-accent-light, rgb(0, 108, 210)) 35%, transparent);
+$nb-weekend: var(--neo-text-tertiary, #a3a3a3);
 $nb-fog-duration: 0.25s;
 
 @mixin nb-reset-button {
@@ -180,8 +183,9 @@ $nb-fog-duration: 0.25s;
     padding: 8px 12px;
     font-size: t.$font-size-base;
     font-weight: t.$font-weight-medium;
+    // a primary button: the Primary button color (button-primary-bg), as the design-system Button's primary
     color: $nb-tone-ink;
-    background: $nb-tone;
+    background: t.$button-primary-bg;
     border-radius: t.$border-radius-base;
     @include nb-focus-ring;
 
@@ -319,7 +323,7 @@ $nb-fog-duration: 0.25s;
     font-size: 11px;
     font-weight: t.$font-weight-normal;
     color: t.$text-tertiary;
-    background: t.$bg-hover;
+    background: var(--neo-bg-elevated, #2c2c2c);
     border-radius: t.$border-radius-base;
 }
 
@@ -445,8 +449,9 @@ $nb-fog-duration: 0.25s;
     border-radius: t.$border-radius-md;
     @include nb-focus-ring;
 
+    // a card under the pointer: the shared hover, as the Recent rows beside it (not a field's colour)
     &:hover {
-        background: var(--neo-bg-input-dark, #323232);
+        background: var(--neo-hover-bg, rgba(255, 255, 255, 0.08));
         border-color: $nb-border-strong;
     }
 
@@ -468,7 +473,7 @@ $nb-fog-duration: 0.25s;
 .new-board-template-go {
     align-self: center;
     font-size: t.$font-size-sm;
-    color: $nb-accent;
+    color: $nb-accent-text;
     white-space: nowrap;
 }
 
@@ -510,7 +515,7 @@ $nb-fog-duration: 0.25s;
         border-bottom: 0;
     }
     &:hover {
-        background: t.$bg-hover;
+        background: t.$hover-bg;
         color: t.$text-primary;
     }
 
@@ -565,8 +570,8 @@ $nb-fog-duration: 0.25s;
     align-items: flex-start;
     text-align: center;
     pointer-events: none;
-    // a veil of the raised surface (the dark screen's deep blue as the fallback) under the dashed accent
-    background: color-mix(in srgb, var(--neo-bg-elevated, rgb(0, 40, 80)) 72%, transparent);
+    // a veil of the raised surface under the dashed accent
+    background: color-mix(in srgb, var(--neo-bg-elevated, #2c2c2c) 72%, transparent);
 
     // The page scrolls, so the overlay can be far taller than the window; keep its label in view.
     > div {
@@ -623,8 +628,8 @@ $nb-fog-duration: 0.25s;
     margin-bottom: t.$spacing-4;
     font-size: 12.5px;
     color: t.$text-secondary;
-    border: 1px solid var(--neo-primary-dark, rgba(0, 117, 226, 0.45));
-    background: color-mix(in srgb, var(--neo-primary-hover, rgb(0, 117, 226)) 9%, transparent);
+    border: 1px solid var(--neo-accent-dark, rgb(0, 83, 160));
+    background: color-mix(in srgb, var(--neo-accent-hover, #0075e2) 9%, transparent);
     border-radius: t.$border-radius-md;
 }
 
@@ -638,8 +643,8 @@ $nb-fog-duration: 0.25s;
     padding: 10px 14px;
     font-size: 12.5px;
     color: t.$text-secondary;
-    border: 1px solid color-mix(in srgb, var(--neo-error-light, rgb(252, 118, 118)) 45%, transparent);
-    background: color-mix(in srgb, var(--neo-error-light, rgb(252, 118, 118)) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--neo-error-main, rgb(255, 83, 83)) 45%, transparent);
+    background: color-mix(in srgb, var(--neo-error-main, rgb(255, 83, 83)) 8%, transparent);
     border-radius: t.$border-radius-md;
 }
 
@@ -671,7 +676,7 @@ $nb-fog-duration: 0.25s;
     padding: 6px 6px 6px 14px;
     font-size: 12.5px;
     color: t.$text-secondary;
-    background: var(--neo-bg-elevated, #2b2b2b);
+    background: var(--neo-bg-elevated, #2c2c2c);
     border: 1px solid $nb-line;
     border-radius: t.$border-radius-md;
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
@@ -954,7 +959,7 @@ $nb-fog-duration: 0.25s;
         align-items: center;
         gap: 4px;
         padding: 4px;
-        background: var(--neo-bg-primary, rgba(30, 30, 30, 0.96));
+        background: var(--neo-menu-bg, #2d2d2d);
         border: 1px solid $nb-line;
         border-radius: 999px;
         white-space: nowrap;
@@ -1048,14 +1053,14 @@ $nb-fog-duration: 0.25s;
     @include nb-focus-ring;
 
     &:hover {
-        background: t.$bg-hover;
+        background: t.$hover-bg;
         color: t.$text-primary;
     }
 }
 
 .nb-remove:hover {
-    background: var(--neo-btn-delete, #c43c3c);
-    color: var(--neo-text-on-accent, #fff);
+    background: var(--neo-button-danger-bg, #e53935);
+    color: var(--neo-text-on-accent, #ffffff);
 }
 
 .nb-sizes {
@@ -1078,8 +1083,8 @@ $nb-fog-duration: 0.25s;
         @include nb-focus-ring;
 
         &[aria-pressed='true'] {
-            background: t.$primary-base;
-            color: var(--neo-text-on-accent, #fff);
+            background: t.$accent-main;
+            color: var(--neo-text-on-accent, #ffffff);
         }
     }
 }
@@ -1110,7 +1115,7 @@ $nb-fog-duration: 0.25s;
     // Hover lightens the outline of the innermost section or widget under the pointer only, so the
     // sections around it stay as they are. `:where` keeps it below the selected, drop and drag outlines.
     .nb-section:where(:hover:not(:has(.nb-node:hover))) {
-        outline-color: color-mix(in srgb, var(--neo-text-primary, rgb(255, 255, 255)) 55%, transparent);
+        outline-color: var(--neo-border-color-strong, #767676);
     }
     .nb-section.is-selected {
         outline: 2px solid $nb-accent;
@@ -1132,7 +1137,7 @@ $nb-fog-duration: 0.25s;
         outline: 2px solid $nb-accent;
     }
     .nb-section.is-drop-into > .nb-section-frame > .nb-section-body {
-        background: color-mix(in srgb, var(--neo-primary-hover, rgb(0, 117, 226)) 8%, transparent);
+        background: color-mix(in srgb, var(--neo-accent-hover, #0075e2) 8%, transparent);
         border-radius: t.$border-radius-md;
     }
     .nb-section-body.is-empty {
@@ -1180,7 +1185,7 @@ $nb-fog-duration: 0.25s;
     // (editExtra in LayoutBoard), so its widgets are as tall as they will be once saved.
     .nb-widget {
         margin-top: 18px;
-        outline: 1px solid var(--neo-border-color-light, rgba(255, 255, 255, 0.18));
+        outline: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
         outline-offset: 3px;
         border-radius: t.$border-radius-md;
         cursor: grab;
@@ -1202,7 +1207,7 @@ $nb-fog-duration: 0.25s;
         margin-top: 8px;
     }
     .nb-widget:hover {
-        outline-color: color-mix(in srgb, var(--neo-text-primary, rgb(255, 255, 255)) 55%, transparent);
+        outline-color: var(--neo-border-color-strong, #767676);
     }
     // The node being dragged keeps an accent outline until it is dropped.
     .nb-widget.is-dragging,
@@ -1292,7 +1297,7 @@ $nb-fog-duration: 0.25s;
     left: calc(100% + 6px);
     white-space: nowrap;
     font-size: 11px;
-    color: $nb-accent;
+    color: $nb-accent-text;
     font-variant-numeric: tabular-nums;
 }
 
@@ -1355,7 +1360,7 @@ $nb-fog-duration: 0.25s;
     font-weight: t.$font-weight-semibold;
     letter-spacing: 0.09em;
     text-transform: uppercase;
-    color: t.$text-secondary;
+    color: t.$text-secondary; // the title it renames, not a field
     background: transparent;
     border: 1px solid transparent;
     border-radius: t.$border-radius-sm;
@@ -1365,8 +1370,8 @@ $nb-fog-duration: 0.25s;
     }
     &:focus {
         outline: none;
-        border-color: $nb-accent;
-        background: var(--neo-bg-hover, rgba(255, 255, 255, 0.05));
+        border-color: t.$border-color-focus;
+        background: var(--neo-field-bg, var(--neo-bg-elevated, #2c2c2c));
     }
     &::placeholder {
         color: t.$text-muted;
@@ -1386,7 +1391,7 @@ $nb-fog-duration: 0.25s;
     align-items: center;
     gap: 2px;
     padding: 1px 4px;
-    background: var(--neo-bg-primary, rgba(30, 30, 30, 0.96));
+    background: var(--neo-menu-bg, #2d2d2d);
     border: 1px solid $nb-line;
     border-radius: 999px;
 
@@ -1465,7 +1470,7 @@ $nb-fog-duration: 0.25s;
 .nb-link-btn {
     @include nb-reset-button;
     font-size: t.$font-size-sm;
-    color: $nb-accent;
+    color: $nb-accent-text;
     border-radius: t.$border-radius-sm;
     @include nb-focus-ring;
 
@@ -1496,11 +1501,11 @@ $nb-fog-duration: 0.25s;
     color: var(--neo-event-match-main, #ffdc72);
 }
 .nb-error-text {
-    color: t.$error-light;
+    color: t.$error-text;
     font-size: t.$font-size-sm;
 }
 .nb-danger-text {
-    color: t.$error-light !important;
+    color: t.$error-text !important;
 }
 
 // Built-in widgets laid out for fewer columns. Only the widget's own size counts (`>`): matching any
@@ -1737,7 +1742,7 @@ $nb-fog-duration: 0.25s;
     font-weight: t.$font-weight-semibold;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: $nb-tone;
+    color: $nb-tone-text;
 }
 .nb-calendar-month {
     font-size: t.$font-size-sm;
@@ -1763,7 +1768,7 @@ $nb-fog-duration: 0.25s;
     margin-right: 2px;
     padding: 1px 6px;
     font-size: 11px;
-    color: $nb-tone;
+    color: $nb-tone-text;
     border: 1px solid $nb-tone-soft;
     border-radius: 999px;
     @include nb-focus-ring;
@@ -1808,7 +1813,7 @@ $nb-fog-duration: 0.25s;
         background: $nb-tone;
         color: $nb-tone-ink;
         font-weight: t.$font-weight-bold;
-        box-shadow: 0 0 0 3px color-mix(in srgb, var(--neo-primary-light, rgb(109, 139, 255)) 20%, transparent);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--neo-accent-light, rgb(0, 108, 210)) 20%, transparent);
     }
 }
 
@@ -2032,7 +2037,7 @@ $nb-fog-duration: 0.25s;
     border-radius: t.$border-radius-base;
 
     &:hover {
-        background: t.$bg-hover;
+        background: t.$hover-bg;
     }
 }
 .nb-ref-open {
@@ -2218,8 +2223,8 @@ $nb-fog-duration: 0.25s;
     flex-direction: column;
     min-width: 112px;
     padding: 4px;
-    background: var(--neo-bg-elevated, #2b2b2b);
-    border: 1px solid $nb-line;
+    background: var(--neo-menu-bg, #2d2d2d);
+    border: 1px solid var(--neo-menu-border, var(--neo-border-color-default, rgba(255, 255, 255, 0.13)));
     border-radius: t.$border-radius-md;
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
 
@@ -2229,13 +2234,13 @@ $nb-fog-duration: 0.25s;
         text-align: left;
         white-space: nowrap;
         font-size: 12.5px;
-        color: t.$text-secondary;
+        color: var(--neo-text-primary, #f1f1f1);
         border-radius: t.$border-radius-sm;
         @include nb-focus-ring;
 
         &:hover {
             color: t.$text-primary;
-            background: var(--neo-bg-hover, rgba(255, 255, 255, 0.06));
+            background: var(--neo-menu-item-hover-bg, #3d3d3d);
         }
     }
 }
@@ -2272,7 +2277,7 @@ $nb-fog-duration: 0.25s;
 }
 .nb-app-icon--ghost {
     font-size: 22px;
-    color: t.$text-muted;
+    color: t.$text-icon;
     background: transparent;
     border: 1px dashed $nb-border-strong;
 }
@@ -2287,6 +2292,22 @@ $nb-fog-duration: 0.25s;
     svg {
         width: 16px;
         height: 16px;
+    }
+}
+// a package's own icon (PkgIcon): its picture fills the icon's square; a white line drawing is
+// painted as a shape in the icon colour (pkgIconGlyph)
+.nb-item-icon--package {
+    img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        border-radius: calc(3px * var(--neo-radius-scale, 1));
+    }
+    .pkg-icon-glyph {
+        display: block;
+        width: 100%;
+        height: 100%;
+        background-color: currentColor;
     }
 }
 
@@ -2333,19 +2354,13 @@ $nb-fog-duration: 0.25s;
     height: 28px;
     margin: 10px 10px 0;
     padding: 0 8px;
-    color: t.$text-disabled;
-    background: t.$bg-elevated;
-    border: 1px solid transparent;
     border-radius: t.$border-radius-base;
-
-    &:focus-within {
-        border-color: $nb-accent;
-    }
+    @include t.search-box(var(--neo-field-icon, var(--neo-text-tertiary, #a3a3a3)));
 }
 .nb-panel-search-icon {
     display: flex;
     flex-shrink: 0;
-    color: t.$text-disabled;
+    color: var(--neo-field-icon, var(--neo-text-tertiary, #a3a3a3));
 }
 .nb-panel-search-input {
     flex: 1;
@@ -2354,13 +2369,13 @@ $nb-fog-duration: 0.25s;
     padding: 0;
     font-family: t.$font-family-pretendard;
     font-size: 12px;
-    color: t.$text-primary;
+    color: var(--neo-text-primary, #f1f1f1);
     background: transparent;
     border: none;
     outline: none;
 
     &::placeholder {
-        color: t.$text-disabled;
+        color: t.$text-muted;
     }
 }
 .nb-panel-search-clear {
@@ -2370,7 +2385,7 @@ $nb-fog-duration: 0.25s;
     justify-content: center;
     width: 16px;
     height: 16px;
-    color: t.$text-disabled;
+    color: var(--neo-field-icon, var(--neo-text-tertiary, #a3a3a3));
     border-radius: calc(2px * var(--neo-radius-scale, 1));
 
     &:hover {
@@ -2432,7 +2447,7 @@ $nb-fog-duration: 0.25s;
     display: grid;
     place-items: center;
     border-radius: calc(6px * var(--neo-radius-scale, 1));
-    background: t.$bg-hover;
+    background: var(--neo-bg-elevated, #2c2c2c);
     color: t.$text-tertiary;
 
     svg {
@@ -2474,7 +2489,7 @@ $nb-fog-duration: 0.25s;
 
     &:hover {
         color: t.$text-primary;
-        background: t.$bg-hover;
+        background: t.$hover-bg;
     }
 }
 .nb-panel-cat-row {
@@ -2566,12 +2581,12 @@ $nb-fog-duration: 0.25s;
     display: grid;
     place-items: center;
     border-radius: 13px;
-    color: var(--nb-app-color, var(--neo-text-tertiary, #9a9a9a));
+    color: var(--nb-app-color, var(--neo-text-tertiary, #a3a3a3));
     // A neutral tile, the same for every kind: colour comes only from the item's own icon (the
     // explorer's colours), so a row of mixed items reads calm instead of as a row of coloured blocks.
-    background: t.$bg-input-dark;
-    border: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.06));
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    background: var(--neo-bg-elevated, #2c2c2c);
+    border: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--neo-border-color-default, rgba(255, 255, 255, 0.13)) 30%, transparent);
     transition: transform t.$transition-duration-fast, box-shadow t.$transition-duration-fast;
 
     .nb-item-icon,
@@ -2663,7 +2678,7 @@ $nb-fog-duration: 0.25s;
     }
     &:hover .nb-app-icon {
         color: t.$text-primary;
-        border-color: t.$text-tertiary;
+        border-color: var(--neo-border-color-strong, #767676);
     }
 }
 
@@ -2701,27 +2716,22 @@ $nb-fog-duration: 0.25s;
     font: inherit;
     font-family: t.$font-family-pretendard;
     font-size: t.$font-size-base;
-    color: t.$text-primary;
-    // Same field as the DB explorer's search: an elevated fill, no border until focused.
-    background: t.$bg-elevated;
-    border: 1px solid transparent;
-    border-radius: t.$border-radius-base;
+    color: var(--neo-text-primary, #f1f1f1);
+    // A field as every other input draws it (field-bg, a field-border line at rest): a dialog is the
+    // same Layer as a field's fill, so without the line the box did not show until it was focused.
+    @include t.interactive-field-base;
 
     &::placeholder {
-        color: t.$text-disabled;
+        color: t.$text-muted;
     }
 
     &:focus {
         outline: none;
-        border-color: $nb-accent;
+        border-color: t.$border-color-focus;
     }
     &[aria-invalid='true'] {
-        border-color: t.$error-light;
+        border-color: t.$error-main;
     }
-}
-.nb-modal .nb-input {
-    // Dialogs sit on #2a2a2a, so the field steps one shade lighter than it does on a panel.
-    background: t.$bg-input-dark;
 }
 .nb-swatches {
     display: flex;
@@ -2752,7 +2762,7 @@ $nb-fog-duration: 0.25s;
 
     &.is-checked {
         border-color: $nb-accent;
-        background: color-mix(in srgb, var(--neo-primary-hover, rgb(0, 117, 226)) 8%, transparent);
+        background: color-mix(in srgb, var(--neo-accent-hover, #0075e2) 8%, transparent);
     }
     input {
         margin-top: 3px;
@@ -2786,8 +2796,8 @@ $nb-fog-duration: 0.25s;
         @include nb-focus-ring;
 
         &[aria-checked='true'] {
-            background: t.$primary-base;
-            color: var(--neo-text-on-accent, #fff);
+            background: t.$accent-main;
+            color: var(--neo-text-on-accent, #ffffff);
         }
     }
 }
@@ -2826,7 +2836,7 @@ $nb-fog-duration: 0.25s;
     padding: 7px 12px;
     font-size: t.$font-size-base;
     color: t.$text-secondary;
-    border-bottom: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.06));
+    border-bottom: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
 
     &:last-child {
         border-bottom: 0;
@@ -2840,10 +2850,10 @@ $nb-fog-duration: 0.25s;
     @include nb-reset-button;
     grid-template-columns: minmax(0, 1fr);
     padding: 7px 12px;
-    border-bottom: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.06));
+    border-bottom: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
 
     &:hover {
-        background: t.$bg-hover;
+        background: t.$hover-bg;
     }
 }
 .nb-list-name {
@@ -2872,7 +2882,7 @@ $nb-fog-duration: 0.25s;
     cursor: pointer;
 
     &:hover {
-        background: t.$bg-hover;
+        background: t.$hover-bg;
     }
     &.is-in {
         cursor: default;
@@ -2965,7 +2975,7 @@ $nb-fog-duration: 0.25s;
         min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
-        color: $nb-accent;
+        color: $nb-accent-text;
         border-radius: t.$border-radius-sm;
         @include nb-focus-ring;
     }
@@ -2999,8 +3009,8 @@ $nb-fog-duration: 0.25s;
     padding: 10px 12px;
     font-size: t.$font-size-base;
     color: t.$text-secondary;
-    background: color-mix(in srgb, var(--neo-error-light, rgb(250, 100, 100)) 7%, transparent);
-    border: 1px solid color-mix(in srgb, var(--neo-error-light, rgb(250, 100, 100)) 40%, transparent);
+    background: color-mix(in srgb, var(--neo-error-main, rgb(255, 83, 83)) 7%, transparent);
+    border: 1px solid color-mix(in srgb, var(--neo-error-main, rgb(255, 83, 83)) 40%, transparent);
     border-radius: t.$border-radius-base;
 }
 .nb-confirm-actions {

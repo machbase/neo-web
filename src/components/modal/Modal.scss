@@ -41,13 +41,19 @@
 }
 
 .modal-theme-dark {
-    background-color: var(--neo-bg-hover-light, #404457);
-    color: white;
+    background-color: var(--neo-dialog-bg, var(--neo-bg-elevated, #2c2c2c));
+    color: var(--neo-text-primary, #f1f1f1);
+    // a field's label and helper text in a dialog are its body text (Input, Textarea, Dropdown…: --label-text)
+    --label-text: var(--neo-text-primary, #f1f1f1);
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.16), inset 0 -1px 8px 0 rgba(0, 0, 0, 0.3);
-    border: solid 0.5px color-mix(in srgb, var(--neo-text-primary, rgb(255, 255, 255)) 50%, transparent);
+    border: solid 0.5px var(--neo-dialog-border, var(--neo-border-color-default, rgba(255, 255, 255, 0.13)));
 
     svg {
-        color: white;
+        color: var(--neo-text-primary, #f1f1f1);
+    }
+    // the old dialogs' title (UrlDownloadModal, PanelDataDownloadModal)
+    .title-content {
+        color: var(--neo-dialog-title-text, var(--neo-text-primary, #f1f1f1));
     }
 }
 

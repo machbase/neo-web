@@ -8,7 +8,7 @@
 }
 
 .title { @include text.title; }
-.icon { display: inline-flex; align-items: center; color: theme.$accent; }
+.icon { display: inline-flex; align-items: center; color: theme.$accent-text; }
 .message {
     flex: 1;
     min-width: 0;

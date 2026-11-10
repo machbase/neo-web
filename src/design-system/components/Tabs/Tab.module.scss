@@ -75,10 +75,10 @@
     }
     span {
         padding-left: 8px;
-        color: t.$tabbar-text-inactive;
+        color: t.$tabbar-inactive-text;
     }
     svg {
-        color: t.$tabbar-text-inactive;
+        color: t.$tabbar-inactive-text;
     }
     .tab_close {
         padding-left: 4px !important;
@@ -97,23 +97,23 @@
 }
 
 .tab_select {
-    background-color: t.$bg-tab-active;
+    background-color: t.$tabbar-active-bg;
     border-top: 1px solid t.$tabbar-marker;
     border-left: t.$border-default;
     border-right: t.$border-default;
-    border-bottom: 1px solid t.$bg-tab-active;
+    border-bottom: 1px solid t.$tabbar-active-bg;
     border-radius: 0;
     margin-bottom: -1px;
     position: relative;
     z-index: $tab-select-style-idx;
     svg,
     span {
-        color: t.$tabbar-text;
+        color: t.$tabbar-active-text;
     }
     .round_right_wrap {
         width: 15px;
         height: 15px;
-        background-color: t.$bg-tab-active;
+        background-color: t.$tabbar-active-bg;
         position: absolute;
         bottom: 0px;
         left: -15px;
@@ -133,7 +133,7 @@
     .round_left_wrap {
         width: 15px;
         height: 15px;
-        background-color: t.$bg-tab-active;
+        background-color: t.$tabbar-active-bg;
         position: absolute;
         bottom: 0px;
         right: -15px;
@@ -154,7 +154,7 @@
 .tab_none_select {
     &::after {
         content: '';
-        background-color: var(--neo-bg-input, rgba(255, 255, 255, 0.13));
+        background-color: var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
         width: 1px;
         height: 24px;
         position: absolute;
@@ -163,18 +163,18 @@
     }
     &:hover {
         .tab-inner {
-            background-color: t.$bg-tab-hover;
+            background-color: t.$tabbar-hover-bg;
             border-radius: calc(4px * var(--neo-radius-scale, 1));
         }
         svg,
         span {
-            color: t.$tabbar-text;
+            color: t.$tabbar-active-text;
         }
     }
 }
 .tab_none_select_drag_over {
     svg,
     span {
-        color: t.$tabbar-text !important;
+        color: t.$tabbar-active-text !important;
     }
 }

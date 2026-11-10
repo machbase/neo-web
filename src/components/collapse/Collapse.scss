@@ -10,7 +10,7 @@
         transition: background-color 0.2s ease;
 
         &:hover {
-            background-color: var(--neo-bg-primary, rgba(30, 32, 36, 0.6));
+            background-color: var(--neo-hover-bg, rgba(255, 255, 255, 0.08));
         }
         .collapse-icon {
             display: flex;

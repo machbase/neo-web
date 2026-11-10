@@ -21,28 +21,28 @@
                 background-color: var(--neo-bg-primary, #1e1e1e);
                 border-top-right-radius: 4px;
                 border-top-left-radius: 4px;
-                border-top: solid 0.5px var(--neo-border-color-light, #454545);
-                border-left: solid 0.5px var(--neo-border-color-light, #454545);
-                border-right: solid 0.5px var(--neo-border-color-light, #454545);
+                border-top: solid 0.5px var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
+                border-left: solid 0.5px var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
+                border-right: solid 0.5px var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
 
                 .worksheet-ctr-verti-divi {
                     width: 1px;
                     height: 24px;
                     margin: 2px;
-                    background-color: var(--neo-bg-input, rgba(255, 255, 255, 0.2));
+                    background-color: var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
                 }
 
                 .worksheet-ctr-lang {
                     display: flex;
                     justify-content: end;
                     align-items: center;
-                    color: var(--neo-text-disabled, rgba(255, 255, 255, 0.5));
+                    color: var(--neo-text-muted, #818181);
                     position: relative;
                     cursor: pointer;
 
                     :hover {
-                        color: var(--neo-text-primary, #f8f8f8);
-                        background-color: var(--neo-btn-copy, rgb(95, 95, 95));
+                        color: var(--neo-text-primary, #f1f1f1);
+                        background-color: var(--neo-neutral-main, #6f7173);
                     }
 
                     .dropdown {
@@ -55,15 +55,15 @@
                         border-radius: calc(4px * var(--neo-radius-scale, 1));
 
                         .worksheet-ctr-lang-content-list {
-                            border: solid 1px var(--neo-border-color-medium, #5e5e5e);
+                            border: solid 1px var(--neo-menu-border, var(--neo-border-color-default, rgba(255, 255, 255, 0.13)));
                             z-index: $worksheet-dropdown-form-idx;
-                            fill: var(--neo-text-primary, #f8f8f8);
+                            fill: var(--neo-text-primary, #f1f1f1);
                             position: absolute;
-                            background-color: var(--neo-dropdown-option-hover-bg, #393b41);
+                            background-color: var(--neo-menu-bg, #2d2d2d);
                             border-radius: calc(10px * var(--neo-radius-scale, 1));
                             top: 20px;
                             left: 0;
-                            color: var(--neo-text-disabled, rgba(255, 255, 255, 0.5));
+                            color: var(--neo-text-primary, #f1f1f1);
 
                             .worksheet-ctr-lang-content {
                                 white-space: nowrap;
@@ -83,7 +83,7 @@
             .editor {
                 width: 100%;
                 height: 100%;
-                border: 0.5px solid var(--neo-border-color-light, #393b41);
+                border: 0.5px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
                 position: relative;
                 border-bottom-left-radius: calc(4px * var(--neo-radius-scale, 1));
                 border-bottom-right-radius: calc(4px * var(--neo-radius-scale, 1));
@@ -112,7 +112,7 @@
                 .shell-result {
                     padding: 8px;
                     &-command-wrapper {
-                        border-left: solid 4px var(--neo-border-color-light, #393b41);
+                        border-left: solid 4px var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
                         margin-bottom: 4px;
                         pre {
                             margin-left: 8px;
@@ -151,7 +151,7 @@
                         thead {
                             font-size: 14px;
                             font-weight: 600;
-                            color: var(--neo-text-disabled, #818181);
+                            color: var(--neo-table-header-text, var(--neo-text-muted, #818181));
                             position: sticky;
                             top: 0;
                             z-index: 10;
@@ -159,7 +159,7 @@
                             th {
                                 min-width: 20px;
                                 padding: 4px 8px;
-                                background-color: var(--neo-bg-elevated, rgb(44, 44, 44));
+                                background-color: var(--neo-table-header-bg, var(--neo-bg-elevated, #2c2c2c));
                             }
                         }
 
@@ -169,11 +169,11 @@
 
                             tr {
                                 &:nth-child(2n) {
-                                    background-color: var(--neo-bg-elevated, rgb(43, 43, 43));
+                                    background-color: var(--neo-table-stripe-bg, var(--neo-bg-elevated, #2c2c2c));
                                 }
 
                                 &:hover {
-                                    background-color: var(--neo-bg-hover-light, rgb(75, 75, 75));
+                                    background-color: var(--neo-table-row-hover-bg, var(--neo-list-hover-bg, rgba(255, 255, 255, 0.13)));
                                 }
                             }
 
@@ -185,14 +185,14 @@
                                 max-width: 50vw;
 
                                 &:hover {
-                                    color: var(--neo-primary-light, rgb(0, 108, 210));
+                                    color: var(--neo-accent-text, #4199ff);
                                     filter: brightness(1.5) saturate(1.2);
                                 }
                             }
                         }
 
                         blockquote {
-                            border-left: solid 4px var(--neo-border-color-light, #393b41);
+                            border-left: solid 4px var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
                             margin: 4px;
 
                             p {
@@ -204,7 +204,7 @@
             }
 
             .result-worksheet-total {
-                border-left: solid 4px var(--neo-border-color-light, #393b41);
+                border-left: solid 4px var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
                 margin: 4px;
 
                 span {

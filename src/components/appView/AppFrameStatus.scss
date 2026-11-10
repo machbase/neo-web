@@ -31,7 +31,7 @@
     padding: 24px;
     // Opaque: the frame underneath is blank or half-broken, so covering it fully
     // reads as a deliberate state instead of a rendering glitch.
-    background-color: t.$bg-primary;
+    background-color: var(--neo-bg-canvas, var(--neo-bg-primary, #1e1e1e));
     color: t.$text-secondary;
     text-align: center;
     overflow: auto;
@@ -43,7 +43,7 @@
 }
 
 .app-frame-overlay__icon {
-    color: t.$warning-main;
+    color: t.$warning-text;
     flex-shrink: 0;
 }
 
@@ -72,7 +72,7 @@
     font-family: 'D2Coding', 'Menlo', 'Consolas', monospace;
     font-size: 11px;
     line-height: 1.7;
-    color: t.$error-light;
+    color: t.$error-text;
     text-align: left;
     overflow-x: auto;
 
@@ -97,7 +97,7 @@
     // The global `button { border-radius: 8px }` reset in index.css would round
     // these differently from the rest of the app, so the radius is explicit.
     border-radius: calc(4px * var(--neo-radius-scale, 1));
-    border: 1px solid t.$border-color-medium;
+    border: 1px solid t.$border-color-strong;
     background-color: t.$bg-elevated;
     color: t.$text-primary;
     font-size: 12px;
@@ -105,15 +105,16 @@
     cursor: pointer;
 
     &:hover {
-        background-color: t.$bg-hover-light;
+        background-color: var(--neo-hover-bg, rgba(255, 255, 255, 0.08));
     }
 
     &--primary {
-        border-color: t.$border-color-active;
-        background-color: t.$bg-active;
+        border-color: var(--neo-button-primary-bg, #005fb8);
+        background-color: var(--neo-button-primary-bg, #005fb8);
+        color: var(--neo-text-on-accent, #ffffff);
 
         &:hover {
-            background-color: t.$bg-active-hover;
+            background-color: var(--neo-accent-hover, #0075e2);
         }
     }
 }

@@ -29,13 +29,13 @@
     font-size: 14px;
     font-weight: 600;
     font-family: initial;
-    color: var(--neo-table-header-text, var(--neo-text-disabled, #818181));
+    color: var(--neo-table-header-text, var(--neo-text-muted, #818181));
 
     th {
         min-width: 20px;
         padding: 4px;
         padding-left: 8px;
-        background-color: var(--neo-table-header-bg, var(--neo-bg-elevated, rgb(44, 44, 44)));
+        background-color: var(--neo-table-header-bg, var(--neo-bg-elevated, #2c2c2c));
     }
 
     &-action {
@@ -45,18 +45,18 @@
 
 // Table body
 .table-body {
-    color: t.$table-text;
+    color: t.$text-secondary;
     text-align: left;
     font-size: 13px;
 
     .active-row {
-        background-color: var(--neo-bg-active, rgb(0, 83, 160)) !important;
-        color: var(--neo-text-primary, rgb(243, 243, 243));
+        background-color: var(--neo-table-row-selected-bg, var(--neo-selected-bg, rgb(0, 83, 160))) !important;
+        color: var(--neo-text-primary, #f1f1f1);
     }
 
     tr {
         &:hover {
-            background-color: t.$bg-hover-light;
+            background-color: t.$table-row-hover-bg;
         }
 
         .action {
@@ -71,9 +71,9 @@
             }
 
             &:hover {
-                background-color: var(--neo-bg-active-hover, rgb(0, 108, 210));
+                background-color: var(--neo-accent-hover, #0075e2);
                 svg {
-                    fill: var(--neo-text-primary, #ffffff);
+                    fill: var(--neo-text-primary, #f1f1f1);
                 }
             }
         }
@@ -96,18 +96,18 @@
     text-align: left;
     font-weight: 600;
     font-family: initial;
-    color: var(--neo-table-header-text, var(--neo-text-disabled, #818181));
+    color: var(--neo-table-header-text, var(--neo-text-muted, #818181));
 
     th {
         min-width: 10px;
         padding: 4px;
         padding-left: 8px;
-        background-color: var(--neo-table-header-bg, var(--neo-bg-elevated, rgb(44, 44, 44)));
+        background-color: var(--neo-table-header-bg, var(--neo-bg-elevated, #2c2c2c));
     }
 
     .row-num {
         cursor: default;
-        color: t.$text-row-number;
+        color: var(--neo-table-header-text, var(--neo-text-muted, #818181));
     }
 
     &-action {
@@ -120,19 +120,19 @@
 
 // Scroll table body (editable mode)
 .scroll-table-body {
-    color: t.$table-text;
+    color: t.$text-secondary;
     text-align: left;
     font-size: 13px;
     contain: layout style;
 
     span.row-num {
         cursor: default;
-        color: t.$text-row-number;
+        color: var(--neo-table-row-number-text, var(--neo-table-header-text, var(--neo-text-muted, #818181)));
     }
 
     .active-row {
-        background-color: var(--neo-bg-active, rgb(0, 83, 160)) !important;
-        color: var(--neo-text-primary, rgb(243, 243, 243));
+        background-color: var(--neo-table-row-selected-bg, var(--neo-selected-bg, rgb(0, 83, 160))) !important;
+        color: var(--neo-text-primary, #f1f1f1);
     }
 
     tr {
@@ -146,9 +146,9 @@
             }
             &:hover,
             &:focus {
-                background-color: var(--neo-bg-active-hover, rgb(0, 108, 210));
+                background-color: var(--neo-accent-hover, #0075e2);
                 svg {
-                    fill: var(--neo-text-primary, #ffffff);
+                    fill: var(--neo-text-primary, #f1f1f1);
                 }
             }
         }
@@ -163,14 +163,15 @@
             &:focus {
                 background-color: var(--neo-error-main, rgb(255, 83, 83));
                 svg {
-                    fill: var(--neo-text-primary, #ffffff);
+                    fill: var(--neo-text-primary, #f1f1f1);
                 }
             }
         }
 
+        // a table's hover (it borrowed the dropdown's before), the same as the plain table's
         &:hover,
         &:focus {
-            background-color: var(--neo-dropdown-option-hover-bg, rgb(64, 64, 64));
+            background-color: t.$table-row-hover-bg;
         }
     }
 
@@ -263,7 +264,7 @@
     }
 
     &:hover {
-        color: t.$primary-light;
+        color: t.$accent-text;
         filter: brightness(1.5) saturate(1.2);
 
         .copy-cell {
@@ -286,7 +287,7 @@
 // Row number styling
 .row-num {
     cursor: default;
-    color: #3b3b3b;
+    color: var(--neo-table-row-number-text, var(--neo-table-header-text, var(--neo-text-muted, #818181)));
 }
 
 // Text wrap mode (overrides ellipsis)
@@ -312,14 +313,14 @@
 :global {
     .result-body-tr {
         &.dark-odd {
-            background-color: var(--neo-table-stripe-bg, var(--neo-bg-elevated, rgb(43, 43, 43)));
+            background-color: var(--neo-table-stripe-bg, var(--neo-bg-elevated, #2c2c2c));
         }
     }
 
     .row-num {
         margin-left: 4px;
         cursor: default;
-        color: var(--neo-text-disabled, #888888);
+        color: var(--neo-table-row-number-text, var(--neo-table-header-text, var(--neo-text-muted, #818181)));
     }
 
     .result-table-item {
@@ -365,13 +366,13 @@
             cursor: pointer;
 
             svg {
-                fill: var(--neo-text-disabled, #818181);
+                fill: var(--neo-text-icon, #818181);
             }
 
             &:hover {
-                background-color: var(--neo-bg-active-hover, rgb(0, 108, 210));
+                background-color: var(--neo-accent-hover, #0075e2);
                 svg {
-                    fill: var(--neo-text-primary, #ffffff);
+                    fill: var(--neo-text-primary, #f1f1f1);
                 }
             }
         }

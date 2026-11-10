@@ -1,6 +1,6 @@
 .loader {
-    border: 3px solid var(--neo-color-white, #f3f3f3); /* Light grey */
-    border-top: 3px solid var(--neo-primary-light, #4199ff); /* Blue */
+    border: 3px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13)); /* Light grey */
+    border-top: 3px solid var(--neo-accent-light, rgb(0, 108, 210)); /* Blue */
     animation: spin 2s linear infinite;
 }
 

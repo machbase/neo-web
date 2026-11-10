@@ -30,8 +30,8 @@
             align-items: flex-start;
             padding: 8px;
             border-radius: calc(3px * var(--neo-radius-scale, 1));
-            border: solid 1px var(--neo-border-color-light, #f1f1f125);
-            background-color: var(--neo-bg-input, rgba(255, 255, 255, 0.13));
+            border: solid 1px var(--neo-border-color-default, #f1f1f125);
+            background-color: var(--neo-toolbar-hover-bg, rgba(255, 255, 255, 0.13));
             color: var(--neo-text-primary, #f1f1f1);
             text-align: start;
 
@@ -52,7 +52,7 @@
 
     .extension-tab-hover-bg-wrapper {
         &:hover {
-            background-color: var(--neo-bg-input, rgba(255, 255, 255, 0.13));
+            background-color: var(--neo-toolbar-hover-bg, rgba(255, 255, 255, 0.13));
         }
     }
 
@@ -70,19 +70,19 @@
 
             &:hover {
                 color: var(--neo-text-tertiary, #a0a0a0);
-                background-color: var(--neo-bg-input, rgba(255, 255, 255, 0.13));
+                background-color: var(--neo-toolbar-hover-bg, rgba(255, 255, 255, 0.13));
                 border-radius: calc(4px * var(--neo-radius-scale, 1));
             }
         }
 
         .two-item-active {
             color: var(--neo-text-on-accent, #f1f1f1);
-            background-color: var(--neo-primary-base, #005fb8);
+            background-color: var(--neo-accent-main, #005fb8);
             border-radius: calc(4px * var(--neo-radius-scale, 1));
 
             &:hover {
                 color: var(--neo-text-on-accent, #f1f1f1);
-                background-color: var(--neo-primary-hover, #0075e2);
+                background-color: var(--neo-accent-hover, #0075e2);
                 border-radius: calc(4px * var(--neo-radius-scale, 1));
             }
         }
@@ -100,13 +100,13 @@
             display: inline-block;
             width: 28px;
             height: 13px;
-            background: var(--neo-bg-input, rgba(255, 255, 255, 0.13));
+            background: var(--neo-toolbar-hover-bg, rgba(255, 255, 255, 0.13));
             border: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
             border-radius: 20px;
             transition: 0.2s;
 
             &:hover {
-                background: var(--neo-bg-hover, rgba(255, 255, 255, 0.1));
+                background: var(--neo-hover-bg, rgba(255, 255, 255, 0.1));
                 border: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
                 border-radius: 20px;
             }
@@ -119,18 +119,18 @@
             width: 10px;
             height: 10px;
             border-radius: 20px;
-            background: var(--neo-btn-copy, rgba(255, 255, 255, 0.3));
+            background: var(--neo-neutral-main, rgba(255, 255, 255, 0.3));
             transition: 0.2s;
             cursor: pointer;
         }
         .extension-tab-switch-input:checked + .extension-tab-switch-label {
-            background: var(--neo-primary-base, #005fb8);
+            background: var(--neo-accent-main, #005fb8);
             border: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
         }
 
         .extension-tab-switch-input:checked + .extension-tab-switch-label:hover {
-            background: var(--neo-primary-hover, #0075e2);
-            border: 1px solid var(--neo-primary-hover, #0075e2);
+            background: var(--neo-accent-hover, #0075e2);
+            border: 1px solid var(--neo-accent-hover, #0075e2);
         }
 
         /* move */
@@ -169,12 +169,12 @@
                 font-size: 13px;
 
                 .active-row {
-                    background-color: var(--neo-bg-active, rgb(0, 83, 160)) !important;
+                    background-color: var(--neo-selected-bg, rgb(0, 83, 160)) !important;
                     color: var(--neo-text-primary, rgb(243, 243, 243));
                 }
                 tr {
                     &:hover {
-                        background-color: var(--neo-dropdown-option-hover-bg, rgb(64, 64, 64));
+                        background-color: var(--neo-menu-item-hover-bg, rgb(64, 64, 64));
                     }
                     .action {
                         display: flex;
@@ -188,7 +188,7 @@
                         }
 
                         &:hover {
-                            background-color: var(--neo-bg-active-hover, rgb(0, 108, 210));
+                            background-color: var(--neo-selected-hover-bg, rgb(0, 108, 210));
                             svg {
                                 fill: var(--neo-text-primary, #ffffff);
                             }
@@ -252,7 +252,7 @@
                 }
 
                 .active-row {
-                    background-color: var(--neo-bg-active, rgb(0, 83, 160)) !important;
+                    background-color: var(--neo-selected-bg, rgb(0, 83, 160)) !important;
                     color: var(--neo-text-primary, rgb(243, 243, 243));
                 }
                 tr {
@@ -267,7 +267,7 @@
                         }
                         &:hover,
                         &:focus {
-                            background-color: var(--neo-bg-active-hover, rgb(0, 108, 210));
+                            background-color: var(--neo-selected-hover-bg, rgb(0, 108, 210));
                             svg {
                                 fill: var(--neo-text-primary, #ffffff);
                             }
@@ -290,7 +290,7 @@
                     }
                     &:hover,
                     &:focus {
-                        background-color: var(--neo-dropdown-option-hover-bg, rgb(64, 64, 64));
+                        background-color: var(--neo-menu-item-hover-bg, rgb(64, 64, 64));
                     }
                 }
                 td {
@@ -327,9 +327,9 @@
             min-width: 16px !important;
             max-width: 16px !important;
             cursor: pointer;
-            border: solid 1px var(--neo-border-color-light, #f1f1f125);
+            border: solid 1px var(--neo-border-color-default, #f1f1f125);
             border-radius: calc(3px * var(--neo-radius-scale, 1));
-            background-color: var(--neo-bg-input, rgba(255, 255, 255, 0.13));
+            background-color: var(--neo-toolbar-hover-bg, rgba(255, 255, 255, 0.13));
             color: var(--neo-text-primary, #f1f1f1);
 
             svg {
@@ -346,7 +346,7 @@
             width: 100%;
             height: 100%;
             :hover {
-                background-color: var(--neo-bg-hover-light, rgb(75, 75, 75));
+                background-color: var(--neo-toolbar-hover-bg, rgb(75, 75, 75));
                 border-radius: calc(8px * var(--neo-radius-scale, 1));
             }
         }
@@ -418,8 +418,8 @@
             width: 100%;
             padding: 0 8px;
             border-radius: calc(3px * var(--neo-radius-scale, 1));
-            border: solid 1px var(--neo-border-color-light, #f1f1f125);
-            background-color: var(--neo-bg-input, rgba(255, 255, 255, 0.13));
+            border: solid 1px var(--neo-border-color-default, #f1f1f125);
+            background-color: var(--neo-toolbar-hover-bg, rgba(255, 255, 255, 0.13));
             color: var(--neo-text-primary, #f1f1f1);
         }
     }
@@ -443,12 +443,12 @@
 
         &:hover {
             border: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
-            background-color: var(--neo-primary-base, #005fb8);
+            background-color: var(--neo-accent-main, #005fb8);
         }
     }
     .extension-tab-icon-button-active {
         border: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
-        background-color: var(--neo-primary-base, #005fb8);
+        background-color: var(--neo-accent-main, #005fb8);
     }
     .extention-tab-date-time-picker-wrapper {
         display: flex;
@@ -462,8 +462,8 @@
             display: flex;
             align-items: center;
             border-radius: calc(3px * var(--neo-radius-scale, 1));
-            background-color: var(--neo-bg-input, rgba(255, 255, 255, 0.13));
-            border: solid 1px var(--neo-border-color-light, #f1f1f125);
+            background-color: var(--neo-toolbar-hover-bg, rgba(255, 255, 255, 0.13));
+            border: solid 1px var(--neo-border-color-default, #f1f1f125);
             color: var(--neo-text-primary, #f1f1f1);
 
             input {
@@ -494,7 +494,7 @@
                         color: var(--neo-text-secondary, #c4c4c4);
                     }
                     .Mui-selected {
-                        background-color: var(--neo-primary-base, #005fb8);
+                        background-color: var(--neo-accent-main, #005fb8);
                     }
                     .MuiPickersYear-root {
                         button {
@@ -513,7 +513,7 @@
                     }
                     .Mui-selected {
                         border-radius: calc(3px * var(--neo-radius-scale, 1));
-                        background-color: var(--neo-primary-base, #005fb8);
+                        background-color: var(--neo-accent-main, #005fb8);
                     }
                 }
                 .action {
@@ -536,7 +536,7 @@
                         color: var(--neo-text-secondary, #c4c4c4);
                     }
                     .Mui-selected {
-                        background-color: var(--neo-primary-base, #005fb8);
+                        background-color: var(--neo-accent-main, #005fb8);
                     }
                     .MuiPickersYear-root {
                         button {
@@ -558,7 +558,7 @@
                     }
                     .Mui-selected {
                         border-radius: calc(3px * var(--neo-radius-scale, 1));
-                        background-color: var(--neo-primary-base, #005fb8);
+                        background-color: var(--neo-accent-main, #005fb8);
                     }
                 }
                 .action {
@@ -582,8 +582,8 @@
             display: flex;
             align-items: center;
             border-radius: calc(3px * var(--neo-radius-scale, 1));
-            background-color: var(--neo-bg-input, rgba(255, 255, 255, 0.13));
-            border: solid 1px var(--neo-border-color-light, #f1f1f125);
+            background-color: var(--neo-toolbar-hover-bg, rgba(255, 255, 255, 0.13));
+            border: solid 1px var(--neo-border-color-default, #f1f1f125);
             color: var(--neo-text-primary, #f1f1f1);
 
             input {
@@ -614,7 +614,7 @@
                         color: var(--neo-text-secondary, #c4c4c4);
                     }
                     .Mui-selected {
-                        background-color: var(--neo-primary-base, #005fb8);
+                        background-color: var(--neo-accent-main, #005fb8);
                     }
                 }
                 .action {
@@ -635,8 +635,8 @@
             cursor: default;
             padding: 8px;
             border-radius: calc(3px * var(--neo-radius-scale, 1));
-            border: solid 1px var(--neo-border-color-light, #f1f1f125);
-            background-color: var(--neo-bg-input, rgba(255, 255, 255, 0.13));
+            border: solid 1px var(--neo-border-color-default, #f1f1f125);
+            background-color: var(--neo-toolbar-hover-bg, rgba(255, 255, 255, 0.13));
             color: var(--neo-text-primary, #f1f1f1);
             text-align: start;
         }
@@ -695,7 +695,7 @@
             width: 150px;
             height: 100%;
             border-right: 1px inset var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
-            color: var(--neo-text-hint, #aaaaaa);
+            color: var(--neo-text-tertiary, #aaaaaa);
         }
 
         .extension-tab-body-content {
@@ -763,7 +763,7 @@
             height: 27px;
             border: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
             border-radius: calc(4px * var(--neo-radius-scale, 1));
-            background-color: var(--neo-bg-input, rgba(255, 255, 255, 0.13));
+            background-color: var(--neo-toolbar-hover-bg, rgba(255, 255, 255, 0.13));
             padding: 0 8px;
             display: flex;
             justify-content: space-between;
@@ -790,10 +790,10 @@
                 }
             }
             &-item:hover {
-                background-color: var(--neo-primary-base, #005fb8);
+                background-color: var(--neo-accent-main, #005fb8);
             }
             &-item-selected {
-                background-color: var(--neo-primary-base, #005fb8);
+                background-color: var(--neo-accent-main, #005fb8);
             }
         }
     }
