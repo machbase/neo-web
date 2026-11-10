@@ -861,8 +861,25 @@ export const readLocalReadme = async (appName: string): Promise<string | null> =
     if (!isSafePathSegment(appName)) return null;
     try {
         const payload = unwrapPayload(await getFileList('', `/public/${appName}/`, 'README.md'));
-        return typeof payload === 'string' && payload.trim() ? payload : null;
+        return typeof payload === 'string' && payload.trim() ? resolveReadmeImages(payload, appName) : null;
     } catch {
         return null;
     }
+};
+
+/**
+ * issue #1577 — A README's own pictures, at the address the package is served from.
+ *
+ * Both panes that show an installed README (the App Store's and the package tab's)
+ * render it inside the web UI, so a relative `screenshots/a.png` resolved against
+ * `/web/ui/` and did not load (measured: all of Theme Builder's screenshots). The
+ * README's own directory is `/public/{name}/`. Absolute, `data:` and in-page
+ * addresses are left as they are, and so are links: only pictures are drawn in place.
+ */
+export const resolveReadmeImages = (aReadme: string, aAppName: string): string => {
+    const sBase = `/public/${encodeURIComponent(aAppName)}/`;
+    const resolve = (aUrl: string) => (/^([a-z][a-z\d+.-]*:|\/|#)/i.test(aUrl) ? aUrl : sBase + aUrl.replace(/^\.\//, ''));
+    return aReadme
+        .replace(/(!\[[^\]]*\]\(\s*)([^)\s]+)/g, (_, aHead: string, aUrl: string) => aHead + resolve(aUrl))
+        .replace(/(<img\b[^>]*?\bsrc\s*=\s*)(["'])([^"']+)\2/gi, (_, aHead: string, aQuote: string, aUrl: string) => aHead + aQuote + resolve(aUrl) + aQuote);
 };

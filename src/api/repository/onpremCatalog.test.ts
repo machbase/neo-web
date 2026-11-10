@@ -51,6 +51,7 @@ import {
     normalizeArchiveEntry,
     parseArchiveScan,
     readLocalReadme,
+    resolveReadmeImages,
     refreshLocalArchives,
     scanLocalArchives,
     SCAN_SCRIPT,
@@ -1681,6 +1682,25 @@ describe('readLocalReadme', () => {
     test('a rejected request → null, never a throw', async () => {
         mockGetFileList.mockRejectedValue(new Error('Network Error'));
         await expect(readLocalReadme('pkg-a')).resolves.toBeNull();
+    });
+
+    test('its own pictures point at the package, not at the web UI (#1577)', async () => {
+        mockGetFileList.mockResolvedValue({ data: '| Dark |\n| --- |\n| ![The New tab](screenshots/newtab-dark.png) |' });
+        await expect(readLocalReadme('pkg-a')).resolves.toBe('| Dark |\n| --- |\n| ![The New tab](/public/pkg-a/screenshots/newtab-dark.png) |');
+    });
+});
+
+describe('resolveReadmeImages', () => {
+    test.each([
+        ['a relative picture', '![a](shot.png)', '![a](/public/pkg-a/shot.png)'],
+        ['a ./ picture', '![a](./img/shot.png "title")', '![a](/public/pkg-a/img/shot.png "title")'],
+        ['an html picture', '<img alt="a" src="img/shot.png" width="300">', '<img alt="a" src="/public/pkg-a/img/shot.png" width="300">'],
+        ['an absolute address', '![a](https://example.com/a.png)', '![a](https://example.com/a.png)'],
+        ['a site path', '![a](/public/other/a.png)', '![a](/public/other/a.png)'],
+        ['a data address', '![a](data:image/png;base64,AAAA)', '![a](data:image/png;base64,AAAA)'],
+        ['a link, not a picture', '[DEVELOPMENT.md](DEVELOPMENT.md)', '[DEVELOPMENT.md](DEVELOPMENT.md)'],
+    ])('%s', (_label, aIn, aOut) => {
+        expect(resolveReadmeImages(aIn, 'pkg-a')).toBe(aOut);
     });
 
     test.each([['../secret'], ['a/b'], ['']])('an unsafe app name %p is rejected without touching the api', async (name) => {

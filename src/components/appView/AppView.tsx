@@ -92,7 +92,7 @@ export const AppView = ({ pAppName, pIsActiveTab }: AppViewProps) => {
                 {sMounted && sFrameUrl && (
                     <div className="app-view-stack">
                         <div className="app-frame">
-                            <iframe ref={iframeRef} src={sFrameUrl} title={`App: ${pAppName}`} />
+                            <iframe ref={iframeRef} src={sFrameUrl} title={`App: ${pAppName}`} data-testid={`app-frame-${encodeURIComponent(pAppName)}`} />
                             {pIsActiveTab && <AppFrameStatus pAppName={pAppName} pHealth={health} />}
                         </div>
                         {sReadmeOpen && readme.readme && (

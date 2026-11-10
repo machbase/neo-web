@@ -219,7 +219,7 @@ export const ThemeModal = ({ isOpen, onClose }: ThemeModalProps) => {
                     )}
                 </div>
                 {sPackages === undefined && <p className="theme-modal__note">Looking for installed themes…</p>}
-                {sPackages?.length === 0 && sMine.length === 0 && <p className="theme-modal__note">No themes installed yet. Install a theme package from the App Store.</p>}
+                {sPackages?.length === 0 && sMine.length === 0 && <p className="theme-modal__note">No themes installed yet. Install Theme Builder from the App Store.</p>}
                 {sPackages === null && <p className="theme-modal__note">The installed packages could not be read.</p>}
                 {sDeleteError && <p className="theme-modal__note">Could not delete the theme: {sDeleteError}</p>}
             </Modal.Body>

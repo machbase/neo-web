@@ -61,6 +61,12 @@ select {
     box-shadow: 0 0 0 1px t.$tooltip-border;
 }
 
+// Its corner is the 3px of the stylesheet it injects after this one (`.styles-module_tooltip__*`):
+// `body` outranks it, so a tooltip's corner follows the theme's roundness like every other corner.
+body .react-tooltip {
+    border-radius: t.$border-radius-sm;
+}
+
 // File-type and table-type icons keep their identity colours (Material's yellow folders, the table
 // type colours), drawn for a dark page. The file-type icons take theirs from tokens (icon-*,
 // _colors.scss). A theme made with the theme builder sets them itself, each only as deep as its own

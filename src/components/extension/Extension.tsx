@@ -238,7 +238,7 @@ const GNBPanel = ({ pOpenSideBar, pCloseSideBar, pIsSidebar, pSetEula }: GNBPane
                             </Menu.Item>
                             {/* themes are an experiment: the item is there in experiment mode only */}
                             {themesEnabled() && (
-                                <Menu.Item icon={<MdOutlinePalette />} onClick={() => setIsThemeModal(true)}>
+                                <Menu.Item icon={<MdOutlinePalette />} onClick={() => setIsThemeModal(true)} data-testid="settings-theme">
                                     Theme
                                 </Menu.Item>
                             )}

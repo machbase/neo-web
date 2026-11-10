@@ -453,27 +453,40 @@ the flag sign-in and the login check give). Off, every page — the sign-in page
 dark default, Settings has no Theme item, and an app's theme requests are refused with the reason;
 the choice and the browser's themes are kept for when it is on again.
 
-### A theme package
+### The Theme Builder package
 
-A theme is an ordinary package installed from the App Store (`/public/<package>/`). Its
-`package.json` declares it:
+Themes reach the web UI from one package, Theme Builder (`neo-pkg-theme-builder`), installed from
+the App Store (`/public/<package>/`). Its `package.json` names the list of its presets:
 
 ```json
 {
-    "name": "neo-pkg-theme-light",
+    "name": "neo-pkg-theme-builder",
     "version": "1.0.0",
-    "neoTheme": { "label": "Light", "stylesheet": "theme.css", "scheme": "light" }
+    "neoTheme": { "label": "Theme Builder", "index": "themes.json" }
 }
 ```
+
+The list is an array of `{ "id", "label", "stylesheet", "scheme" }` entries, optionally with
+`note` (a short word shown beside it, e.g. `Preset`) and `swatch` (up to eight colours drawn in
+its card). `index` may also be a list of files; a file that is missing is skipped. Settings →
+Theme shows the presets under *Ready to use* and, because the package has an app (`main.html`), an
+**Open Theme Builder** button. A theme is told apart by package and stylesheet (`themeKey`), so two
+presets of one package are two choices. The themes a user makes in the builder are kept in the
+browser (below).
+
+### A theme's fields
+
+Each entry of the list has these fields. A package's `neoTheme` may also declare one theme itself,
+with `stylesheet` in place of `index`.
 
 - `stylesheet` — a `.css` file inside the package (relative, no `..`).
 - `scheme` — `light` or `dark`: the code editor's base colours and the page's `color-scheme`.
 - `label` — what Settings → Theme shows (defaults to the package name).
 - `loginImage` (optional) — the sign-in page's picture: a `.webp`, `.png`, `.jpg` or `.svg` inside the
   package, relative like `stylesheet`. The sign-in page shows the picture of the theme the browser
-  last chose, from the package's versioned address, and the built-in one when it does not load. An
-  index entry can name one too. A theme kept in the browser keeps its picture in its own entry
-  (below). A theme's picture fills the page (`object-fit: cover`); the built-in one keeps its look.
+  last chose, from the package's versioned address, and the built-in one when it does not load. A
+  theme kept in the browser keeps its picture in its own entry (below). A theme's picture fills the
+  page (`object-fit: cover`); the built-in one keeps its look.
 
 The stylesheet sets variables on `:root`:
 
@@ -485,23 +498,6 @@ The stylesheet sets variables on `:root`:
 ```
 
 A variable it leaves out keeps the dark default, so a theme can change one colour or all of them.
-
-### A package of several themes
-
-A package can list its themes in JSON files instead of naming one stylesheet (the theme builder
-package, `neo-pkg-theme-builder`, keeps its presets in one list and the themes it saves in
-another):
-
-```json
-"neoTheme": { "label": "Theme Builder", "index": ["themes.json", "user/themes.json"] }
-```
-
-Each list is an array of `{ "id", "label", "stylesheet", "scheme" }` entries, optionally with
-`note` (a short word shown beside it, e.g. `Preset`) and `swatch` (up to eight colours drawn in
-its row). A list that is missing (nothing saved yet) is skipped. Settings → Theme shows such a
-package's themes under its label and, when the package has an app (`main.html`), an
-**Open <label>** button. A theme is told apart by package and stylesheet (`themeKey`), so two
-themes of one package are two choices.
 
 ### Themes kept in the browser
 

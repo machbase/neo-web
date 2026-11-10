@@ -322,7 +322,7 @@ test('an empty /public is no theme installed, and a remembered theme of a packag
     });
     localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify({ pkg: 'neo-pkg-gone', stylesheet: 'theme.css', label: 'Gone', scheme: 'light' }));
     render(<ThemeModal isOpen onClose={() => {}} />);
-    expect(await screen.findByText('No themes installed yet. Install a theme package from the App Store.')).toBeInTheDocument();
+    expect(await screen.findByText('No themes installed yet. Install Theme Builder from the App Store.')).toBeInTheDocument();
     expect(screen.queryByText('The installed packages could not be read.')).toBeNull();
     await waitFor(() => expect(screen.getByTestId('theme-option-default')).toHaveAttribute('aria-checked', 'true'));
     expect(localStorage.getItem(THEME_STORAGE_KEY)).toBeNull();
