@@ -3,7 +3,7 @@ import VideoPanel from './video/VideoPanel';
 import PanelHeader from './PanelHeader';
 import './Panel.scss';
 import { useState, useRef, useEffect } from 'react';
-import { ChartThemeBackgroundColor } from '@/utils/constants';
+import { ChartThemeBackgroundColor, DARK_CHART_THEMES } from '@/utils/constants';
 import { ChartTheme } from '@/type/eChart';
 
 const Panel = ({
@@ -47,8 +47,10 @@ const Panel = ({
         }
     };
 
+    // A panel in a chart theme is drawn in it; one without (a text or TQL result, a TQL chart not yet
+    // resolved) is content on the board — not see-through to the dashboard's canvas behind the panels.
     return (
-        <div className="panel-wrap" data-testid="wrap" style={{ backgroundColor: sResolvedTheme ? ChartThemeBackgroundColor[sResolvedTheme as ChartTheme] : 'transparent' }}>
+        <div className={`panel-wrap${sResolvedTheme && DARK_CHART_THEMES.has(sResolvedTheme) ? ' neo-dark-island' : ''}`} data-testid="wrap" style={{ backgroundColor: sResolvedTheme ? ChartThemeBackgroundColor[sResolvedTheme as ChartTheme] : 'var(--neo-bg-secondary, #252525)' }}>
             <PanelHeader
                 pRefreshCycleId={sRefreshCycleId}
                 pRefreshCount={sRefreshCount}

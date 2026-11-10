@@ -279,8 +279,14 @@ const Tooltip = `"tooltip": {"show": true,"trigger": "axis","axisPointer": {"typ
  * @argument aSql   string;
  * @argument aAxis  { x, y, xIndex, yIndex, list };
  * @argument env    SqlStatementEnv; // the `-- env:` directives the splitter parsed
+ * @argument aChart { theme, background }; // the app theme's chart look (appChartTheme), dark by default
  */
-export const sqlBasicChartFormatter = (aSql: string, aAxis?: { x: string; y: string; xIndex: number; yIndex: number; list: string[] }, env?: SqlStatementEnv) => {
+export const sqlBasicChartFormatter = (
+    aSql: string,
+    aAxis?: { x: string; y: string; xIndex: number; yIndex: number; list: string[] },
+    env?: SqlStatementEnv,
+    aChart: { theme: string; background: string } = { theme: 'dark', background: '#252525' }
+) => {
     const sSeries = aAxis?.list
         .map((colName: string, aIdx: number) => {
             if (colName !== aAxis?.x) return `{"name": "${colName}", "type": "line", "data": column(${aIdx})}`;
@@ -299,9 +305,9 @@ export const sqlBasicChartFormatter = (aSql: string, aAxis?: { x: string; y: str
         ')\n' +
         'TAKE(5000)\n' +
         `CHART(
-            theme("dark"),
+            theme("${aChart.theme}"),
             chartOption({
-                backgroundColor: "#252525",
+                backgroundColor: "${aChart.background}",
                 ${Animation},
                 ${DataZoom},
                 ${Color},

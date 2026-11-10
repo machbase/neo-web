@@ -53,15 +53,15 @@ class ErrorBoundary extends Component<Props, State> {
                         justifyContent: 'center',
                         width: '100vw',
                         height: '100vh',
-                        backgroundColor: '#1e1e1e',
-                        color: '#cccccc',
+                        backgroundColor: 'var(--neo-bg-canvas, var(--neo-bg-primary, #1e1e1e))',
+                        color: 'var(--neo-text-secondary, #c4c4c4)',
                         fontFamily: 'sans-serif',
                         padding: '20px',
                         textAlign: 'center',
                     }}
                 >
-                    <h2 style={{ color: '#ffffff', marginBottom: '16px' }}>An unexpected error occurred</h2>
-                    <p style={{ color: '#999999', marginBottom: '24px', maxWidth: '500px' }}>
+                    <h2 style={{ color: 'var(--neo-text-primary, #f1f1f1)', marginBottom: '16px' }}>An unexpected error occurred</h2>
+                    <p style={{ color: 'var(--neo-text-tertiary, #a3a3a3)', marginBottom: '24px', maxWidth: '500px' }}>
                         {this.state.error?.message || 'Something went wrong while rendering the page.'}
                     </p>
                     {isLegacyBrowser && (
@@ -70,16 +70,17 @@ class ErrorBoundary extends Component<Props, State> {
                                 marginBottom: '24px',
                                 padding: '12px 16px',
                                 maxWidth: '500px',
-                                backgroundColor: '#3a2d00',
-                                border: '1px solid #ff9800',
-                                borderRadius: '4px',
-                                color: '#ffcc80',
+                                // a raised surface with the warning border
+                                backgroundColor: 'var(--neo-bg-elevated, #2c2c2c)',
+                                border: '1px solid var(--neo-warning-main, #d67f00)',
+                                borderRadius: 'calc(4px * var(--neo-radius-scale, 1))',
+                                color: 'var(--neo-text-primary, #f1f1f1)',
                                 fontSize: '13px',
                                 lineHeight: 1.5,
                                 textAlign: 'left',
                             }}
                         >
-                            <strong style={{ color: '#ff9800' }}>⚠ Browser compatibility</strong>
+                            <strong style={{ color: 'var(--neo-warning-text, #ff9800)' }}>⚠ Browser compatibility</strong>
                             <br />
                             This error may be caused by your unsupported browser. Please update to Chrome/Edge 105+, Firefox 121+, or Safari 15.4+, then close all browser windows and reopen this page.
                         </div>
@@ -90,10 +91,10 @@ class ErrorBoundary extends Component<Props, State> {
                                 onClick={this.handleHardReload}
                                 style={{
                                     padding: '10px 24px',
-                                    backgroundColor: '#0078d4',
-                                    color: '#ffffff',
+                                    backgroundColor: 'var(--neo-button-primary-bg, #005fb8)',
+                                    color: 'var(--neo-text-on-accent, #ffffff)',
                                     border: 'none',
-                                    borderRadius: '4px',
+                                    borderRadius: 'calc(4px * var(--neo-radius-scale, 1))',
                                     cursor: 'pointer',
                                     fontSize: '14px',
                                 }}
@@ -106,10 +107,10 @@ class ErrorBoundary extends Component<Props, State> {
                                     onClick={this.handleRetry}
                                     style={{
                                         padding: '10px 24px',
-                                        backgroundColor: '#0078d4',
-                                        color: '#ffffff',
+                                        backgroundColor: 'var(--neo-button-primary-bg, #005fb8)',
+                                        color: 'var(--neo-text-on-accent, #ffffff)',
                                         border: 'none',
-                                        borderRadius: '4px',
+                                        borderRadius: 'calc(4px * var(--neo-radius-scale, 1))',
                                         cursor: 'pointer',
                                         fontSize: '14px',
                                     }}
@@ -120,10 +121,10 @@ class ErrorBoundary extends Component<Props, State> {
                                     onClick={this.handleReload}
                                     style={{
                                         padding: '10px 24px',
-                                        backgroundColor: '#333333',
-                                        color: '#ffffff',
-                                        border: '1px solid #555555',
-                                        borderRadius: '4px',
+                                        backgroundColor: 'var(--neo-bg-elevated, #2c2c2c)',
+                                        color: 'var(--neo-text-primary, #f1f1f1)',
+                                        border: '1px solid var(--neo-border-color-strong, #767676)',
+                                        borderRadius: 'calc(4px * var(--neo-radius-scale, 1))',
                                         cursor: 'pointer',
                                         fontSize: '14px',
                                     }}

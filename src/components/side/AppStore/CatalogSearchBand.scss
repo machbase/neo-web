@@ -16,26 +16,17 @@
     // read as one thick rule with a box hanging off it.
     margin: 6px 8px;
     padding: 0 8px;
-    border: 1px solid transparent;
-    border-radius: 4px;
-    background-color: t.$bg-elevated;
-    color: t.$text-tertiary;
-
-    &:hover {
-        color: t.$text-secondary;
-    }
-
-    &--open {
-        border-color: t.$border-color-focus;
-        background-color: t.$bg-input;
-    }
+    border-radius: calc(4px * var(--neo-radius-scale, 1));
+    // the DB explorer's search box exactly: open under the pointer is not focused — only typing
+    // draws the focus line (it used to, and the band lit up whenever the pointer crossed it)
+    @include t.search-box(t.$side-icon);
 }
 
 .catalog-search-band-trigger {
     // Restated against the global `button { border-radius: 8px }` in
     // src/index.css: this button fills a 4px-radius band, and 8px on it draws
     // rounded corners INSIDE the band's own square ones on hover.
-    border-radius: 3px;
+    border-radius: calc(3px * var(--neo-radius-scale, 1));
     display: flex;
     align-items: center;
     gap: 6px;
@@ -50,13 +41,14 @@
     cursor: text;
 }
 
+// the label reads as the open field's placeholder, so nothing changes colour when it opens
 .catalog-search-band-hint {
-    color: inherit;
+    color: t.$side-text-muted;
 }
 
 .catalog-search-band-icon {
     flex-shrink: 0;
-    color: t.$text-tertiary;
+    color: t.$side-icon;
 }
 
 .catalog-search-band-input {
@@ -66,11 +58,11 @@
     padding: 0;
     border: none;
     background: transparent;
-    color: t.$text-primary;
+    color: var(--neo-text-primary, #f1f1f1);
     font-size: 12px;
     outline: none;
 
     &::placeholder {
-        color: t.$text-tertiary;
+        color: t.$side-text-muted;
     }
 }

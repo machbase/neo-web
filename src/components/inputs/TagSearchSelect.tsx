@@ -109,7 +109,7 @@ export const TagSearchSelect = ({ pTable, pCallback, pBlockOption, pUseDialog }:
     useOutsideClick(tagRef, () => sIsOpen && handleOutSideClick());
 
     return (
-        <div ref={tagRef} className="tag-search-select-wrapper" id="tag-search-select-wrapper" style={{ backgroundColor: '#323644' }}>
+        <div ref={tagRef} className="tag-search-select-wrapper" id="tag-search-select-wrapper" style={{ backgroundColor: 'var(--neo-field-bg, var(--neo-bg-elevated, #2c2c2c))' }}>
             <div
                 className="tag-search-select-open-btn-wrapper"
                 onClick={(e: any) => {

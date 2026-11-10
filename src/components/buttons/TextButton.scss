@@ -3,10 +3,10 @@
     align-items: center;
     justify-content: center;
 
-    color: white;
+    color: var(--neo-text-on-accent, #ffffff);
     cursor: pointer;
 
-    border: solid 0.5px #d9d9d9;
-    border-radius: 8px;
+    border: solid 0.5px var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
+    border-radius: calc(8px * var(--neo-radius-scale, 1));
     box-shadow: 0 3px 6px 0 rgba(0, 0, 0, 0.16);
 }

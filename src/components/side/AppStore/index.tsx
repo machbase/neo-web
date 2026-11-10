@@ -19,6 +19,8 @@ import { PkgPillBar } from './PkgPillBar';
 import { CatalogSearchBand } from './CatalogSearchBand';
 import { CatalogProgress } from './CatalogProgress';
 import { useClosePkgSession, usePkgViews, useSelectPkgView } from './pkgViews';
+import { pkgPageUrl } from './pkgHtml';
+import { getInstalledVersion } from './pkgLifecycle/manifest';
 
 export const AppStoreSide = () => {
     // RECOIL var
@@ -58,9 +60,21 @@ export const AppStoreSide = () => {
     // A PILL EXISTS ONLY FOR A PACKAGE THAT SHIPS `side.html` — every path that
     // opens one goes through `useRevealPkgView`, which checks first. So an active
     // pill IS a side frame; there is nothing to probe or choose between here.
-    const sSideUrl = activeView ? `/public/${activeView}/side.html` : '';
+    // Its address carries the installed version (pkgPageUrl), so the frame waits for that read.
+    const [sSideVersion, setSideVersion] = useState<{ pkg: string; version: string } | null>(null);
+    useEffect(() => {
+        if (!activeView) return;
+        let cancelled = false;
+        void getInstalledVersion(activeView).then((version) => {
+            if (!cancelled) setSideVersion({ pkg: activeView, version });
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, [activeView]);
+    const sSideUrl = activeView && sSideVersion?.pkg === activeView ? pkgPageUrl(activeView, 'side.html', sSideVersion.version) : '';
     const sSideHealth = useAppFrameHealth(sideIframeRef, {
-        enabled: !!activeView,
+        enabled: !!sSideUrl,
         resetKey: activeView ?? '',
     });
 
@@ -300,7 +314,7 @@ export const AppStoreSide = () => {
                     // `.app-store-scroll`: an iframe in a scroll container gets a
                     // second scrollbar wrapped around the one it already has.
                     <div className="app-frame">
-                        <iframe ref={sideIframeRef} src={sSideUrl} title={`App Side: ${activeView}`} />
+                        {sSideUrl && <iframe ref={sideIframeRef} src={sSideUrl} title={`App Side: ${activeView}`} />}
                         <AppFrameStatus pAppName={activeView} pHealth={sSideHealth} pCompact />
                     </div>
                 )}

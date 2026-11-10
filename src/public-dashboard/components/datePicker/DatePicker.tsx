@@ -78,10 +78,10 @@ const DatePicker = ({ pTimeValue, pSetApply, onChange, pTopPixel, pAutoFocus }: 
                         </div>
                         <div className="date-picker-button">
                             <TextButton
-                                pBorderColor="#4199ff"
+                                pBorderColor="var(--neo-accent-light, #4199ff)"
                                 pHeight={28}
                                 pWidth={65}
-                                pFontColor="#4199ff"
+                                pFontColor="var(--neo-accent-light, #4199ff)"
                                 pBorderRadius={2}
                                 onClick={() => apply()}
                                 pText="Apply"

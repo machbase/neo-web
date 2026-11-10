@@ -4,12 +4,12 @@
 
 /* Shared by panel-owned analysis, markup, and range popovers. */
 
-.popover { @include text.role(body); z-index: t.$z-index-modal; touch-action: none; color: theme.$text-secondary; }
+.popover { @include text.role(body); z-index: t.$z-index-modal; touch-action: none; color: theme.$dialog-text; }
 .frame {
     min-width: 280px;
     // Keep the buttons on screen; matches VIEWPORT_MARGIN on both sides in PanelPopover.tsx.
     max-width: calc(100vw - 20px);
-    background: theme.$surface-bg; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+    background: theme.$dialog-bg; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
 
     &[data-size='wide'] { min-width: 360px; }
 }
@@ -21,7 +21,7 @@
 .dragHandle {
     position: absolute; top: 8px; left: 8px; z-index: 1;
     display: flex; align-items: center; justify-content: center;
-    width: 22px; height: 22px; padding: 0; border: 0; border-radius: 4px;
+    width: 22px; height: 22px; padding: 0; border: 0; border-radius: calc(4px * var(--neo-radius-scale, 1));
     background: transparent; color: theme.$text-muted;
     cursor: grab;
 

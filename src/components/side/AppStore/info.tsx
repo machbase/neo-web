@@ -120,9 +120,9 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
             const local = await readLocalReadme(appName);
             if (!isCurrent()) return;
             if (local) {
-                // NO relative-image rewriting here. The rewrite below points images at
-                // raw.githubusercontent; a local README's relative links already
-                // resolve against /public/{name}/.
+                // NO rewriting here: the rewrite below points images at
+                // raw.githubusercontent, and `readLocalReadme` has already pointed a local
+                // README's own pictures at /public/{name}/ (#1577).
                 setReadme(local);
                 return;
             }
@@ -208,6 +208,7 @@ export const AppInfo = ({ pCode }: { pCode: any }) => {
                                             pIcon={pCode?.app?.icon}
                                             pInstalled={!!pCode?.app?.installed_frontend}
                                             pInstalledIcon={pCode?.app?.installed_icon}
+                                            pInstalledVersion={pCode?.app?.installed_version}
                                         />
                                         <div className="app-store-item-info-contents">
                                             {/* TITLE & VERSION */}

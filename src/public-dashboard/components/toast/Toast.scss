@@ -5,7 +5,7 @@
     border-radius: t.$border-radius-md;
     margin: t.$spacing-0 !important;
     padding: t.$spacing-0 !important;
-    border: 0.5px solid rgba(255, 255, 255, 0.5);
+    border: 0.5px solid color-mix(in srgb, var(--neo-text-primary, rgb(255, 255, 255)) 50%, transparent);
     box-shadow: t.$shadow-xl;
     background-color: t.$bg-elevated;
 
@@ -16,7 +16,7 @@
 }
 
 .toast-custom-style {
-    color: t.$color-white;
+    color: t.themed(text-primary, #ffffff);
     display: flex;
     border-radius: t.$border-radius-md;
     max-width: 350px;
@@ -51,7 +51,7 @@
             width: t.$icon-size-lg;
             height: t.$icon-size-lg;
             stroke-width: 1px;
-            color: t.$color-white;
+            color: var(--neo-text-on-accent, #ffffff);
         }
     }
     // SUCCESS
@@ -70,7 +70,7 @@
             width: t.$icon-size-lg;
             height: t.$icon-size-lg;
             stroke-width: 1px;
-            color: t.$color-white;
+            color: var(--neo-text-on-accent, #ffffff);
         }
     }
 }

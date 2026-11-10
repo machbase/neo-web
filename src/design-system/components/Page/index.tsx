@@ -420,37 +420,37 @@ const DateTimePicker = ({ pSetApply, pTime }: { pSetApply: (e: any) => void; pTi
                                     }}
                                     sx={{
                                         '& .MuiTypography-root': {
-                                            color: '#f1f1f1',
+                                            color: 'var(--neo-text-primary, #f1f1f1)',
                                         },
                                         '& .MuiPickersCalendarHeader-switchViewButton, & .MuiPickersArrowSwitcher-button': {
-                                            color: '#f1f1f1',
+                                            color: 'var(--neo-text-primary, #f1f1f1)',
                                             '& svg': {
-                                                fill: '#f1f1f1',
+                                                fill: 'var(--neo-text-primary, #f1f1f1)',
                                             },
                                             '&:hover': {
-                                                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                                                backgroundColor: 'var(--neo-hover-bg, rgba(255, 255, 255, 0.08))',
                                             },
                                         },
                                         '& .MuiPickersCalendarHeader-label': {
-                                            color: '#f1f1f1',
+                                            color: 'var(--neo-text-primary, #f1f1f1)',
                                         },
                                         '& .MuiDayCalendar-weekDayLabel': {
-                                            color: '#c4c4c4',
+                                            color: 'var(--neo-text-secondary, #c4c4c4)',
                                         },
                                         '& .MuiButtonBase-root': {
-                                            color: '#f1f1f1',
+                                            color: 'var(--neo-text-primary, #f1f1f1)',
                                             '&:hover': {
-                                                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                                                backgroundColor: 'var(--neo-hover-bg, rgba(255, 255, 255, 0.08))',
                                             },
                                             '&.Mui-selected': {
-                                                backgroundColor: '#005fb8',
-                                                color: '#f3f3f3',
+                                                backgroundColor: 'var(--neo-accent-main, #005fb8)',
+                                                color: 'var(--neo-text-on-accent, #ffffff)',
                                                 '&:hover': {
-                                                    backgroundColor: '#0075e2',
+                                                    backgroundColor: 'var(--neo-accent-hover, #0075e2)',
                                                 },
                                             },
                                             '&.Mui-disabled': {
-                                                color: '#818181',
+                                                color: 'var(--neo-text-disabled, #818181)',
                                             },
                                         },
                                         '& .MuiPickersYear-root button': {
@@ -479,19 +479,19 @@ const DateTimePicker = ({ pSetApply, pTime }: { pSetApply: (e: any) => void; pTi
                                         timeSteps={{ hours: 1, minutes: 1, seconds: 1 }}
                                         sx={{
                                             '& .MuiList-root': {
-                                                color: '#c4c4c4',
+                                                color: 'var(--neo-text-secondary, #c4c4c4)',
                                             },
                                             '& .MuiButtonBase-root': {
-                                                color: '#f1f1f1',
+                                                color: 'var(--neo-text-primary, #f1f1f1)',
                                                 '&:hover': {
-                                                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                                                    backgroundColor: 'var(--neo-hover-bg, rgba(255, 255, 255, 0.08))',
                                                 },
                                                 '&.Mui-selected': {
-                                                    borderRadius: '3px',
-                                                    backgroundColor: '#005fb8',
-                                                    color: '#f3f3f3',
+                                                    borderRadius: 'calc(3px * var(--neo-radius-scale, 1))',
+                                                    backgroundColor: 'var(--neo-accent-main, #005fb8)',
+                                                    color: 'var(--neo-text-on-accent, #ffffff)',
                                                     '&:hover': {
-                                                        backgroundColor: '#0075e2',
+                                                        backgroundColor: 'var(--neo-accent-hover, #0075e2)',
                                                     },
                                                 },
                                             },
@@ -558,37 +558,37 @@ const DatePicker = ({ pSetApply, pTime, pPlaceholder }: { pSetApply: (e: any) =>
                                 onChange={HandleDate}
                                 sx={{
                                     '& .MuiTypography-root': {
-                                        color: '#f1f1f1',
+                                        color: 'var(--neo-text-primary, #f1f1f1)',
                                     },
                                     '& .MuiPickersCalendarHeader-switchViewButton, & .MuiPickersArrowSwitcher-button': {
-                                        color: '#f1f1f1',
+                                        color: 'var(--neo-text-primary, #f1f1f1)',
                                         '& svg': {
-                                            fill: '#f1f1f1',
+                                            fill: 'var(--neo-text-primary, #f1f1f1)',
                                         },
                                         '&:hover': {
-                                            backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                                            backgroundColor: 'var(--neo-hover-bg, rgba(255, 255, 255, 0.08))',
                                         },
                                     },
                                     '& .MuiPickersCalendarHeader-label': {
-                                        color: '#f1f1f1',
+                                        color: 'var(--neo-text-primary, #f1f1f1)',
                                     },
                                     '& .MuiDayCalendar-weekDayLabel': {
-                                        color: '#c4c4c4',
+                                        color: 'var(--neo-text-secondary, #c4c4c4)',
                                     },
                                     '& .MuiButtonBase-root': {
-                                        color: '#f1f1f1',
+                                        color: 'var(--neo-text-primary, #f1f1f1)',
                                         '&:hover': {
-                                            backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                                            backgroundColor: 'var(--neo-hover-bg, rgba(255, 255, 255, 0.08))',
                                         },
                                         '&.Mui-selected': {
-                                            backgroundColor: '#005fb8',
-                                            color: '#f3f3f3',
+                                            backgroundColor: 'var(--neo-accent-main, #005fb8)',
+                                            color: 'var(--neo-text-on-accent, #ffffff)',
                                             '&:hover': {
-                                                backgroundColor: '#0075e2',
+                                                backgroundColor: 'var(--neo-accent-hover, #0075e2)',
                                             },
                                         },
                                         '&.Mui-disabled': {
-                                            color: '#818181',
+                                            color: 'var(--neo-text-disabled, #818181)',
                                         },
                                     },
                                 }}

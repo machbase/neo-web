@@ -12,6 +12,7 @@ import {
 } from '../seriesModel';
 import type { AxisRange } from '../rangeExpression/rangeModel';
 import { buildTimeRangeConditionSql } from './sql';
+import { appChartTheme } from '@/design-system/theme';
 
 export type FftChartData = {
     [key: string]: unknown;
@@ -85,9 +86,14 @@ async function fetchFftChartData(
     const columns: ValidatedPanelSeriesSourceColumns =
         await validateSeriesSchema(series.table, sourceColumns, signal);
     const sql: string = buildFftSql(tableName, series.sourceTagName, columns, timeRange);
+    // The templates are written for the dark panel; the app theme's chart look replaces it (the
+    // server draws the chart, so it gets colours, not CSS variables).
+    const chart = appChartTheme();
     const chartTql: string = (is3d ? FFT_3D_QUERY_TEMPLATE : FFT_2D_QUERY_TEMPLATE)
         .replace('{MinMaxHz}', buildFftFrequencyArguments(minHz, maxHz))
-        .replace('{interval}', String(threeDimensionalIntervalMs));
+        .replace('{interval}', String(threeDimensionalIntervalMs))
+        .replaceAll('theme("dark")', `theme("${chart.theme}")`)
+        .replaceAll('#252525', chart.background);
 
     return parseFftChartData(
         await getTqlChart(

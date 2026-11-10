@@ -239,6 +239,9 @@ export interface APP_INFO {
     // not-installed packages leave this undefined. Consumed by item.tsx /
     // info.tsx to decide between the RunSwitch and the ServiceSummaryChip.
     installed_packageService?: { managed: boolean; reason?: string };
+    // The installed copy declares `neoTheme` (a theme package): it has no service, so the card
+    // shows no run switch. Set where installed_packageService is.
+    installed_theme?: boolean;
     // issue #1452: FILE NAME of the icon shipped by the installed copy, e.g.
     // `icon.svg` — read off the server by the archive scan, never guessed from the
     // package name. Three-valued, exactly like the scan field it comes from

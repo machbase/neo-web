@@ -325,7 +325,7 @@ export default memo(function Panel({
             className="panel-form"
             role="region"
             aria-label={`${panelInfo.title} panel`}
-            style={{ border: `0.5px solid ${isOverlapSelected ? '#FDB532' : '#454545'}` }}
+            style={{ border: `0.5px solid ${isOverlapSelected ? 'var(--neo-warning-main, #d67f00)' : 'var(--neo-border-color-default, rgba(255, 255, 255, 0.13))'}` }}
             onContextMenu={handlePanelContextMenu}
             onMouseLeave={() => {
                 hoveredMainSeriesNameRef.current = undefined;

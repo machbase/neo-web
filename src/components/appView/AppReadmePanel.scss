@@ -1,19 +1,5 @@
-@use 'sass:color';
 @use '@/design-system/tokens' as t;
 @use '@/design-system/tokens/mixins' as m;
-
-// THE DRAWER TAKES ITS ACCENT FROM THE README, NOT FROM THE APP.
-//
-// `--color-accent-fg` out of `src/assets/md/md.css` — the blue the rendered
-// markdown already uses for its links. The app's own `$primary-base` (#005fb8) is
-// a different, darker blue, and sitting it beside markdown links inside the same
-// 320px column read as two accent colours arguing.
-//
-// Hardcoded because md.css is injected into a shadow root as an inline string;
-// there is no build-time value to import. If that palette changes, this follows.
-// (Its `--color-border-default` is already identical to `$border-color-default`,
-// which is why the resting edge below needs no equivalent.)
-$readme-accent: #0075e2;
 
 // THE DRAWER FLOATS OVER THE APP, IT DOES NOT PUSH IT.
 //
@@ -123,9 +109,9 @@ $readme-accent: #0075e2;
     // spacer element between them.
     margin-right: auto;
     padding: 1px 6px;
-    border-radius: 3px;
-    background-color: $readme-accent;
-    color: #fff;
+    border-radius: calc(3px * var(--neo-radius-scale, 1));
+    background-color: var(--neo-accent-main, #005fb8);
+    color: var(--neo-text-on-accent, #ffffff);
     font-size: 10px;
     font-weight: 600;
 }
@@ -134,7 +120,7 @@ $readme-accent: #0075e2;
     // Restated against the global `button { border-radius: 8px }` in src/index.css
     // — 8px on a 20px square button reads as a circle next to the square icon
     // buttons everywhere else in this app.
-    border-radius: 3px;
+    border-radius: calc(3px * var(--neo-radius-scale, 1));
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -151,7 +137,7 @@ $readme-accent: #0075e2;
     cursor: pointer;
 
     &:hover {
-        background-color: t.$bg-hover;
+        background-color: t.$hover-bg;
         color: t.$text-primary;
     }
 }
@@ -166,7 +152,7 @@ $readme-accent: #0075e2;
 // The header toggle that opens all this (AppView.tsx). Lives in `Page.Header`,
 // whose `justify-content: space-between` would strand a lone child on the left.
 .app-view-readme-toggle {
-    border-radius: 4px;
+    border-radius: calc(4px * var(--neo-radius-scale, 1));
     display: inline-flex;
     align-items: center;
     gap: 5px;
@@ -181,7 +167,7 @@ $readme-accent: #0075e2;
     cursor: pointer;
 
     &:hover {
-        background-color: t.$bg-hover;
+        background-color: t.$hover-bg;
         color: t.$text-primary;
     }
 
@@ -192,13 +178,14 @@ $readme-accent: #0075e2;
     // drag edge are one family, and all three belong to the README rather than to
     // the app chrome around them.
     &--on {
-        border-color: $readme-accent;
-        background-color: $readme-accent;
-        color: #fff;
+        // the theme's accent and the ink on it (the literal blue is the dark screen's fallback)
+        border-color: var(--neo-accent-main, #005fb8);
+        background-color: var(--neo-accent-main, #005fb8);
+        color: var(--neo-text-on-accent, #ffffff);
 
         &:hover {
-            background-color: color.adjust($readme-accent, $lightness: 6%);
-            color: #fff;
+            background-color: var(--neo-accent-hover, #0075e2);
+            color: var(--neo-text-on-accent, #ffffff);
         }
     }
 }

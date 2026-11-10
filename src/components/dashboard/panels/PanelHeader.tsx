@@ -498,7 +498,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                         id={sHeaderId}
                         data-testid="custom-range-dot"
                     >
-                        <VscRecord color="#339900" />
+                        <VscRecord color="var(--neo-success-text, #9df486)" />
                         <Tooltip
                             className="tooltip"
                             anchorSelect={'#' + sHeaderId}

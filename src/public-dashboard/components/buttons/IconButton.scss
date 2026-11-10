@@ -3,19 +3,19 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    border-radius: 8px;
+    border-radius: calc(8px * var(--neo-radius-scale, 1));
     cursor: pointer;
 
     svg,
     img,
     div {
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--neo-text-disabled, rgba(255, 255, 255, 0.5));
     }
 
     &:hover {
         svg,
         div {
-            color: #f8f8f8;
+            color: var(--neo-text-primary, #f8f8f8);
         }
     }
 }
@@ -24,12 +24,12 @@
     cursor: auto;
     svg,
     .tooltip-icon {
-        color: rgba(255, 255, 255, 0.205) !important;
+        color: color-mix(in srgb, var(--neo-text-primary, rgb(255, 255, 255)) 20.5%, transparent) !important;
     }
 }
 
 .tooltip-div {
-    color: rgba(255, 255, 255, 1) !important;
+    color: var(--neo-tooltip-text, rgba(255, 255, 255, 1)) !important;
     max-width: 500px;
     width: auto;
     overflow: hidden;
@@ -41,6 +41,6 @@
 .icon-btn-active-hover {
     background-color: transparent;
     &:hover {
-        background-color: #52535a;
+        background-color: var(--neo-toolbar-hover-bg, #52535a);
     }
 }

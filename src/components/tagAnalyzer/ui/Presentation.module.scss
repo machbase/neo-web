@@ -12,7 +12,7 @@
     &[data-variant='outlined'] { border-color: theme.$border-color; }
     &[data-variant='inset'] {
         border-color: theme.$border-color;
-        background: theme.$surface-inset;
+        background: theme.$panel-bg;
     }
     &[data-density='compact'] { padding: t.$spacing-8; }
 }
@@ -30,8 +30,8 @@
     &:where([data-tone='secondary']) { color: theme.$text-secondary; }
     &:where([data-tone='muted']) { color: theme.$text-muted; }
     &:where([data-tone='subtle']) { color: theme.$text-subtle; }
-    &:where([data-tone='danger']) { color: theme.$danger; }
-    &:where([data-tone='warning']) { color: theme.$warning; }
+    &:where([data-tone='danger']) { color: theme.$danger-text; }
+    &:where([data-tone='warning']) { color: theme.$warning-text; }
     &:where([data-weight='normal']) { font-weight: 400; }
     &:where([data-weight='medium']) { font-weight: 500; }
     &:where([data-weight='semibold']) { font-weight: 600; }

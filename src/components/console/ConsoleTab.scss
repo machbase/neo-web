@@ -4,7 +4,7 @@
 
     .active-tab {
         display: flex;
-        border-bottom: 2px inset #005fb8;
+        border-bottom: 2px inset var(--neo-console-marker, var(--neo-border-color-active, #005fb8));
     }
     .inactive-tab {
         display: flex;

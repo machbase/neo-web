@@ -1,24 +1,12 @@
 import { VscRecord } from '@/assets/icons/Icon';
+import { logLevelColor } from './logLevelColor';
 import icons from '@/utils/icons';
 import { useState } from 'react';
 import './ConsoleTab.scss';
 
 const ConsoleTab = ({ pSelectedTab, pNewLog, pDeleteConsoleTab, pHandleSelectedTab, pTab, pConsoleList }: any) => {
     const [sMouseHover, setMouseHover] = useState(false);
-    const setColor = (aItem: string) => {
-        switch (aItem) {
-            case 'TRACE':
-                return '#C4C4C4';
-            case 'DEBUG':
-                return '#F8F8F8';
-            case 'INFO':
-                return '#339900';
-            case 'ERROR':
-                return '#CC3300';
-            case 'WARN':
-                return '#FFCC00';
-        }
-    };
+    const setColor = logLevelColor;
     return (
         <div
             className="console-tab-item"

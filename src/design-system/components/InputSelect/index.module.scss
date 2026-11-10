@@ -44,7 +44,7 @@
 .input-select-label {
     font-size: t.$font-size-base;
     font-weight: 500;
-    color: t.$text-secondary;
+    color: var(--label-text, t.$text-secondary);
     user-select: none;
 
     &--align-right {
@@ -59,7 +59,7 @@
     @include t.interactive-field-base;
 
     &:hover:not(&--disabled) {
-        border-color: #5a5a5a;
+        border-color: var(--neo-border-color-strong, #767676);
     }
 
     &:focus-within:not(&--disabled) {
@@ -98,11 +98,11 @@
 
     // Variants
     &--error {
-        border-color: #e53935;
+        border-color: var(--neo-field-error-border, var(--neo-error-main, rgb(255, 83, 83)));
 
         &:focus-within {
-            border-color: #e53935;
-            outline: 2px solid rgba(229, 57, 53, 0.1);
+            border-color: var(--neo-field-error-border, var(--neo-error-main, rgb(255, 83, 83)));
+            outline: 2px solid color-mix(in srgb, var(--neo-field-error-border, var(--neo-error-main, rgb(255, 83, 83))) 10%, transparent);
         }
 
         /**
@@ -111,23 +111,23 @@
          * is about, so that saying it costs the row no height. So it is coloured as the error.
          */
         .input-select-input::placeholder {
-            color: #e53935;
+            color: var(--neo-error-text, #fa6464);
         }
     }
 
     &--success {
-        border-color: #43a047;
+        border-color: var(--neo-success-main, #37aa3b);
 
         &:focus-within {
-            border-color: #43a047;
-            outline: 2px solid rgba(67, 160, 71, 0.1);
+            border-color: var(--neo-success-main, #37aa3b);
+            outline: 2px solid color-mix(in srgb, var(--neo-success-main, #37aa3b) 10%, transparent);
         }
     }
 
     &--disabled {
         opacity: 0.5;
         cursor: not-allowed;
-        background-color: #1e1e1e;
+        background-color: var(--neo-field-disabled-bg, var(--neo-bg-primary, #1e1e1e));
     }
 
     // With left icon
@@ -153,14 +153,14 @@
     flex: 1;
     background: transparent;
     border: none;
-    color: t.$text-primary;
+    color: var(--neo-text-primary, #f1f1f1);
     font-family: inherit;
     outline: none;
     width: 100%;
     min-width: 0;
 
     &::placeholder {
-        color: t.$text-disabled;
+        color: t.$text-muted;
         font-size: t.$font-size-sm;
     }
 
@@ -172,7 +172,7 @@
     &:-webkit-autofill,
     &:-webkit-autofill:hover,
     &:-webkit-autofill:focus {
-        -webkit-text-fill-color: t.$text-primary;
+        -webkit-text-fill-color: var(--neo-text-primary, #f1f1f1);
         -webkit-box-shadow: 0 0 0 1000px #2a2a2a inset;
         transition: background-color 5000s ease-in-out 0s;
     }
@@ -183,7 +183,7 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    color: t.$text-tertiary;
+    color: var(--neo-field-icon, var(--neo-text-tertiary, #a3a3a3));
 }
 
 .input-select-trigger {
@@ -193,7 +193,7 @@
     flex-shrink: 0;
     background: transparent;
     border: none;
-    color: t.$text-tertiary;
+    color: var(--neo-field-icon, var(--neo-text-tertiary, #a3a3a3));
     cursor: pointer;
     width: 26px;
     height: 26px;
@@ -202,7 +202,7 @@
     transition: background-color 0.2s ease, color 0.2s ease;
 
     &:hover:not(:disabled) {
-        background-color: rgba(255, 255, 255, 0.08);
+        background-color: var(--neo-hover-bg, rgba(255, 255, 255, 0.08));
         color: t.$text-primary;
     }
 
@@ -214,21 +214,21 @@
 
 .input-select-helper-text {
     font-size: t.$font-size-xs;
-    color: t.$text-secondary;
+    color: var(--label-text, t.$text-secondary);
     margin-top: -4px;
 
     &--error {
-        color: #e53935;
+        color: var(--neo-error-text, #fa6464);
     }
 }
 
 // Dropdown menu styles
 .input-select-menu {
     z-index: 9999;
-    background: t.$dropdown-bg;
-    border: 1px solid t.$dropdown-border;
+    background: t.$menu-bg;
+    border: 1px solid t.$menu-border;
     border-radius: t.$border-radius-base;
-    box-shadow: t.$dropdown-shadow;
+    box-shadow: t.$menu-shadow;
     overflow-y: auto;
 }
 
@@ -238,17 +238,17 @@
     top: 0;
     z-index: 1;
     padding: t.$spacing-4 t.$spacing-4 0;
-    background: t.$dropdown-bg;
+    background: t.$menu-bg;
 }
 
 .input-select-search-input {
     width: 100%;
     box-sizing: border-box;
     padding: t.$spacing-6 t.$spacing-8;
-    border: 1px solid t.$dropdown-border;
+    border: 1px solid var(--neo-field-border, var(--neo-border-color-default, rgba(255, 255, 255, 0.13)));
     border-radius: t.$border-radius-sm;
-    background: t.$bg-input;
-    color: t.$text-primary;
+    background: var(--neo-field-bg, var(--neo-bg-elevated, #2c2c2c));
+    color: var(--neo-text-primary, #f1f1f1);
     font-size: t.$font-size-sm;
     outline: none;
 
@@ -284,6 +284,8 @@
 .input-select-option-badge {
     flex-shrink: 0;
     padding: 0 t.$spacing-4;
+    color: var(--badge-color);
+    background-color: color-mix(in srgb, var(--badge-color) 16%, transparent);
     border: 1px solid currentColor;
     border-radius: t.$border-radius-sm;
     font-size: t.$font-size-xs;
@@ -291,6 +293,12 @@
     letter-spacing: 0.02em;
     text-transform: uppercase;
     white-space: nowrap;
+}
+
+// The table-type colours are drawn for a dark page; on a light scheme the text (and with it the
+// border) is the same hue, deepened.
+:global(:root[data-neo-scheme='light']) .input-select-option-badge {
+    color: color-mix(in srgb, var(--badge-color) 55%, var(--neo-color-black, #000000));
 }
 
 .input-select-list {
@@ -310,17 +318,17 @@
     padding: t.$spacing-6 t.$spacing-8;
     cursor: pointer;
     border-radius: t.$border-radius-sm;
-    color: t.$text-primary;
+    color: var(--neo-text-primary, #f1f1f1);
     font-size: t.$font-size-sm;
     transition: background-color 0.15s ease;
     user-select: none;
 
     &:hover:not(&--disabled) {
-        background-color: t.$dropdown-option-hover-bg;
+        background-color: t.$menu-item-hover-bg;
     }
 
     &--focused:not(&--disabled) {
-        background-color: t.$dropdown-option-hover-bg;
+        background-color: t.$menu-item-hover-bg;
     }
 
     &--selected {
@@ -328,7 +336,7 @@
         font-weight: 500;
 
         &:hover {
-            background-color: t.$dropdown-option-hover-bg-light;
+            background-color: var(--neo-menu-item-hover-bg, #3d3d3d);
         }
     }
 
@@ -359,7 +367,7 @@
 }
 
 .input-select-option-check {
-    color: t.$text-primary;
+    color: var(--neo-text-primary, #f1f1f1);
     flex-shrink: 0;
     margin-left: t.$spacing-8;
 }

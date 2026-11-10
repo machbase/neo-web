@@ -6,7 +6,7 @@
         display: flex;
         align-items: center;
         gap: 8px;
-        color: #f8f8f8 !important;
+        color: var(--neo-text-primary, #f8f8f8) !important;
         text-decoration: none !important;
         cursor: pointer;
 
@@ -15,7 +15,7 @@
         &:active,
         &:visited {
             text-decoration: none !important;
-            color: #f8f8f8 !important;
+            color: var(--neo-text-primary, #f8f8f8) !important;
         }
 
         .footer-icon {
@@ -42,7 +42,7 @@
     align-items: center;
 
     .footer-right-link {
-        color: #ffcc00 !important;
+        color: var(--neo-warning-main, #ffcc00) !important;
         text-decoration: none !important;
         cursor: pointer;
         white-space: nowrap;
@@ -52,7 +52,7 @@
         &:active,
         &:visited {
             text-decoration: none !important;
-            color: #ffcc00 !important;
+            color: var(--neo-warning-main, #ffcc00) !important;
         }
     }
 }

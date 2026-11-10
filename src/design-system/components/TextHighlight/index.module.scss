@@ -10,23 +10,23 @@
 
     // Color variants - text color only (no background)
     &--primary {
-        color: t.$primary-base;
+        color: t.$accent-text;
     }
 
     &--success {
-        color: t.$success-main;
+        color: t.$success-text;
     }
 
     &--error {
-        color: t.$error-main;
+        color: t.$error-text;
     }
 
     &--warning {
-        color: t.$warning-main;
+        color: t.$warning-text;
     }
 
     &--info {
-        color: t.$info-main;
+        color: t.$accent-text;
     }
 
     &--neutral {
@@ -34,6 +34,6 @@
     }
 
     &--muted {
-        color: t.$text-disabled;
+        color: t.$text-muted;
     }
 }

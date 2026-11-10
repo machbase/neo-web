@@ -130,8 +130,8 @@ const LiveVideoContent = ({ webrtcUrl }: { webrtcUrl?: string }) => {
                 position: 'relative',
                 width: '100%',
                 aspectRatio: '16/9',
-                backgroundColor: '#000',
-                borderRadius: '4px',
+                backgroundColor: 'var(--neo-color-black, #000)',
+                borderRadius: 'calc(4px * var(--neo-radius-scale, 1))',
                 overflow: 'hidden',
             }}
         >

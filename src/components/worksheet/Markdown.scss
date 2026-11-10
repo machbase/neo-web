@@ -32,16 +32,18 @@
         right: 0.5rem;
 
         background-color: transparent;
-        border-radius: 8px;
+        border-radius: calc(8px * var(--neo-radius-scale, 1));
+        // the icon colour (its svg is filled with currentColor): it was white at 50%, lost on a light theme's code block
+        color: var(--neo-text-icon, #818181);
 
         cursor: pointer;
 
         &:hover {
-            background-color: #52535a;
+            background-color: var(--neo-toolbar-hover-bg, rgba(255, 255, 255, 0.13));
         }
 
         svg:hover {
-            fill: #f8f8f8;
+            fill: var(--neo-text-primary, #f1f1f1);
         }
     }
 }

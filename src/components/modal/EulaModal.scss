@@ -26,7 +26,7 @@
         }
         .res-err-text {
             margin-left: 8px;
-            color: #ff5353;
+            color: var(--neo-error-text, #fa6464);
         }
     }
 

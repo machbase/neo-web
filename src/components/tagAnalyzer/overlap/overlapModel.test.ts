@@ -4,6 +4,7 @@ import {
     formatOverlapElapsedDurationLabel,
     type OverlapSeriesData,
 } from './overlapModel';
+import { resolveTagAnalyzerChartColors } from '../chart/chartThemeColors';
 
 function createSeries(
     data: OverlapSeriesData['data'],
@@ -98,4 +99,23 @@ describe('formatOverlapElapsedDurationLabel', () => {
     ])('formats %s ms as %s', (value, label) => {
         expect(formatOverlapElapsedDurationLabel(value)).toBe(label);
     });
+});
+
+// The overlap chart is recoloured like the panel charts (OverlapModal): every colour of its own
+// chrome (background, axes, legend, tooltip) is one the theme swap knows, or it stays dark under a
+// light theme. Series colours are content and are left as they are.
+test('every chrome colour the overlap chart uses follows the theme', () => {
+    const option = buildOverlapChartOption([
+        createOverlapChartSeriesGroup({ key: 'panel-a', title: 'Panel', visibleRange: { start: 0, end: 10 } }, [createSeries([[0, 1], [10, 2]])]),
+    ], false, true)!;
+    const known = resolveTagAnalyzerChartColors();
+    const colours: string[] = [];
+    const walk = (aValue: unknown, aKey?: string) => {
+        if (aKey === 'series' || aKey === 'color' && Array.isArray(aValue)) return;
+        if (typeof aValue === 'string' && /^(#[0-9a-f]{3,8}|rgba?\()/i.test(aValue)) colours.push(aValue);
+        else if (aValue && typeof aValue === 'object') for (const [sKey, sItem] of Object.entries(aValue)) walk(sItem, sKey);
+    };
+    walk(option);
+    expect(colours.length).toBeGreaterThan(3);
+    expect(colours.filter((c) => !known.has(c))).toEqual([]);
 });

@@ -1,9 +1,9 @@
 a {
-    color: #dfdfdf !important;
+    color: var(--neo-text-primary, #f1f1f1) !important;
     text-decoration: underline !important;
 
     &:hover {
-        color: #0471d6 !important;
+        color: var(--neo-accent-text, #4199ff) !important;
     }
 }
 .app-store-item-info {
@@ -23,6 +23,13 @@ a {
         img {
             width: 100px;
             height: 100px;
+        }
+        // a white line-drawn icon, painted as a shape in the text colour (PkgIcon, pkgIconGlyph)
+        .pkg-icon-glyph {
+            display: block;
+            width: 100px;
+            height: 100px;
+            background-color: var(--neo-text-primary, #f1f1f1);
         }
     }
     &-contents {
@@ -59,30 +66,30 @@ a {
                 white-space: nowrap;
                 text-overflow: ellipsis;
                 font-size: 14px;
-                color: #dfdfdf;
+                color: var(--neo-text-primary, #f1f1f1);
             }
             &-version {
                 margin-left: 8px;
                 display: block;
                 padding: 0px 6px;
-                border-radius: 4px;
+                border-radius: calc(4px * var(--neo-radius-scale, 1));
                 font-size: 10px;
-                background-color: #434343;
+                background-color: var(--neo-bg-elevated, #2c2c2c);
             }
             &-update {
                 margin-left: 8px;
                 display: block;
                 padding: 0px 6px;
-                border-radius: 4px;
+                border-radius: calc(4px * var(--neo-radius-scale, 1));
                 font-size: 10px;
-                background-color: #bf7b00;
-                color: #fff;
+                background-color: var(--neo-warning-main, #d67f00);
+                color: var(--neo-text-on-accent, #ffffff);
             }
         }
 
         &-desc {
             font-size: 12px;
-            color: #a3a3a3;
+            color: var(--neo-text-tertiary, #a3a3a3);
         }
         &-bottom {
             display: flex;
@@ -96,7 +103,7 @@ a {
                 display: block;
                 white-space: nowrap;
                 text-overflow: ellipsis;
-                color: #aaaaaa;
+                color: var(--neo-text-tertiary, #a3a3a3);
             }
             &-status {
                 .install {
@@ -105,8 +112,8 @@ a {
                     align-items: center;
                     min-width: 30px;
                     padding: 0 4px;
-                    border-radius: 4px;
-                    background-color: #005fb8;
+                    border-radius: calc(4px * var(--neo-radius-scale, 1));
+                    background-color: var(--neo-accent-main, #005fb8);
                 }
                 .uninstall {
                     display: flex;
@@ -114,8 +121,8 @@ a {
                     align-items: center;
                     min-width: 32px;
                     padding: 0 4px;
-                    border-radius: 4px;
-                    background-color: #c15000;
+                    border-radius: calc(4px * var(--neo-radius-scale, 1));
+                    background-color: var(--neo-warning-main, #d67f00);
                 }
             }
             &-cog {
@@ -130,8 +137,8 @@ a {
                 }
 
                 &:hover {
-                    background-color: #404457;
-                    border-radius: 4px;
+                    background-color: var(--neo-side-hover-bg, var(--neo-list-hover-bg, rgba(255, 255, 255, 0.13)));
+                    border-radius: calc(4px * var(--neo-radius-scale, 1));
                 }
             }
         }

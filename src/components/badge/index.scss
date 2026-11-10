@@ -2,20 +2,20 @@
     width: 14px;
     height: 14px;
     border-radius: 7px;
-    background-color: #ff4747;
+    background-color: var(--neo-error-main, rgb(255, 83, 83));
     align-items: center;
     justify-content: center;
     display: flex;
     cursor: default;
 
     span {
-        color: #ffffff;
+        color: var(--neo-text-primary, #f1f1f1);
         font-size: 14px;
         cursor: inherit;
     }
 
     &--success {
-        background-color: #4caf50;
+        background-color: var(--neo-success-main, #37aa3b);
 
         span {
             font-size: 10px;

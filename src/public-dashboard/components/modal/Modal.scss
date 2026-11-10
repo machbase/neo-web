@@ -3,7 +3,7 @@
     width: 100vw;
     height: 100vh;
 
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: var(--neo-bg-backdrop, rgba(0, 0, 0, 0.5));
 
     position: fixed;
     top: 0;
@@ -22,7 +22,7 @@
     left: 50%;
     transform: translate(-50%, -50%);
 
-    border-radius: 10px;
+    border-radius: calc(10px * var(--neo-radius-scale, 1));
 
     box-sizing: border-box;
 
@@ -44,10 +44,10 @@
 }
 
 .modal-theme-dark {
-    background-color: #404457;
+    background-color: var(--neo-dialog-bg, #404457);
     color: white;
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.16), inset 0 -1px 8px 0 rgba(0, 0, 0, 0.3);
-    border: solid 0.5px rgba(255, 255, 255, 0.5);
+    border: solid 0.5px color-mix(in srgb, var(--neo-text-primary, rgb(255, 255, 255)) 50%, transparent);
 
     svg {
         color: white;
@@ -55,10 +55,10 @@
 }
 
 .modal-theme-white {
-    background-color: #ebebec;
+    background-color: var(--neo-color-white, #ebebec);
     color: black;
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.16), inset 0 -1px 8px 0 rgba(255, 255, 255, 0.3);
-    border: solid 0.5px rgba(38, 40, 49, 0.5);
+    border: solid 0.5px var(--neo-border-color-default, rgba(38, 40, 49, 0.5));
 
     svg {
         color: black;

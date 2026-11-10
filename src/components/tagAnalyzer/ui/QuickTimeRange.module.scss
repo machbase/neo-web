@@ -30,8 +30,8 @@
     @include text.role(label);
     background: transparent;
     border: none;
-    border-radius: 4px;
-    color: t.$primary-light;
+    border-radius: calc(4px * var(--neo-radius-scale, 1));
+    color: t.$accent-text;
     cursor: pointer;
     padding: 4px 8px;
     text-align: left;
@@ -40,13 +40,13 @@
     outline: none;
 
     &:hover {
-        color: t.$primary-hover;
-        background-color: t.$bg-hover;
+        color: t.$accent-text;
+        background-color: t.$hover-bg;
     }
     &:active { opacity: 0.5; }
     &:focus-visible {
         outline: 2px solid t.$border-color-focus;
         outline-offset: 2px;
-        border-radius: 2px;
+        border-radius: calc(2px * var(--neo-radius-scale, 1));
     }
 }

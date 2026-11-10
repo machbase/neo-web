@@ -1,16 +1,22 @@
+@use '../../tokens/themed' as th;
 @use '../../tokens/colors' as c;
 @use '../../tokens/mixins' as m;
 @use '../../tokens/scrollbar' as sb;
 
 // shared accent for both version indicators: latest text + update chip (version/icon)
-$version-accent: #4199ff;
+$version-accent: var(--neo-accent-text, #4199ff);
 
 .sideWrapper {
     display: flex;
     flex-direction: column;
     height: 100%;
-    background-color: c.$bg-panel;
+    background-color: c.$side-bg;
     border-left: solid 0.5px c.$border-color-default;
+    // the panel's own text and icon colours (tokens/_colors.scss, Areas)
+    color: c.$side-text;
+    --ghost-icon: #{c.$side-icon};
+    // its icon buttons' hover is the panel's "under the pointer" (the dark screen keeps the buttons' own)
+    --ghost-hover-bg: var(--neo-side-hover-bg, var(--neo-list-hover-bg, rgba(255, 255, 255, 0.13)));
 }
 
 .sideVersion {
@@ -29,7 +35,7 @@ $version-accent: #4199ff;
         min-width: 0;
         border: none;
         background: transparent;
-        color: c.$text-secondary;
+        color: c.$side-text;
         cursor: pointer;
         display: flex;
         align-items: center;
@@ -43,11 +49,11 @@ $version-accent: #4199ff;
         // lives only on the update chip / latest indicator.
         &:hover {
             .sideVersionLatest {
-                color: #66adff;
+                color: var(--neo-accent-text, #4199ff);
             }
 
             .sideVersionUpdate {
-                background: rgba(64, 153, 255, 0.1);
+                background: color-mix(in srgb, var(--neo-accent-light, rgb(0, 108, 210)) 10%, transparent);
             }
         }
     }
@@ -62,7 +68,7 @@ $version-accent: #4199ff;
 
     .sideVersionNum {
         font-family: 'D2Coding', monospace;
-        color: c.$text-disabled;
+        color: c.$side-text-muted;
     }
 
     // up-to-date: quiet check + "latest" in info blue (no filled chip)
@@ -85,8 +91,8 @@ $version-accent: #4199ff;
         flex-shrink: 0;
         height: 20px;
         padding: 0 8px;
-        border: 1px solid rgba(c.$primary-light, 0.32);
-        border-radius: 5px;
+        border: 1px solid th.alpha(c.$accent-light, 0.32);
+        border-radius: calc(5px * var(--neo-radius-scale, 1));
         background: transparent;
         color: $version-accent;
         font-size: 11px;
@@ -101,7 +107,7 @@ $version-accent: #4199ff;
 
         @media (prefers-reduced-motion: reduce) {
             animation: none;
-            border-color: rgba(c.$primary-light, 0.5);
+            border-color: th.alpha(c.$accent-light, 0.5);
         }
     }
 }
@@ -109,10 +115,10 @@ $version-accent: #4199ff;
 @keyframes sideVersionPulse {
     0%,
     100% {
-        border-color: rgba(c.$primary-light, 0.28);
+        border-color: th.alpha(c.$accent-light, 0.28);
     }
     50% {
-        border-color: rgba(64, 153, 255, 0.62);
+        border-color: var(--neo-border-color-active, #005fb8);
     }
 }
 
@@ -143,11 +149,17 @@ $version-accent: #4199ff;
         cursor: pointer;
 
         &:hover {
-            background-color: c.$bg-hover-block;
+            background-color: var(--neo-side-hover-bg, var(--neo-list-hover-bg, rgba(255, 255, 255, 0.13)));
         }
 
+        // a selected row's icons take the selected text colour: the panel's icon grey is lost on the selection
         &.active {
-            background-color: c.$bg-hover-block;
+            background-color: var(--neo-side-selected-bg, var(--neo-selected-bg, rgb(0, 83, 160)));
+            --ghost-icon: #{c.$selected-text};
+
+            .itemIcon {
+                color: c.$selected-text;
+            }
         }
     }
 }
@@ -160,7 +172,7 @@ $version-accent: #4199ff;
     display: flex;
     align-items: center;
     font-size: 13px;
-    background-color: c.$bg-header;
+    background-color: c.$side-header-bg;
     border-bottom: 0.5px solid c.$border-color-default;
     // border-top: 0.5px solid c.$border-color-default;
     white-space: nowrap;
@@ -275,11 +287,16 @@ $version-accent: #4199ff;
     min-width: 0;
 
     &:hover {
-        background-color: c.$bg-hover-block;
+        background-color: var(--neo-side-hover-bg, var(--neo-list-hover-bg, rgba(255, 255, 255, 0.13)));
     }
 
     &.active {
-        background-color: c.$bg-hover-block;
+        background-color: var(--neo-side-selected-bg, var(--neo-selected-bg, rgb(0, 83, 160)));
+        --ghost-icon: #{c.$selected-text};
+
+        .itemIcon {
+            color: c.$selected-text;
+        }
     }
 
     .itemContent {
@@ -354,6 +371,8 @@ $version-accent: #4199ff;
         justify-content: center;
         align-items: center;
         flex-shrink: 0;
+        // an icon, not text: the panel's icon colour (a selected row's: the selected text colour, above)
+        color: c.$side-icon;
 
         svg {
             width: 13px;
@@ -474,16 +493,16 @@ $version-accent: #4199ff;
     height: 22px;
     min-width: 0;
     padding: 0 11px 0 8px;
-    background-color: c.$bg-header;
+    background-color: c.$side-header-bg;
     border-bottom: 0.5px solid c.$border-color-default;
-    color: c.$text-secondary;
+    color: c.$side-text;
     font-size: 12px;
     white-space: nowrap;
 }
 
 .sideLoadErrorIcon {
     flex-shrink: 0;
-    color: c.$error-main;
+    color: c.$error-text;
 }
 
 .sideLoadErrorText {
@@ -497,11 +516,11 @@ $version-accent: #4199ff;
 .sideLoadErrorReason {
     font-family: 'D2Coding', monospace;
     font-size: 11px;
-    color: c.$text-tertiary;
+    color: c.$side-text-muted;
 }
 
 .sideLoadErrorTime {
-    color: c.$text-tertiary;
+    color: c.$side-text-muted;
 }
 
 // A <button>, so the global `button { border-radius: 8px }` in src/index.css reaches it —

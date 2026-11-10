@@ -6,7 +6,7 @@
     .array-index-row .json-key-picker-chip { max-width: 100%; box-sizing: border-box; }
     .json-key-modal-sub:has(.array-chart-selection) { white-space: normal; }
     .array-chart-selection { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
-    select { background-color: var(--color-surface); color: var(--color-on-surface); }
+    select { background-color: var(--neo-field-bg, var(--neo-bg-elevated, #2c2c2c)); color: var(--neo-text-primary, #f1f1f1); }
     .array-detail-grid table { table-layout: fixed; }
     .array-detail-grid th, .array-detail-grid td { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; box-sizing: border-box; }
 }

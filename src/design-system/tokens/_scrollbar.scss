@@ -52,7 +52,7 @@
 @mixin scrollbar-dark {
     @include scrollbar-base;
     --scrollbar-thumb: #{c.$scrollbar-thumb};
-    --scrollbar-thumb-hover: #{c.$scrollbar-thumb-hover};
+    --scrollbar-thumb-hover: #{c.$scrollbar-hover-thumb};
     --scrollbar-track: transparent;
 }
 
@@ -63,30 +63,7 @@
 @mixin scrollbar-dark-border {
     @include scrollbar-base;
     --scrollbar-thumb: #{c.$scrollbar-thumb};
-    --scrollbar-thumb-hover: #{c.$scrollbar-thumb-hover};
+    --scrollbar-thumb-hover: #{c.$scrollbar-hover-thumb};
     --scrollbar-track: #{c.$scrollbar-track-bg};
     --scrollbar-thumb-border: 2px solid #{c.$scrollbar-border};
-}
-
-/**
- * Light scrollbar variant
- * For light-themed areas
- */
-@mixin scrollbar-light {
-    @include scrollbar-base;
-    --scrollbar-thumb: #{c.$scrollbar-thumb-light};
-    --scrollbar-thumb-hover: #{c.$scrollbar-thumb-light-hover};
-    --scrollbar-track: transparent;
-}
-
-/**
- * Light scrollbar with border
- * For light-themed areas with visible track
- */
-@mixin scrollbar-light-border {
-    @include scrollbar-base;
-    --scrollbar-thumb: #{c.$scrollbar-thumb-light};
-    --scrollbar-thumb-hover: #{c.$scrollbar-thumb-light-hover};
-    --scrollbar-track: #{c.$scrollbar-track-light-bg};
-    --scrollbar-thumb-border: 2px solid #{c.$scrollbar-border-light};
 }

@@ -45,7 +45,7 @@
 .hierarchical-combobox-label {
     font-size: t.$font-size-base;
     font-weight: 500;
-    color: t.$text-secondary;
+    color: var(--label-text, t.$text-secondary);
     user-select: none;
 }
 
@@ -69,15 +69,15 @@
         min-width: 0;
         height: t.$input-height;
         padding: 0 t.$spacing-32 0 t.$spacing-12;
-        background-color: #2b2b2b;
-        border: 1px solid #3a3a3a;
+        background-color: var(--neo-field-bg, var(--neo-bg-elevated, #2c2c2c));
+        border: 1px solid var(--neo-field-border, var(--neo-border-color-default, rgba(255, 255, 255, 0.13)));
         border-radius: t.$border-radius-base;
         cursor: pointer;
         box-sizing: border-box;
         transition: border-color 0.15s ease;
 
         &:hover:not(:disabled) {
-            border-color: #5a5a5a;
+            border-color: var(--neo-border-color-strong, #767676);
         }
 
         &:focus {
@@ -132,10 +132,10 @@
     // Menu container
     &__menu {
         position: absolute;
-        background-color: t.$dropdown-bg;
-        border: 1px solid t.$dropdown-border;
+        background-color: t.$menu-bg;
+        border: 1px solid t.$menu-border;
         border-radius: t.$border-radius-base;
-        box-shadow: t.$dropdown-shadow;
+        box-shadow: t.$menu-shadow;
         z-index: t.$z-index-modal-dropdown;
         max-height: t.$dropdown-max-height;
         overflow: hidden;
@@ -167,7 +167,7 @@
         min-width: 150px;
         overflow-y: auto;
         overflow-x: hidden;
-        border-right: 1px solid rgba(255, 255, 255, 0.1);
+        border-right: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
         @include t.scrollbar-dark;
     }
 
@@ -224,20 +224,20 @@
         outline: none;
         cursor: pointer;
         transition: background-color 0.15s ease, color 0.15s ease;
-        color: t.$text-secondary;
+        color: var(--neo-text-primary, #f1f1f1);
         font-size: t.$font-size-sm;
         background: none;
         width: 100%;
         text-align: left;
 
         &:hover:not(&--selected) {
-            background-color: t.$dropdown-option-hover-bg;
-            color: t.$color-white;
+            background-color: t.$menu-item-hover-bg;
+            color: var(--neo-text-primary, #f1f1f1);
         }
 
         &--selected {
             background-color: t.$dropdown-option-selected-bg;
-            color: t.$color-white;
+            color: var(--neo-text-primary, #f1f1f1);
             border-radius: 0;
 
             &:hover {
@@ -255,7 +255,7 @@
     // Item checkmark
     &__item-check {
         flex-shrink: 0;
-        color: t.$text-primary;
+        color: var(--neo-text-primary, #f1f1f1);
     }
 
     // List container (for empty state)

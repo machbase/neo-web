@@ -11,13 +11,17 @@
     background-repeat: no-repeat;
     background-position: center;
     background-size: cover;
-    background-color: #1b1c21;
+    background-color: var(--neo-bg-canvas, var(--neo-bg-primary, #1e1e1e));
 
     .login-bg-img {
         width: 100%;
         height: 100%;
         z-index: $login-bg-img-idx;
         position: absolute;
+    }
+    // a theme's picture is any size: it fills the page without being stretched
+    .login-bg-img--theme {
+        object-fit: cover;
     }
 }
 
@@ -33,7 +37,7 @@
     border-width: 1px;
     border-style: solid;
     border-color: $border-color-default;
-    border-radius: 8px;
+    border-radius: calc(8px * var(--neo-radius-scale, 1));
     font-family: 'Open Sans', Helvetica, Arial, sans-serif;
 
     img {
@@ -47,9 +51,9 @@
     display: flex;
     justify-content: space-between;
     svg {
-        fill: rgba(255, 255, 255, 0.5);
+        fill: var(--neo-text-icon, #818181);
         &:hover {
-            fill: rgba(255, 255, 255, 1);
+            fill: var(--neo-text-primary, #f1f1f1);
         }
     }
 }

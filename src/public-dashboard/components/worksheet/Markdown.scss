@@ -24,16 +24,16 @@
         right: 0.5rem;
 
         background-color: transparent;
-        border-radius: 8px;
+        border-radius: calc(8px * var(--neo-radius-scale, 1));
 
         cursor: pointer;
 
         &:hover {
-            background-color: #52535a;
+            background-color: var(--neo-toolbar-hover-bg, #52535a);
         }
 
         svg:hover {
-            fill: #f8f8f8;
+            fill: var(--neo-text-primary, #f8f8f8);
         }
     }
 }

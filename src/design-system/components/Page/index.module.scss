@@ -25,8 +25,8 @@
         // single-line value pinned to the top of it read as 4.5px off-centre
         align-items: stretch;
         padding: 8px;
-        border-radius: 3px;
-        border: solid 1px t.$border-color-light;
+        border-radius: calc(3px * var(--neo-radius-scale, 1));
+        border: solid 1px t.$border-color-default;
         color: t.$text-primary;
         text-align: start;
         transition: border-color 0.2s ease;
@@ -52,7 +52,7 @@
     &--hover {
         .page-copy-block {
             &:hover {
-                border-color: #5a5a5a;
+                border-color: var(--neo-border-color-strong, #767676);
             }
         }
     }
@@ -62,12 +62,12 @@
     // stays neutral — a coloured edge competes with the warning banner sitting right above it.
     &--accent {
         .page-copy-block {
-            border-color: rgba(255, 255, 255, 0.3);
+            border-color: var(--neo-border-color-strong, #767676);
         }
 
         .page-copy-block-frame {
-            border-radius: 3px;
-            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.04);
+            border-radius: calc(3px * var(--neo-radius-scale, 1));
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--neo-border-color-default, rgba(255, 255, 255, 0.13)) 30%, transparent);
         }
 
         // the running light is a 1px ring cut out of a filled rounded rect. Without mask-composite
@@ -80,13 +80,13 @@
                 // sits on the block's own 1px border, not outside it — an outer ring reads as a
                 // second line running parallel to the border
                 inset: 0;
-                border-radius: 3px;
+                border-radius: calc(3px * var(--neo-radius-scale, 1));
                 padding: 1px;
                 pointer-events: none;
                 background-image: linear-gradient(
                     90deg,
                     rgba(255, 255, 255, 0) 0%,
-                    rgba(255, 255, 255, 0.92) 50%,
+                    var(--neo-color-white, #ffffff) 50%,
                     rgba(255, 255, 255, 0) 100%
                 );
                 background-repeat: no-repeat;
@@ -132,7 +132,7 @@
     width: 80px;
     height: 25px;
     color: t.$text-primary;
-    border-radius: 2px;
+    border-radius: calc(2px * var(--neo-radius-scale, 1));
     font-size: 13px;
     padding: 4px;
     margin-bottom: 8px;
@@ -148,27 +148,30 @@
     }
 
     &:hover {
-        border: 1px solid t.$bg-input;
+        border: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
     }
 
     &--delete {
-        background-color: t.$btn-delete;
+        background-color: t.$button-danger-bg;
+        color: t.$text-on-accent;
     }
 
     &--create {
-        background-color: t.$btn-create;
+        background-color: t.$button-primary-bg;
+        color: t.$text-on-accent;
     }
 
     &--copy {
-        background-color: t.$btn-copy;
+        background-color: t.$neutral-main;
     }
 
     &--status {
-        background-color: t.$btn-status;
+        background-color: t.$success-fill;
+        color: t.$text-on-accent;
     }
 
     &--disabled {
-        background-color: t.$btn-disabled;
+        background-color: t.$button-disabled-bg;
         cursor: not-allowed;
         opacity: 0.6;
 
@@ -190,21 +193,21 @@
         cursor: pointer;
 
         &:hover {
-            color: t.$text-hint;
-            background-color: t.$bg-input;
-            border-radius: 4px;
+            color: t.$text-tertiary;
+            background-color: var(--neo-toolbar-hover-bg, rgba(255, 255, 255, 0.13));
+            border-radius: calc(4px * var(--neo-radius-scale, 1));
         }
     }
 
     .two-item-active {
-        color: t.$text-primary;
-        background-color: t.$primary-base;
-        border-radius: 4px;
+        color: t.$text-on-accent;
+        background-color: t.$accent-main;
+        border-radius: calc(4px * var(--neo-radius-scale, 1));
 
         &:hover {
-            color: t.$text-primary;
-            background-color: t.$primary-hover;
-            border-radius: 4px;
+            color: t.$text-on-accent;
+            background-color: t.$accent-hover;
+            border-radius: calc(4px * var(--neo-radius-scale, 1));
         }
     }
 
@@ -226,14 +229,16 @@
         display: inline-block;
         width: 28px;
         height: 13px;
-        background: t.$bg-input;
-        border: 1px solid t.$bg-input;
+        // the switch tokens (their dark defaults are the values this had): a theme styles switches
+        // as switches, not as inputs and copy buttons
+        background: t.$switch-bg;
+        border: 1px solid t.$switch-border;
         border-radius: 20px;
         transition: 0.2s;
 
         &:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid t.$bg-input;
+            background: t.$switch-hover-bg;
+            border: 1px solid t.$switch-border;
             border-radius: 20px;
         }
     }
@@ -245,24 +250,24 @@
         width: 10px;
         height: 10px;
         border-radius: 20px;
-        background: rgba(255, 255, 255, 0.3);
+        background: t.$switch-thumb;
         transition: 0.2s;
         cursor: inherit !important;
     }
     .page-switch-input:checked + .page-switch-label {
-        background: t.$primary-base;
-        border: 1px solid t.$bg-input;
+        background: t.$accent-main;
+        border: 1px solid t.$switch-border;
     }
 
     .page-switch-input:checked + .page-switch-label:hover {
-        background: t.$primary-hover;
-        border: 1px solid t.$primary-hover;
+        background: t.$accent-hover;
+        border: 1px solid t.$accent-hover;
     }
 
     /* move */
     .page-switch-input:checked + .page-switch-label .page-switch-label-btn {
         left: 15px;
-        background: t.$text-primary;
+        background: t.$switch-active-thumb;
         box-shadow: 1px 2px 3px #00000020;
     }
 }
@@ -275,7 +280,7 @@
     white-space: pre-wrap;
     text-overflow: ellipsis;
     word-break: break-word;
-    background-color: t.$bg-tab-active;
+    background-color: var(--page-bg, t.$bg-secondary);
 
     .page-badge {
         margin-left: 4px;
@@ -286,20 +291,20 @@
 
     .page-hover-bg-wrapper {
         &:hover {
-            background-color: t.$bg-tab-hover;
+            background-color: t.$tabbar-hover-bg;
         }
     }
 
     .page-divi-horizontal {
         width: 100%;
         height: 1px;
-        background-color: t.$border-color-light;
+        background-color: t.$border-color-default;
     }
 
     .page-divi-vertical {
         width: 1px;
         align-self: stretch;
-        background-color: t.$border-color-light;
+        background-color: t.$border-color-default;
     }
 
     .page-table-wrapper {
@@ -313,12 +318,12 @@
                 font-size: 14px;
                 font-weight: 600;
                 font-family: initial;
-                color: #818181;
+                color: var(--neo-table-header-text, var(--neo-text-muted, #818181));
                 th {
                     min-width: 20px;
                     padding: 4px;
                     padding-left: 8px;
-                    background-color: rgb(44, 44, 44);
+                    background-color: var(--neo-table-header-bg, var(--neo-bg-elevated, #2c2c2c));
                 }
 
                 &-action {
@@ -326,17 +331,17 @@
                 }
             }
             &-body {
-                color: t.$text-secondary;
+                color: var(--neo-text-secondary, #c4c4c4);
                 text-align: left;
                 font-size: 13px;
 
                 .active-row {
-                    background-color: rgb(0, 83, 160) !important;
-                    color: rgb(243, 243, 243);
+                    background-color: var(--neo-table-row-selected-bg, var(--neo-selected-bg, rgb(0, 83, 160))) !important;
+                    color: var(--neo-text-primary, #f1f1f1);
                 }
                 tr {
                     &:hover {
-                        background-color: t.$bg-hover-light;
+                        background-color: var(--neo-table-row-hover-bg, var(--neo-list-hover-bg, rgba(255, 255, 255, 0.13)));
                     }
                     .action {
                         display: flex;
@@ -350,9 +355,9 @@
                         }
 
                         &:hover {
-                            background-color: rgb(0, 108, 210);
+                            background-color: var(--neo-selected-hover-bg, rgb(0, 108, 210));
                             svg {
-                                fill: #ffffff;
+                                fill: var(--neo-text-primary, #f1f1f1);
                             }
                         }
                     }
@@ -386,17 +391,17 @@
                 text-align: left;
                 font-weight: 600;
                 font-family: initial;
-                color: #818181;
+                color: var(--neo-table-header-text, var(--neo-text-muted, #818181));
                 th {
                     min-width: 10px;
                     padding: 4px;
                     padding-left: 8px;
-                    background-color: rgb(44, 44, 44);
+                    background-color: var(--neo-table-header-bg, var(--neo-bg-elevated, #2c2c2c));
                 }
 
                 .row-num {
                     cursor: default;
-                    color: #3b3b3b;
+                    color: var(--neo-table-header-text, var(--neo-text-muted, #818181));
                 }
 
                 &-action {
@@ -408,19 +413,19 @@
                 }
             }
             &-body {
-                color: t.$text-secondary;
+                color: var(--neo-text-secondary, #c4c4c4);
                 text-align: left;
                 font-size: 13px;
                 /* Performance optimizations */
                 contain: layout style;
                 span.row-num {
                     cursor: default;
-                    color: #3b3b3b;
+                    color: var(--neo-table-row-number-text, var(--neo-table-header-text, var(--neo-text-muted, #818181)));
                 }
 
                 .active-row {
-                    background-color: rgb(0, 83, 160) !important;
-                    color: rgb(243, 243, 243);
+                    background-color: var(--neo-table-row-selected-bg, var(--neo-selected-bg, rgb(0, 83, 160))) !important;
+                    color: var(--neo-text-primary, #f1f1f1);
                 }
                 tr {
                     /* Performance optimizations */
@@ -434,9 +439,9 @@
                         }
                         &:hover,
                         &:focus {
-                            background-color: rgb(0, 108, 210);
+                            background-color: var(--neo-selected-hover-bg, rgb(0, 108, 210));
                             svg {
-                                fill: #ffffff;
+                                fill: var(--neo-text-primary, #f1f1f1);
                             }
                         }
                     }
@@ -448,15 +453,15 @@
                         }
                         &:hover,
                         &:focus {
-                            background-color: rgb(255, 83, 83);
+                            background-color: var(--neo-error-main, rgb(255, 83, 83));
                             svg {
-                                fill: #ffffff;
+                                fill: var(--neo-text-primary, #f1f1f1);
                             }
                         }
                     }
                     &:hover,
                     &:focus {
-                        background-color: rgb(64, 64, 64);
+                        background-color: var(--neo-table-row-hover-bg, var(--neo-list-hover-bg, rgba(255, 255, 255, 0.13)));
                     }
                 }
                 td {
@@ -500,11 +505,11 @@
             border-radius: 8px;
 
             &--true {
-                background-color: t.$status-true;
+                background-color: t.$success-text;
             }
 
             &--false {
-                background-color: t.$status-false;
+                background-color: t.$error-text;
             }
 
             &--none {
@@ -527,9 +532,9 @@
             min-width: 16px !important;
             max-width: 16px !important;
             cursor: pointer;
-            border: solid 1px t.$border-color-light;
-            border-radius: 3px;
-            background-color: t.$bg-input;
+            border: solid 1px t.$border-color-default;
+            border-radius: calc(3px * var(--neo-radius-scale, 1));
+            background-color: var(--neo-field-bg, var(--neo-bg-elevated, #2c2c2c));
             color: t.$text-primary;
 
             svg {
@@ -549,8 +554,8 @@
             width: 100%;
             height: 100%;
             &:hover {
-                background-color: t.$bg-hover-light;
-                border-radius: 4px;
+                background-color: t.$list-hover-bg;
+                border-radius: calc(4px * var(--neo-radius-scale, 1));
             }
         }
         &-trigger {
@@ -619,7 +624,7 @@
         }
     }
     .page-block-hr {
-        border-bottom: 1px inset t.$bg-input;
+        border-bottom: 1px inset var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
         width: 100%;
     }
 
@@ -632,7 +637,7 @@
         padding: 0 t.$spacing-12;
 
         &:hover {
-            border-color: #5a5a5a;
+            border-color: var(--neo-border-color-strong, #767676);
         }
 
         &:focus-within {
@@ -643,7 +648,7 @@
             flex: 1;
             background: transparent;
             border: none;
-            color: t.$text-primary;
+            color: var(--neo-text-primary, #f1f1f1);
             font-family: inherit;
             outline: none;
             width: 100%;
@@ -651,7 +656,7 @@
             font-size: t.$font-size-sm;
 
             &::placeholder {
-                color: t.$text-disabled;
+                color: t.$text-muted;
                 font-size: t.$font-size-sm;
             }
 
@@ -673,8 +678,8 @@
         height: 40px;
         padding: 4px;
         margin: 4px;
-        border-radius: 4px;
-        border: 1px solid t.$bg-input;
+        border-radius: calc(4px * var(--neo-radius-scale, 1));
+        border: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
         cursor: pointer;
 
         svg {
@@ -684,13 +689,20 @@
         }
 
         &:hover {
-            border: 1px solid t.$bg-input;
-            background-color: t.$primary-base;
+            border: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
+            background-color: t.$accent-main;
+            // the dark screen's inherited rgba(255, 255, 255, 0.87) as the fallback: unchanged there
+            color: var(--neo-text-on-accent, #ffffff);
         }
     }
     .page-icon-button-active {
-        border: 1px solid t.$bg-input;
-        background-color: t.$primary-base;
+        border: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
+        background-color: t.$accent-main;
+        color: var(--neo-text-on-accent, #ffffff);
+
+        svg {
+            color: var(--neo-text-on-accent, #ffffff);
+        }
     }
     .page-date-time-picker-wrapper {
         display: flex;
@@ -712,10 +724,10 @@
             flex-direction: column;
 
             .page-date-time-picker-content {
-                background-color: t.$dropdown-bg;
-                border: 1px solid t.$dropdown-border;
+                background-color: t.$menu-bg;
+                border: 1px solid t.$menu-border;
                 border-radius: t.$border-radius-base;
-                box-shadow: t.$dropdown-shadow;
+                box-shadow: t.$menu-shadow;
                 display: flex;
                 flex-direction: column;
                 margin-top: t.$spacing-4;
@@ -742,10 +754,10 @@
                 }
             }
             .page-date-time-picker-content-verti {
-                background-color: t.$dropdown-bg;
-                border: 1px solid t.$dropdown-border;
+                background-color: t.$menu-bg;
+                border: 1px solid t.$menu-border;
                 border-radius: t.$border-radius-base;
-                box-shadow: t.$dropdown-shadow;
+                box-shadow: t.$menu-shadow;
                 display: flex;
                 margin-top: t.$spacing-4;
                 @include t.fade-in(0.15s);
@@ -798,10 +810,10 @@
             flex-direction: column;
 
             .page-date-picker-content {
-                background-color: t.$dropdown-bg;
-                border: 1px solid t.$dropdown-border;
+                background-color: t.$menu-bg;
+                border: 1px solid t.$menu-border;
                 border-radius: t.$border-radius-base;
-                box-shadow: t.$dropdown-shadow;
+                box-shadow: t.$menu-shadow;
                 display: flex;
                 flex-direction: column;
                 margin-top: t.$spacing-4;
@@ -832,10 +844,10 @@
             text-align: center;
             cursor: default;
             padding: 8px;
-            border-radius: 3px;
-            border: solid 1px t.$border-color-light;
-            background-color: t.$bg-input;
-            color: t.$text-primary;
+            border-radius: calc(3px * var(--neo-radius-scale, 1));
+            border: solid 1px var(--neo-field-border, var(--neo-border-color-default, rgba(255, 255, 255, 0.13)));
+            background-color: var(--neo-field-bg, var(--neo-bg-elevated, #2c2c2c));
+            color: var(--neo-text-primary, #f1f1f1);
             text-align: start;
         }
     }
@@ -867,7 +879,8 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        background-color: t.$bg-tab-active;
+        // the header row under the open tab is the tab's surface: one color from the tab down to the page
+        background-color: t.$tabbar-active-bg;
         border-bottom: solid 1px t.$border-color-default;
         position: static;
         box-shadow: 1px 1px 8px #00000060;
@@ -903,8 +916,8 @@
             padding: 10px 20px;
             width: 150px;
             height: 100%;
-            border-right: 1px inset t.$bg-input;
-            color: #aaaaaa;
+            border-right: 1px inset var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
+            color: var(--neo-text-tertiary, #a3a3a3);
         }
 
         .page-body-content {
@@ -922,7 +935,7 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        background-color: t.$bg-tab-active;
+        background-color: t.$bg-secondary;
         border-top: solid 1px t.$border-color-default;
         position: static;
         box-shadow: 1px 1px 8px #00000060;
@@ -936,7 +949,7 @@
         top: 0;
         margin: 0;
         z-index: 5;
-        background-color: t.$bg-tab-active;
+        background-color: t.$bg-secondary;
 
         .page-content-block,
         .page-content-block-none {
@@ -949,10 +962,10 @@
     .page-content-block {
         padding: 12px 16px;
         &:hover {
-            background-color: t.$bg-tab-hover;
+            background-color: t.$tabbar-hover-bg;
         }
         &:visited {
-            color: red;
+            color: var(--neo-accent-text, #4199ff);
         }
 
         &-title {
@@ -973,7 +986,7 @@
             white-space: nowrap;
             text-overflow: ellipsis;
             overflow-wrap: break-word;
-            color: #dfdfdf;
+            color: var(--neo-text-primary, #f1f1f1);
             overflow: hidden;
         }
     }
@@ -985,7 +998,7 @@
         font-size: 30px;
     }
     .active-content-block {
-        border: solid 2px t.$primary-base;
+        border: solid 2px t.$accent-main;
     }
 
     .page-selector-container--top {
@@ -1042,7 +1055,7 @@
             transition: border-color 0.15s ease;
 
             &:hover:not(&--open) {
-                border-color: #5a5a5a;
+                border-color: var(--neo-border-color-strong, #767676);
             }
 
             &--open {
@@ -1054,12 +1067,12 @@
                 flex: 1;
                 text-align: left;
                 @include t.text-ellipsis;
-                color: t.$text-primary;
+                color: var(--neo-text-primary, #f1f1f1);
             }
 
             svg {
                 flex-shrink: 0;
-                color: t.$dropdown-trigger-icon-color;
+                color: var(--neo-field-icon, var(--neo-text-tertiary, #a3a3a3));
                 transition: transform 0.2s ease;
             }
 
@@ -1069,10 +1082,10 @@
         }
 
         .page-selector-body {
-            background-color: t.$dropdown-bg;
-            border: 1px solid t.$dropdown-border;
+            background-color: t.$menu-bg;
+            border: 1px solid t.$menu-border;
             border-radius: t.$border-radius-base;
-            box-shadow: t.$dropdown-shadow;
+            box-shadow: t.$menu-shadow;
             max-height: t.$dropdown-max-height;
             overflow-y: auto;
             padding: t.$spacing-4;
@@ -1093,12 +1106,12 @@
                 }
 
                 &:hover {
-                    background-color: t.$dropdown-option-hover-bg;
+                    background-color: t.$menu-item-hover-bg;
                 }
 
                 &.page-selector-body-item-selected {
-                    background-color: t.$primary-base;
-                    color: t.$text-active;
+                    background-color: t.$accent-main;
+                    color: t.$selected-text;
                 }
 
                 // Shown, and visibly not pickable. The hint carries the reason, so the row does
@@ -1149,13 +1162,13 @@
             min-height: 16px;
             width: 16px;
             height: 16px;
-            fill: rgb(255, 83, 83);
+            fill: var(--neo-error-main, rgb(255, 83, 83));
         }
         span {
             margin-left: 4px;
             font-family: 'Pretendard';
             font-size: 14px;
-            color: rgb(255, 83, 83);
+            color: var(--neo-error-text, #fa6464);
         }
     }
     .page-res-success {
@@ -1169,13 +1182,13 @@
             min-height: 16px;
             width: 16px;
             height: 16px;
-            fill: #71e071;
+            fill: var(--neo-success-main, #37aa3b);
         }
         span {
             margin-left: 4px;
             font-family: 'Pretendard';
             font-size: 14px;
-            color: #71e071;
+            color: var(--neo-success-text, #9df486);
         }
     }
 
@@ -1207,7 +1220,7 @@
     }
 
     .active-tab {
-        border-bottom: 2px solid #005fb8;
+        border-bottom: 2px solid var(--neo-border-color-active, #005fb8);
     }
 
     .inactive-tab {
@@ -1216,9 +1229,9 @@
     }
 
     .page-tab-badge {
-        background-color: #a4a4a46e;
+        background-color: var(--neo-bg-elevated, #2c2c2c);
         border-radius: 40%;
-        color: #e4e4e4;
+        color: var(--neo-text-primary, #f1f1f1);
         display: flex;
         width: 22px;
         height: 14px;
@@ -1244,7 +1257,7 @@
     }
 }
 .page-content-block-desc {
-    color: #a3a3a3;
+    color: var(--neo-text-tertiary, #a3a3a3);
     font-size: 14px;
 }
 

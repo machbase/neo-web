@@ -28,9 +28,9 @@
         height: 160px;
         overflow-y: auto;
         overflow-x: hidden;
-        border: 1px solid t.$border-color-default;
+        border: 1px solid var(--neo-menu-border, var(--neo-border-color-default, rgba(255, 255, 255, 0.13)));
         border-radius: t.$border-radius-sm;
-        background-color: t.$bg-primary;
+        background-color: var(--neo-menu-bg, #2d2d2d);
         padding: 2px 4px;
         @include t.scrollbar-dark;
     }
@@ -44,22 +44,22 @@
         padding: t.$spacing-6 t.$spacing-8;
         cursor: pointer;
         font-size: t.$font-size-sm;
-        color: t.$text-secondary;
+        color: var(--neo-text-primary, #f1f1f1);
         transition: all 0.15s ease;
         user-select: none;
 
         &:hover {
-            background-color: t.$bg-hover;
+            background-color: var(--neo-menu-item-hover-bg, #3d3d3d);
             color: t.$text-primary;
         }
 
         &--selected {
-            background-color: t.$btn-create;
-            color: t.$text-primary;
+            background-color: var(--neo-selected-bg, rgb(0, 83, 160));
+            color: var(--neo-selected-text, rgb(243, 243, 243));
             font-weight: 600;
 
             &:hover {
-                background-color: t.$primary-hover;
+                background-color: var(--neo-selected-hover-bg, rgb(0, 108, 210));
             }
         }
     }

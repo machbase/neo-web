@@ -7,6 +7,14 @@
     width: 100%;
     height: 100%;
     box-sizing: border-box;
+    // the console's own colours (tokens/_colors.scss, Areas). The Page around the console is this
+    // element's parent, so a --page-bg set here never reached it: the log body paints itself.
+    color: t.$console-text;
+    background-color: t.$console-body-bg;
+    --ghost-icon: #{t.$console-icon};
+    --ghost-hover-bg: #{t.$console-hover-bg};
+    // a Page inside the console (a shell's terminal) takes the same body colour
+    --page-bg: #{t.$console-body-bg};
 
     .console-header {
         display: flex;
@@ -14,7 +22,7 @@
         align-items: center;
         justify-content: space-between;
         box-shadow: 4px 4px 4px #00000050;
-        background-color: t.$bg-primary;
+        background-color: t.$console-bg;
         border-bottom: 0.5px solid t.$border-color-default;
         box-sizing: border-box;
 
@@ -51,8 +59,8 @@
                 }
             }
             .add-terminal:hover {
-                border-radius: 6px;
-                background-color: rgba(0, 0, 0, 0.2);
+                border-radius: calc(6px * var(--neo-radius-scale, 1));
+                background-color: var(--neo-console-hover-bg, var(--neo-hover-bg, rgba(255, 255, 255, 0.08)));
             }
         }
     }
@@ -65,10 +73,11 @@
         .tabs {
             display: flex;
             align-items: center;
-            color: #c4c4c4;
+            color: t.$console-tab-text;
         }
+        // a tab name under the pointer reads as text — not as the selected task's lines (console-text)
         .tabs:hover {
-            color: #f8f8f8;
+            color: t.$text-primary;
         }
         .tab_close {
             margin-left: 4px;

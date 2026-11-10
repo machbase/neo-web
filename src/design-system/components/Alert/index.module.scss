@@ -8,73 +8,73 @@
 
     // Error variant
     &--error {
-        background-color: rgba(220, 53, 69, 0.15);
-        border: 1px solid rgba(220, 53, 69, 0.4);
+        background-color: color-mix(in srgb, var(--neo-error-main, rgb(255, 83, 83)) 15%, transparent);
+        border: 1px solid color-mix(in srgb, var(--neo-error-main, rgb(255, 83, 83)) 40%, transparent);
 
         .alert__icon {
-            color: #dc3545;
+            color: var(--neo-error-text, #fa6464);
         }
 
         .alert__title {
-            color: #ff6b6b;
+            color: var(--neo-error-text, #fa6464);
         }
 
         .alert__message {
-            color: rgba(255, 255, 255, 0.8);
+            color: var(--neo-text-secondary, #c4c4c4);
         }
     }
 
     // Warning variant
     &--warning {
-        background-color: rgba(255, 193, 7, 0.15);
-        border: 1px solid rgba(255, 193, 7, 0.4);
+        background-color: color-mix(in srgb, var(--neo-warning-main, #d67f00) 15%, transparent);
+        border: 1px solid color-mix(in srgb, var(--neo-warning-main, #d67f00) 40%, transparent);
 
         .alert__icon {
-            color: #ffc107;
+            color: var(--neo-warning-text, #ff9800);
         }
 
         .alert__title {
-            color: #ffdb4d;
+            color: var(--neo-warning-text, #ff9800);
         }
 
         .alert__message {
-            color: rgba(255, 255, 255, 0.8);
+            color: var(--neo-text-secondary, #c4c4c4);
         }
     }
 
     // Info variant
     &--info {
-        background-color: rgba(13, 110, 253, 0.15);
-        border: 1px solid rgba(13, 110, 253, 0.4);
+        background-color: color-mix(in srgb, var(--neo-accent-hover, #0075e2) 15%, transparent);
+        border: 1px solid color-mix(in srgb, var(--neo-accent-hover, #0075e2) 40%, transparent);
 
         .alert__icon {
-            color: #0d6efd;
+            color: var(--neo-accent-text, #4199ff);
         }
 
         .alert__title {
-            color: #4d9fff;
+            color: var(--neo-accent-text, #4199ff);
         }
 
         .alert__message {
-            color: rgba(255, 255, 255, 0.8);
+            color: var(--neo-text-secondary, #c4c4c4);
         }
     }
 
     // Success variant
     &--success {
-        background-color: rgba(25, 135, 84, 0.15);
-        border: 1px solid rgba(25, 135, 84, 0.4);
+        background-color: color-mix(in srgb, var(--neo-success-main, #37aa3b) 15%, transparent);
+        border: 1px solid color-mix(in srgb, var(--neo-success-main, #37aa3b) 40%, transparent);
 
         .alert__icon {
-            color: #198754;
+            color: var(--neo-success-text, #9df486);
         }
 
         .alert__title {
-            color: #4dba7d;
+            color: var(--neo-success-text, #9df486);
         }
 
         .alert__message {
-            color: rgba(255, 255, 255, 0.8);
+            color: var(--neo-text-secondary, #c4c4c4);
         }
     }
 
@@ -111,7 +111,7 @@
         flex-shrink: 0;
         background: transparent;
         border: none;
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--neo-text-tertiary, #a3a3a3);
         font-size: 24px;
         line-height: 1;
         cursor: pointer;
@@ -124,7 +124,7 @@
         transition: color 0.2s ease;
 
         &:hover {
-            color: rgba(255, 255, 255, 0.9);
+            color: var(--neo-text-primary, #f1f1f1);
         }
     }
 }

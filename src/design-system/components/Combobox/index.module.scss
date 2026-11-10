@@ -88,7 +88,7 @@
 .combobox-label {
     font-size: t.$font-size-base;
     font-weight: 500;
-    color: t.$text-secondary;
+    color: var(--label-text, t.$text-secondary);
     user-select: none;
 }
 
@@ -112,7 +112,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        color: t.$text-secondary;
+        color: var(--neo-field-icon, var(--neo-text-tertiary, #a3a3a3));
         flex-shrink: 0;
     }
 
@@ -123,21 +123,21 @@
         flex: 1;
         height: t.$input-height;
         padding: 0 t.$spacing-32 0 t.$spacing-12;
-        background-color: #2b2b2b;
-        border: 1px solid #3a3a3a;
+        background-color: var(--neo-field-bg, var(--neo-bg-elevated, #2c2c2c));
+        border: 1px solid var(--neo-field-border, var(--neo-border-color-default, rgba(255, 255, 255, 0.13)));
         border-radius: t.$border-radius-base;
-        color: t.$text-primary;
+        color: var(--neo-text-primary, #f1f1f1);
         font-family: inherit;
         cursor: pointer;
         box-sizing: border-box;
         transition: border-color 0.15s ease;
 
         &::placeholder {
-            color: t.$text-disabled;
+            color: t.$text-muted;
         }
 
         &:hover:not(:disabled) {
-            border-color: #5a5a5a;
+            border-color: var(--neo-border-color-strong, #767676);
         }
 
         &:focus {
@@ -153,7 +153,7 @@
         &:-webkit-autofill,
         &:-webkit-autofill:hover,
         &:-webkit-autofill:focus {
-            -webkit-text-fill-color: t.$text-primary;
+            -webkit-text-fill-color: var(--neo-text-primary, #f1f1f1);
             -webkit-box-shadow: 0 0 0 1000px #2b2b2b inset;
             transition: background-color 5000s ease-in-out 0s;
         }
@@ -198,7 +198,7 @@
         padding: 0;
         background: transparent;
         border: none;
-        color: t.$text-hint;
+        color: var(--neo-field-icon, var(--neo-text-tertiary, #a3a3a3));
         cursor: pointer;
         @include t.flex-center;
         border-radius: t.$border-radius-circle;
@@ -206,16 +206,16 @@
 
         &:hover {
             color: t.$text-primary;
-            background-color: t.$bg-hover;
+            background-color: t.$hover-bg;
         }
     }
 
     // Dropdown container
     &__dropdown {
-        background-color: t.$dropdown-bg;
-        border: 1px solid t.$dropdown-border;
+        background-color: t.$menu-bg;
+        border: 1px solid t.$menu-border;
         border-radius: t.$border-radius-base;
-        box-shadow: t.$dropdown-shadow;
+        box-shadow: t.$menu-shadow;
         z-index: t.$z-index-modal-dropdown; // Use higher z-index to work inside modals
         @include t.fade-in(0.15s);
 
@@ -250,20 +250,20 @@
         outline: none;
         cursor: pointer;
         transition: background-color 0.15s ease;
-        color: t.$text-secondary;
+        color: var(--neo-text-primary, #f1f1f1);
         font-size: t.$font-size-sm;
 
         &:hover:not(&--disabled) {
-            background-color: t.$dropdown-option-hover-bg;
+            background-color: t.$menu-item-hover-bg;
         }
 
         &--focused:not(&--disabled) {
-            background-color: t.$dropdown-option-hover-bg;
+            background-color: t.$menu-item-hover-bg;
         }
 
         &--selected {
             background-color: t.$dropdown-option-selected-bg;
-            color: t.$text-primary;
+            color: var(--neo-text-primary, #f1f1f1);
         }
 
         &--disabled {
@@ -301,14 +301,14 @@
     // Option checkmark
     &__option-check {
         flex-shrink: 0;
-        color: t.$text-primary;
+        color: var(--neo-text-primary, #f1f1f1);
     }
 
     // Empty state
     &__empty {
         padding: t.$spacing-16 t.$spacing-12;
         text-align: center;
-        color: t.$text-hint;
+        color: t.$text-tertiary;
         font-size: t.$font-size-sm;
     }
 }

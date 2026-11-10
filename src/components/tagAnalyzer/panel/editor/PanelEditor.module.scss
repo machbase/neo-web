@@ -10,7 +10,7 @@
     margin-top: 0;
     overflow: hidden;
     border: 0 solid theme.$border-color;
-    border-radius: 8px;
+    border-radius: calc(8px * var(--neo-radius-scale, 1));
     background: var(--color-background-primary);
     visibility: hidden;
     opacity: 0;
@@ -58,7 +58,7 @@
     min-height: 40px;
     box-sizing: border-box;
     padding: 8px 16px;
-    background-color: t.$bg-tab-active;
+    background-color: t.$bg-secondary;
     border-bottom: 1px solid theme.$border-color;
     box-shadow: 1px 1px 8px #00000060;
 }
@@ -90,7 +90,7 @@
 }
 
 .invalidTab {
-    color: theme.$danger;
+    color: theme.$danger-text;
 
     &::after {
         flex: 0 0 6px;

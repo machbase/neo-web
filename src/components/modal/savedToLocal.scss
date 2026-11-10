@@ -29,10 +29,10 @@
                 height: 25px;
                 height: 27px;
                 padding: 0 8px;
-                border-radius: 3px;
-                border: solid 1px #f1f1f125;
-                background-color: rgba(255, 255, 255, 0.13);
-                color: #f1f1f1;
+                border-radius: calc(3px * var(--neo-radius-scale, 1));
+                border: solid 1px var(--neo-field-border, var(--neo-border-color-default, rgba(255, 255, 255, 0.13)));
+                background-color: var(--neo-field-bg, var(--neo-bg-elevated, #2c2c2c));
+                color: var(--neo-text-primary, #f1f1f1);
             }
         }
 

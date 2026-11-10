@@ -114,19 +114,19 @@ const ResultBlock = ({ result }: { result?: CallResult }) => {
     return (
         <div style={{ marginTop: 6 }}>
             <span style={{ color: STATUS_COLOR[result.status], fontWeight: 600 }}>{STATUS_LABEL[result.status]}</span>
-            {result.elapsedMs != null && <span style={{ color: '#888', marginLeft: 8 }}>{result.elapsedMs}ms</span>}
+            {result.elapsedMs != null && <span style={{ color: 'var(--neo-text-muted, #818181)', marginLeft: 8 }}>{result.elapsedMs}ms</span>}
             {result.status !== 'loading' && (
                 <>
-                    {result.errorMessage && <div style={{ color: '#f0883e', fontSize: 12, margin: '4px 0' }}>{result.errorMessage}</div>}
+                    {result.errorMessage && <div style={{ color: 'var(--neo-error-text, #f0883e)', fontSize: 12, margin: '4px 0' }}>{result.errorMessage}</div>}
                     {result.response !== undefined && (
                         <pre
                             style={{
                                 margin: '4px 0 0',
                                 padding: 8,
-                                background: '#0d1117',
-                                border: '1px solid #30363d',
-                                borderRadius: 4,
-                                color: '#c9d1d9',
+                                background: 'var(--neo-bg-primary, #0d1117)',
+                                border: '1px solid var(--neo-border-color-default, #30363d)',
+                                borderRadius: 'calc(4px * var(--neo-radius-scale, 1))',
+                                color: 'var(--neo-text-secondary, #c9d1d9)',
                                 fontSize: 12,
                                 whiteSpace: 'pre-wrap',
                                 wordBreak: 'break-all',
@@ -178,15 +178,15 @@ const RpcProbe = () => {
         background: '#21262d',
         color: '#c9d1d9',
         border: '1px solid #30363d',
-        borderRadius: 4,
+        borderRadius: 'calc(4px * var(--neo-radius-scale, 1))',
         cursor: 'pointer',
         fontSize: 13,
     };
 
     return (
-        <div style={{ padding: 24, fontFamily: 'monospace', color: '#c9d1d9', background: '#161b22', minHeight: '100vh', boxSizing: 'border-box' }}>
+        <div style={{ padding: 24, fontFamily: 'monospace', color: 'var(--neo-text-secondary, #c9d1d9)', background: 'var(--neo-bg-primary, #161b22)', minHeight: '100vh', boxSizing: 'border-box' }}>
             <h2 style={{ marginTop: 0 }}>🧪 RPC Probe — UI-API read check (temporary)</h2>
-            <p style={{ color: '#8b949e', fontSize: 13, lineHeight: 1.6 }}>
+            <p style={{ color: 'var(--neo-text-tertiary, #8b949e)', fontSize: 13, lineHeight: 1.6 }}>
                 Calls the read RPCs of the #1334 new categories (server/session/proxy/service) via their <b>named wrappers</b> (e.g. <code>rpcServerInfoGet</code>) and shows the response.
                 Going through a wrapper means the method is traceable in the stack/message on error. The login token is injected automatically by axios core.
                 <br />
@@ -199,9 +199,9 @@ const RpcProbe = () => {
                 ▶ Run all reads
             </button>
 
-            <table style={{ width: '100%', borderCollapse: 'collapse', background: '#0d1117', border: '1px solid #30363d', borderRadius: 6, fontSize: 13 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', background: 'var(--neo-bg-primary, #0d1117)', border: '1px solid var(--neo-border-color-default, #30363d)', borderRadius: 'calc(6px * var(--neo-radius-scale, 1))', fontSize: 13 }}>
                 <thead>
-                    <tr style={{ textAlign: 'left', color: '#8b949e' }}>
+                    <tr style={{ textAlign: 'left', color: 'var(--neo-text-tertiary, #8b949e)' }}>
                         <th style={cellStyle}>method (named wrapper)</th>
                         <th style={{ ...cellStyle, width: 90 }}>call</th>
                         <th style={cellStyle}>response</th>
@@ -212,7 +212,7 @@ const RpcProbe = () => {
                         <tr key={idx}>
                             <td style={cellStyle}>
                                 <b>{m.label}</b>
-                                {m.note && <div style={{ color: '#8b949e', fontSize: 11 }}>{m.note}</div>}
+                                {m.note && <div style={{ color: 'var(--neo-text-tertiary, #8b949e)', fontSize: 11 }}>{m.note}</div>}
                             </td>
                             <td style={cellStyle}>
                                 <button style={btnStyle} onClick={() => runPreset(idx)}>
@@ -233,13 +233,13 @@ const RpcProbe = () => {
                     value={customMethod}
                     onChange={(e) => setCustomMethod(e.target.value)}
                     placeholder="method (e.g. bridge.list)"
-                    style={{ padding: 6, width: 260, background: '#0d1117', color: '#c9d1d9', border: '1px solid #30363d', borderRadius: 4, fontFamily: 'monospace' }}
+                    style={{ padding: 6, width: 260, background: 'var(--neo-bg-primary, #0d1117)', color: 'var(--neo-text-secondary, #c9d1d9)', border: '1px solid var(--neo-border-color-default, #30363d)', borderRadius: 'calc(4px * var(--neo-radius-scale, 1))', fontFamily: 'monospace' }}
                 />
                 <input
                     value={customParams}
                     onChange={(e) => setCustomParams(e.target.value)}
                     placeholder='params (JSON array, e.g. ["name"])'
-                    style={{ padding: 6, width: 320, background: '#0d1117', color: '#c9d1d9', border: '1px solid #30363d', borderRadius: 4, fontFamily: 'monospace' }}
+                    style={{ padding: 6, width: 320, background: 'var(--neo-bg-primary, #0d1117)', color: 'var(--neo-text-secondary, #c9d1d9)', border: '1px solid var(--neo-border-color-default, #30363d)', borderRadius: 'calc(4px * var(--neo-radius-scale, 1))', fontFamily: 'monospace' }}
                 />
                 <button style={btnStyle} onClick={runCustom}>
                     call

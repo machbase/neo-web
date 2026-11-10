@@ -1198,9 +1198,45 @@ const PANEL_MAIN_SERIES_ID_PREFIX = 'main-series-';
 export const PANEL_COLORS = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc'];
 const PANEL_MOUSE_WHEEL_ZOOM_IN_FACTOR = 0.82;
 const PANEL_MOUSE_WHEEL_ZOOM_OUT_FACTOR = 1.22;
-const AXIS_LINE_STYLE = { lineStyle: { color: '#323333' } };
-const AXIS_SPLIT_LINE_STYLE = { color: '#323333', width: 1 };
-const PANEL_AXIS_LABEL_STYLE = { color: '#f8f8f8', fontSize: 10 };
+
+/**
+ * The chart's own colours — everything but the series. ECharts takes colour values, not CSS
+ * variables, so `TagEChart` resolves the theme's tokens into one of these (and again when the theme
+ * changes); the defaults are the built-in dark panel's, which is also what a page with no theme
+ * resolves to.
+ */
+export type DataViewerChartPalette = {
+    background: string;
+    axisLine: string;
+    axisLabel: string;
+    axisLabelMuted: string;
+    legendText: string;
+    legendPagerInactive: string;
+    tooltipBackground: string;
+    tooltipBorder: string;
+    tooltipText: string;
+    navigatorBorder: string;
+    navigatorFiller: string;
+    navigatorHandle: string;
+    navigatorHandleBorder: string;
+    navigatorMoveHandle: string;
+};
+export const DATA_VIEWER_CHART_PALETTE: DataViewerChartPalette = {
+    background: '#252525',
+    axisLine: '#323333',
+    axisLabel: '#f8f8f8',
+    axisLabelMuted: '#afb5bc',
+    legendText: '#e7e8ea',
+    legendPagerInactive: '#61646b',
+    tooltipBackground: '#1f1d1d',
+    tooltipBorder: '#292929',
+    tooltipText: '#afb5bc',
+    navigatorBorder: '#7a828c',
+    navigatorFiller: 'rgba(104, 119, 138, 0.28)',
+    navigatorHandle: 'rgba(245, 247, 250, 0.78)',
+    navigatorHandleBorder: '#8a939e',
+    navigatorMoveHandle: 'rgba(245, 247, 250, 0.32)',
+};
 
 function chooseTimeTickInterval(duration: number) {
     if (!Number.isFinite(duration) || duration <= 0) return undefined;
@@ -1662,7 +1698,7 @@ function getYAxisRange(series: Array<{ data?: Array<[number, number | null]> }>,
     };
 }
 
-function buildNeoLikeTooltipFormatter(params: any, timeFormat: string, timeZone: string, baseKind: DataViewerBaseKind = 'time') {
+function buildNeoLikeTooltipFormatter(params: any, timeFormat: string, timeZone: string, baseKind: DataViewerBaseKind = 'time', headingColor = DATA_VIEWER_CHART_PALETTE.tooltipText) {
     const items = (Array.isArray(params) ? params : [params]).filter((item) => String(item?.seriesId || '').startsWith(PANEL_MAIN_SERIES_ID_PREFIX));
     if (items.length === 0) return '';
     const firstValue = Array.isArray(items[0].value) ? items[0].value : [];
@@ -1670,7 +1706,7 @@ function buildNeoLikeTooltipFormatter(params: any, timeFormat: string, timeZone:
     // Routing it through the axis-aware formatter is what keeps a date out of the tooltip.
     const time = formatDataViewerBaseValue(Number(firstValue[0] ?? items[0].axisValue), baseKind, timeFormat, timeZone);
     return `<div style="max-width:240px">
-        <div style="min-width:0;padding-left:10px;font-size:10px;color:#afb5bc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${time}</div>
+        <div style="min-width:0;padding-left:10px;font-size:10px;color:${headingColor};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${time}</div>
         <div style="padding:6px 0 0 10px;max-width:230px">
         ${items
             .map((item) => {
@@ -1716,6 +1752,7 @@ export function buildDataViewerEChartOption({
     // position for names the map does not cover.
     seriesColors = {},
     arrayElements = false,
+    palette = DATA_VIEWER_CHART_PALETTE,
 }: {
     series?: Array<{ name: string; data: Array<[number, number | null]> }>;
     timeRange?: { from?: unknown; to?: unknown };
@@ -1727,7 +1764,11 @@ export function buildDataViewerEChartOption({
     seriesColors?: Record<string, string>;
     /** Keep ARRAY gaps and isolated points, without a misleading partial navigator line. */
     arrayElements?: boolean;
+    /** The chart's colours; the dark panel's when not given (see `DataViewerChartPalette`). */
+    palette?: DataViewerChartPalette;
 } = {}) {
+    const axisLineStyle = { lineStyle: { color: palette.axisLine } };
+    const axisSplitLineStyle = { color: palette.axisLine, width: 1 };
     const mainHeight = Number.isFinite(panelHeight)
         ? Math.max(PANEL_MIN_MAIN_HEIGHT, Math.round(Number(panelHeight) - PANEL_MAIN_TOP_WITH_LEGEND - PANEL_BOTTOM_RESERVE))
         : PANEL_MAIN_HEIGHT;
@@ -1753,7 +1794,7 @@ export function buildDataViewerEChartOption({
             : formatDataViewerAxisTime(value, { min: panelRange.startTime, max: panelRange.endTime }, timeZone);
 
     return {
-        backgroundColor: '#252525',
+        backgroundColor: palette.background,
         animation: false,
         textStyle: { fontFamily: 'Open Sans, Helvetica, Arial, sans-serif' },
         color: PANEL_COLORS,
@@ -1769,30 +1810,30 @@ export function buildDataViewerEChartOption({
             top: PANEL_LEGEND_TOP,
             height: PANEL_LEGEND_HEIGHT,
             itemGap: 15,
-            textStyle: { color: '#e7e8ea', fontSize: 10 },
+            textStyle: { color: palette.legendText, fontSize: 10 },
             // ECharts' defaults for the pager are ink-on-white — a #2f4554 arrow, a #aaa disabled
             // arrow and #333 text — and this panel's background is #252525, so on a chart with more
             // tags than fit on one line the only control that reveals the rest of them was all but
             // invisible. These are the legend's own text colour for the live parts and a mid grey
             // for the end-of-range arrow, which is the same contrast pairing the rest of the panel
             // uses.
-            pageIconColor: '#e7e8ea',
-            pageIconInactiveColor: '#61646b',
+            pageIconColor: palette.legendText,
+            pageIconInactiveColor: palette.legendPagerInactive,
             pageIconSize: 11,
-            pageTextStyle: { color: '#e7e8ea', fontSize: 10 },
+            pageTextStyle: { color: palette.legendText, fontSize: 10 },
         },
         tooltip: {
             trigger: 'axis',
             confine: true,
             appendToBody: true,
             extraCssText: 'max-width:260px;white-space:normal;pointer-events:none;',
-            backgroundColor: '#1f1d1d',
-            borderColor: '#292929',
+            backgroundColor: palette.tooltipBackground,
+            borderColor: palette.tooltipBorder,
             borderWidth: 1,
-            textStyle: { color: '#afb5bc', fontSize: 10 },
+            textStyle: { color: palette.tooltipText, fontSize: 10 },
             axisPointer: { type: 'line', snap: false },
             position: positionDataViewerTooltip,
-            formatter: (params: any) => buildNeoLikeTooltipFormatter(params, timeFormat, timeZone, baseKind),
+            formatter: (params: any) => buildNeoLikeTooltipFormatter(params, timeFormat, timeZone, baseKind, palette.tooltipText),
         },
         xAxis: [
             {
@@ -1801,10 +1842,11 @@ export function buildDataViewerEChartOption({
                 gridIndex: 0,
                 min: panelRange.startTime,
                 max: panelRange.endTime,
-                axisLine: AXIS_LINE_STYLE,
-                axisTick: AXIS_LINE_STYLE,
+                axisLine: axisLineStyle,
+                axisTick: axisLineStyle,
                 axisLabel: {
-                    ...PANEL_AXIS_LABEL_STYLE,
+                    color: palette.axisLabel,
+                    fontSize: 10,
                     formatter: formatBaseAxisLabel,
                     // The label width is a formatted timestamp; the number of labels comes from the
                     // axis. Put that axis in a narrow box — the detail view's chart column at a
@@ -1813,7 +1855,7 @@ export function buildDataViewerEChartOption({
                     // to by default.
                     hideOverlap: true,
                 },
-                splitLine: { show: true, lineStyle: AXIS_SPLIT_LINE_STYLE },
+                splitLine: { show: true, lineStyle: axisSplitLineStyle },
                 axisPointer: { label: { show: false } },
             },
             {
@@ -1848,9 +1890,9 @@ export function buildDataViewerEChartOption({
                 gridIndex: 0,
                 min: yAxisRange.min,
                 max: yAxisRange.max,
-                axisLine: AXIS_LINE_STYLE,
-                axisLabel: { color: '#afb5bc', fontSize: 10, formatter: formatYAxisLabel },
-                splitLine: { show: true, lineStyle: AXIS_SPLIT_LINE_STYLE },
+                axisLine: axisLineStyle,
+                axisLabel: { color: palette.axisLabelMuted, fontSize: 10, formatter: formatYAxisLabel },
+                splitLine: { show: true, lineStyle: axisSplitLineStyle },
                 minInterval: 0,
                 scale: true,
             },
@@ -1895,14 +1937,14 @@ export function buildDataViewerEChartOption({
                 showDetail: false,
                 brushSelect: false,
                 backgroundColor: 'rgba(0, 0, 0, 0)',
-                borderColor: '#7a828c',
+                borderColor: palette.navigatorBorder,
                 // v6 changed the slider default from 3 to 0; pin it so the navigator looks the same on both.
                 borderRadius: 3,
-                fillerColor: 'rgba(104, 119, 138, 0.28)',
+                fillerColor: palette.navigatorFiller,
                 showDataShadow: false,
                 handleSize: 24,
-                handleStyle: { color: 'rgba(245, 247, 250, 0.78)', borderColor: '#8a939e' },
-                moveHandleStyle: { color: 'rgba(245, 247, 250, 0.32)', opacity: 0.75 },
+                handleStyle: { color: palette.navigatorHandle, borderColor: palette.navigatorHandleBorder },
+                moveHandleStyle: { color: palette.navigatorMoveHandle, opacity: 0.75 },
             },
         ],
         toolbox: { show: false },

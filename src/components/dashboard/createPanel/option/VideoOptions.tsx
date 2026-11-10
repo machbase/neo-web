@@ -159,14 +159,14 @@ export const VideoOptions = ({ pPanelOption, pSetPanelOption, pBoardInfo }: Vide
                                     alignItems: 'center',
                                     justifyContent: 'space-between',
                                     padding: '8px 12px',
-                                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                                    borderRadius: '4px',
-                                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                                    backgroundColor: 'var(--neo-bg-elevated, #2c2c2c)',
+                                    borderRadius: 'calc(4px * var(--neo-radius-scale, 1))',
+                                    border: '1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13))',
                                     boxShadow: '0 1px 3px rgba(0, 0, 0, 0.15)',
                                 }}
                             >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <span style={{ fontSize: '12px', color: 'var(--text-secondary, #8899a6)' }}>{panel.type}</span>
+                                    <span style={{ fontSize: '12px', color: 'var(--text-secondary, var(--neo-text-tertiary, #a3a3a3))' }}>{panel.type}</span>
                                     <span style={{ fontSize: '13px' }}>{panel.title}</span>
                                 </div>
                                 <Button size="xsm" variant="ghost" icon={<VscClose />} style={{ cursor: 'pointer', opacity: 0.6 }} onClick={() => handleRemovePanel(panel.id)} />
@@ -176,7 +176,7 @@ export const VideoOptions = ({ pPanelOption, pSetPanelOption, pBoardInfo }: Vide
 
                     {/* Add panel dropdown or empty message */}
                     {availablePanels.length === 0 ? (
-                        <Page.ContentDesc style={{ color: '#8899a6', fontStyle: 'italic' }}>No available panels to link</Page.ContentDesc>
+                        <Page.ContentDesc style={{ color: 'var(--neo-text-tertiary, #a3a3a3)', fontStyle: 'italic' }}>No available panels to link</Page.ContentDesc>
                     ) : dropdownOptions.length > 0 ? (
                         <Dropdown.Root label="" options={dropdownOptions} value="" onChange={(val) => handleAddPanel(val)} placeholder="Add panel..." fullWidth>
                             <Dropdown.Trigger />

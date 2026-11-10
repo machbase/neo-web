@@ -8,6 +8,7 @@ import ZoomInTwo from '@/assets/image/btn_zoom in x2@3x.png';
 import ZoomInFour from '@/assets/image/btn_zoom in x4@3x.png';
 import ZoomOutTwo from '@/assets/image/btn_zoom out x2@3x.png';
 import ZoomOutFour from '@/assets/image/btn_zoom out x4@3x.png';
+import GlyphImage from '@/components/common/GlyphImage';
 import { Button } from '@/design-system/components';
 import {
     PANEL_CHART_LAYOUTS,
@@ -41,11 +42,11 @@ export function PanelFooter({
         ? formatAxisRange(pNavigatorRange, pIsNumericXAxis)
         : { start: '', end: '' };
     const navigatorControls = [
-        { key: 'zoom-in-large', tooltip: 'Zoom in', icon: <img alt="" src={ZoomInFour} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pOnRangeButtonPress('zoom-in-large') },
-        { key: 'zoom-in-small', tooltip: 'Zoom in', icon: <img alt="" src={ZoomInTwo} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pOnRangeButtonPress('zoom-in-small') },
+        { key: 'zoom-in-large', tooltip: 'Zoom in', icon: <GlyphImage src={ZoomInFour} />, action: () => pOnRangeButtonPress('zoom-in-large') },
+        { key: 'zoom-in-small', tooltip: 'Zoom in', icon: <GlyphImage src={ZoomInTwo} />, action: () => pOnRangeButtonPress('zoom-in-small') },
         { key: 'focus', tooltip: 'Focus', icon: <MdCenterFocusStrong style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pOnRangeButtonPress('focus') },
-        { key: 'zoom-out-small', tooltip: 'Zoom out', icon: <img alt="" src={ZoomOutTwo} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pOnRangeButtonPress('zoom-out-small') },
-        { key: 'zoom-out-large', tooltip: 'Zoom out', icon: <img alt="" src={ZoomOutFour} style={NAVIGATOR_BUTTON_ICON_STYLE} />, action: () => pOnRangeButtonPress('zoom-out-large') },
+        { key: 'zoom-out-small', tooltip: 'Zoom out', icon: <GlyphImage src={ZoomOutTwo} />, action: () => pOnRangeButtonPress('zoom-out-small') },
+        { key: 'zoom-out-large', tooltip: 'Zoom out', icon: <GlyphImage src={ZoomOutFour} />, action: () => pOnRangeButtonPress('zoom-out-large') },
     ];
 
     return (

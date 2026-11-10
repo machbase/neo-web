@@ -1,0 +1,22 @@
+/**
+ * Theme variables
+ *
+ * Every colour token is a CSS variable, `--neo-<token name>`, falling back to the dark default
+ * written here. With no theme loaded none of the variables is set and the dark defaults draw
+ * the screen unchanged; a theme package sets the ones it changes (see README.md, Themes).
+ *
+ * `themed` is for the token sources: a call site writes the token (`t.$text-secondary`, or that
+ * written out), never `themed(text-secondary, <a colour of its own>)` — styleRules.test.ts fails on it.
+ */
+
+@function themed($name, $fallback) {
+    @return var(--neo-#{$name}, #{$fallback});
+}
+
+/**
+ * A token at an alpha: Sass's `rgba($token, .14)` cannot take a CSS variable, `color-mix` can
+ * (and stays the same colour: mixing with transparent keeps the hue and scales the alpha).
+ */
+@function alpha($color, $amount) {
+    @return color-mix(in srgb, #{$color} #{$amount * 100%}, transparent);
+}

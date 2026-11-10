@@ -54,29 +54,31 @@
 
     // Variants
     &--primary {
-        background-color: rgb(0, 108, 210);
-        color: #ffffff;
-        border: 1px solid rgb(0, 108, 210);
+        background-color: var(--neo-button-primary-bg, #005fb8);
+        color: var(--neo-text-on-accent, #ffffff);
+        border: 1px solid var(--neo-button-primary-bg, #005fb8);
 
+        // A filled button: the Primary button colour (button-primary-bg), a step of the accent under the pointer.
         &:hover:not(:disabled) {
-            background-color: rgb(0, 90, 180);
-            border-color: rgb(0, 90, 180);
+            background-color: var(--neo-accent-hover, #0075e2);
+            border-color: var(--neo-accent-hover, #0075e2);
+            color: var(--neo-text-on-accent, #ffffff);
         }
 
         &:focus,
         &:focus-visible {
-            box-shadow: 0 0 0 3px rgba(0, 108, 210, 0.5) !important;
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--neo-border-color-focus, rgb(0, 108, 210)) 50%, transparent) !important;
             outline: none;
         }
     }
 
     &--secondary {
         background-color: transparent;
-        color: t.$text-disabled;
+        color: t.$text-muted;
         border: 1px solid t.$border-color-default;
 
         &:hover:not(:disabled) {
-            background-color: t.$bg-hover;
+            background-color: t.$hover-bg;
             color: t.$text-primary;
 
             svg {
@@ -86,64 +88,67 @@
 
         &:focus,
         &:focus-visible {
-            background-color: t.$bg-hover !important;
+            background-color: t.$hover-bg !important;
             color: t.$text-primary !important;
             border-color: t.$border-color-focus !important;
-            box-shadow: 0 0 0 3px rgba(0, 108, 210, 0.4) !important;
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--neo-border-color-focus, rgb(0, 108, 210)) 40%, transparent) !important;
             outline: none;
         }
     }
 
+    // An icon button: the part of the screen it sits in can colour it (--ghost-icon, set from that
+    // part's own token: the GNB, the side panel, the console) and give its hover (--ghost-hover-bg,
+    // that part's "under the pointer").
     &--ghost {
         background-color: transparent;
-        color: t.$text-disabled;
+        color: var(--ghost-icon, t.$text-icon);
         border: 1px solid transparent;
 
         &:hover:not(:disabled) {
-            background-color: t.$bg-hover;
-            color: t.$text-primary;
+            background-color: var(--ghost-hover-bg, t.$hover-bg);
+            color: var(--ghost-icon-hover, t.$text-primary);
 
             svg {
-                color: t.$text-primary;
+                color: var(--ghost-icon-hover, t.$text-primary);
             }
         }
     }
 
     &--danger {
-        background-color: #e53935;
-        color: #ffffff;
-        border: 1px solid #e53935;
+        background-color: var(--neo-button-danger-bg, #e53935);
+        color: var(--neo-text-on-accent, #ffffff);
+        border: 1px solid var(--neo-button-danger-bg, #e53935);
 
         &:hover:not(:disabled) {
-            background-color: #c62828;
-            border-color: #c62828;
+            background-color: color-mix(in srgb, var(--neo-button-danger-bg, #e53935) 82%, var(--neo-color-black, #000000));
+            border-color: color-mix(in srgb, var(--neo-button-danger-bg, #e53935) 82%, var(--neo-color-black, #000000));
         }
     }
 
     &--success {
-        background-color: #2e7d32;
-        color: #ffffff;
-        border: 1px solid #2e7d32;
+        background-color: var(--neo-success-main, #37aa3b);
+        color: var(--neo-text-on-accent, #ffffff);
+        border: 1px solid var(--neo-success-main, #37aa3b);
 
         &:hover:not(:disabled) {
-            background-color: #1b5e20;
-            border-color: #1b5e20;
+            background-color: color-mix(in srgb, var(--neo-success-main, #37aa3b) 82%, var(--neo-color-black, #000000));
+            border-color: color-mix(in srgb, var(--neo-success-main, #37aa3b) 82%, var(--neo-color-black, #000000));
         }
 
         &:focus,
         &:focus-visible {
-            box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.5) !important;
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--neo-success-main, #37aa3b) 50%, transparent) !important;
             outline: none;
         }
     }
 
     &--none {
         background-color: transparent;
-        color: t.$text-disabled;
+        color: t.$text-icon;
         border: 1px solid transparent;
 
         svg {
-            color: t.$text-disabled;
+            color: t.$text-icon;
         }
 
         &:hover:not(:disabled) {
@@ -194,7 +199,7 @@
         max-height: 18px;
 
         &:hover:not(:disabled) {
-            background-color: t.$bg-hover-block;
+            background-color: t.$toolbar-hover-bg;
         }
     }
 
@@ -204,7 +209,7 @@
     }
 
     &--active {
-        background-color: t.$bg-hover !important;
+        background-color: var(--neo-active-bg, var(--neo-selected-bg, rgb(0, 83, 160))) !important;
         color: t.$text-primary !important;
 
         svg {

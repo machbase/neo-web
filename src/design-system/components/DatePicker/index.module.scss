@@ -13,10 +13,10 @@
     &__input {
         flex: 1;
         padding: t.$spacing-8 t.$spacing-12;
-        background-color: t.$bg-secondary;
-        border: 0.5px solid t.$border-color-default;
+        background-color: var(--neo-field-bg, var(--neo-bg-elevated, #2c2c2c));
+        border: 0.5px solid var(--neo-field-border, var(--neo-border-color-default, rgba(255, 255, 255, 0.13)));
         border-radius: t.$border-radius-base;
-        color: t.$text-primary;
+        color: var(--neo-text-primary, #f1f1f1);
         font-size: t.$font-size-base;
         line-height: t.$line-height-normal;
         outline: none;
@@ -32,7 +32,7 @@
         }
 
         &::placeholder {
-            color: t.$text-disabled;
+            color: t.$text-muted;
         }
     }
 
@@ -77,15 +77,15 @@
             color: t.$text-secondary;
 
             &:hover {
-                background-color: t.$bg-hover;
+                background-color: t.$hover-bg;
             }
 
             &:global(.Mui-selected) {
-                background-color: t.$btn-create;
-                color: t.$text-primary;
+                background-color: var(--neo-selected-bg, rgb(0, 83, 160));
+                color: var(--neo-selected-text, rgb(243, 243, 243));
 
                 &:hover {
-                    background-color: t.$primary-hover;
+                    background-color: var(--neo-selected-hover-bg, rgb(0, 108, 210));
                 }
             }
         }

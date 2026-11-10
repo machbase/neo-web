@@ -18,14 +18,14 @@
 }
 
 .colorPickerPortal {
-    border-radius: 4px;
-    box-shadow: t.$dropdown-shadow;
+    border-radius: calc(4px * var(--neo-radius-scale, 1));
+    box-shadow: t.$menu-shadow;
     z-index: 9999;
 
     // Override react-color CompactPicker styles to match dark theme
     :global {
         .compact-picker {
-            background: t.$dropdown-bg !important;
+            background: t.$menu-bg !important;
             border: 1px solid t.$border-color-default !important;
             box-shadow: none !important;
             padding: 4px;
@@ -35,10 +35,10 @@
                 // Color grid area
                 > div {
                     > span > div {
-                        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.3) !important;
+                        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--neo-bg-primary, #1e1e1e) 30%, transparent) !important;
 
                         &:hover {
-                            box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5) !important;
+                            box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--neo-bg-primary, #1e1e1e) 50%, transparent) !important;
                         }
                     }
                 }
@@ -55,18 +55,18 @@
 
             // Input field area at bottom
             .flexbox-fix:last-child {
-                background: t.$dropdown-bg !important;
+                background: t.$menu-bg !important;
                 border-top: 1px solid t.$border-color-default !important;
 
                 input {
                     background: transparent !important;
-                    color: t.$text-primary !important;
+                    color: var(--neo-text-primary, #f1f1f1) !important;
                     border: none !important;
                     box-shadow: none !important;
                     font-size: 12px !important;
 
                     &::placeholder {
-                        color: t.$text-disabled !important;
+                        color: t.$text-muted !important;
                     }
                 }
 

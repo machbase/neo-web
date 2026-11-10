@@ -6,7 +6,10 @@
     align-items: center;
     height: 100%;
     width: 52px;
-    background-color: var(--gnb-bg, t.$bg-primary);
+    background-color: var(--gnb-bg, t.$gnb-bg);
+    --ghost-icon: #{t.$gnb-icon};
+    --ghost-icon-hover: #{t.$gnb-active-icon};
+    --ghost-hover-bg: #{t.$gnb-hover-bg};
     // border-right: solid 0.5px t.$border-color-default;
     overflow-y: auto;
     overflow-x: hidden;
@@ -21,10 +24,10 @@
 
     &::-webkit-scrollbar-thumb {
         background: t.$scrollbar-thumb;
-        border-radius: 2px;
+        border-radius: calc(2px * var(--neo-radius-scale, 1));
 
         &:hover {
-            background: t.$scrollbar-thumb-hover;
+            background: t.$scrollbar-hover-thumb;
         }
     }
 }
@@ -53,7 +56,7 @@
     transition: border-color 0.2s ease;
 
     &--selected {
-        border-left-color: var(--gnb-item-selected-border, t.$primary-base);
+        border-left-color: var(--gnb-item-selected-border, t.$gnb-marker);
     }
 }
 
@@ -72,11 +75,11 @@
     transition: all 0.2s ease;
     padding: 0;
     outline: none;
-    border-radius: 6px;
+    border-radius: calc(6px * var(--neo-radius-scale, 1));
 
     &:hover {
-        color: var(--gnb-item-hover-color, t.$text-primary);
-        background-color: var(--gnb-item-hover-bg, rgba(255, 255, 255, 0.08));
+        color: var(--gnb-item-hover-color, t.$gnb-active-icon);
+        background-color: var(--gnb-item-hover-bg, t.$gnb-hover-bg);
     }
 
     &:focus-visible {
@@ -89,15 +92,15 @@
 .gnb__item__wrapper--selected {
     opacity: 1;
     .gnb__item {
-        color: var(--gnb-item-selected-color, t.$text-primary);
+        color: var(--gnb-item-selected-color, t.$gnb-active-icon);
         opacity: inherit;
         .gnb__item__icon {
             opacity: inherit;
             svg {
-                fill: var(--gnb-item-selected-color, t.$text-primary);
+                fill: var(--gnb-item-selected-color, t.$gnb-active-icon);
                 opacity: inherit;
                 path {
-                    fill: var(--gnb-item-selected-color, t.$text-primary);
+                    fill: var(--gnb-item-selected-color, t.$gnb-active-icon);
                     opacity: inherit;
                 }
             }

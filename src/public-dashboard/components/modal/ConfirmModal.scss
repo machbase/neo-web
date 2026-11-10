@@ -67,10 +67,10 @@
                     height: 25px;
                     width: 100%;
                     padding: 0 8px;
-                    border-radius: 3px;
-                    border: solid 1px #f1f1f125;
-                    background-color: rgba(255, 255, 255, 0.13);
-                    color: #f1f1f1;
+                    border-radius: calc(3px * var(--neo-radius-scale, 1));
+                    border: solid 1px var(--neo-border-color-default, #f1f1f125);
+                    background-color: var(--neo-toolbar-hover-bg, rgba(255, 255, 255, 0.13));
+                    color: var(--neo-text-primary, #f1f1f1);
                 }
             }
         }

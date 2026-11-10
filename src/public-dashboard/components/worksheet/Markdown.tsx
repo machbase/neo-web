@@ -1,3 +1,4 @@
+import { currentScheme } from '@/design-system/theme';
 import { useState, useEffect, useRef } from 'react';
 import { rpcMarkdownRender } from '../../api/repository/api';
 import '../../assets/md/md.css';
@@ -127,7 +128,8 @@ export const Markdown = (props: MarkdownProps) => {
     };
 
     const fetchMrk = async (aContents: string, aReperer: string) => {
-        const sData = await rpcMarkdownRender(aContents, true, aReperer);
+        // pikchr is drawn by the server for one scheme: the page's (a light theme draws dark lines).
+        const sData = await rpcMarkdownRender(aContents, currentScheme() !== 'light', aReperer);
         setMdxText(`<article>${sData}</article>`);
     };
 
@@ -163,7 +165,7 @@ export const Markdown = (props: MarkdownProps) => {
         <div
             ref={sBodyRef}
             className={`mrk-form markdown-body mrk${sMarkdownId}`}
-            style={{ backgroundColor: '#1B1C21', width: '100%' }}
+            style={{ backgroundColor: 'var(--neo-bg-primary, #1B1C21)', width: '100%' }}
             dangerouslySetInnerHTML={{ __html: sMdxText }}
         />
     );

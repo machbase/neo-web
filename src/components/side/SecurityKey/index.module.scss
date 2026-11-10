@@ -3,7 +3,7 @@
 // count chip next to a section title — encodes how many credentials of that kind exist
 .count {
     margin-left: t.$spacing-6;
-    color: t.$text-muted;
+    color: t.$side-text-muted;
     font-variant-numeric: tabular-nums;
 }
 
@@ -17,18 +17,18 @@
     margin-left: auto;
     padding-left: t.$spacing-8;
     padding-right: 11px;
-    color: t.$text-muted;
+    color: t.$side-text-muted;
     font-size: 11px;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
 }
 
 .meta--soon {
-    color: t.$warning-main;
+    color: t.$warning-text;
 }
 
 .meta--expired {
-    color: t.$error-main;
+    color: t.$error-text;
 }
 
 // masked token value — monospace so the **** mask lines up between rows.
@@ -50,6 +50,6 @@
 
 .empty {
     padding: t.$spacing-12 t.$spacing-16;
-    color: t.$text-muted;
+    color: t.$side-text-muted;
     font-size: 12px;
 }

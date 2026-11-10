@@ -29,7 +29,7 @@
         margin-right: 4px;
     }
     .draggable-panel-header-menu-icon:hover {
-        background-color: #b8c8da41;
+        background-color: var(--neo-toolbar-hover-bg, rgba(255, 255, 255, 0.13));
         border-radius: t.$border-radius-base;
     }
 }

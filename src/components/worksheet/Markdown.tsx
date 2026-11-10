@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { rpcMarkdownRender } from '@/api/repository/markdown';
-import setMermaid from '@/plugin/mermaid';
+import setMermaid, { redrawMermaid } from '@/plugin/mermaid';
+import { currentScheme, useThemeVersion } from '@/design-system/theme';
 import setChartext, { disposeChartext, resizeChartext } from '@/plugin/chartext';
 import setGeomap, { disposeGeomap, resizeGeomap } from '@/plugin/geomap';
 import { useRecoilState, useRecoilValue } from 'recoil';
@@ -28,7 +29,7 @@ pre { position: relative; }
     top: 0.5rem;
     right: 0.5rem;
     background-color: transparent;
-    border-radius: 8px;
+    border-radius: calc(8px * var(--neo-radius-scale, 1));
     cursor: pointer;
 }
 .cp-button:hover { background-color: #52535a; }
@@ -55,6 +56,10 @@ interface MarkdownProps {
      */
     pExtraCss?: string;
 }
+
+// md.css forces `color-scheme: dark` on .markdown-body; under a light-scheme theme the form controls
+// in markdown (inputs, radios) are drawn light. Inside the shadow root, so it rides in the styles.
+const LIGHT_SCHEME_CSS = '.markdown-body{color-scheme:light}';
 
 export const Markdown = (props: MarkdownProps) => {
     const { pContents, pType, pData, pExtraCss } = props;
@@ -88,7 +93,7 @@ export const Markdown = (props: MarkdownProps) => {
             button.className = 'cp-button';
             button.innerHTML = `<svg
                                     viewBox="0 0 24 24"
-                                    fill="rgba(255, 255, 255, 0.5)"
+                                    fill="currentColor"
                                     height="100%"
                                     width="100%"
                                 >
@@ -122,6 +127,17 @@ export const Markdown = (props: MarkdownProps) => {
             resizeGeomap(sShadowRootRef.current);
         }
     }, [sSelectedTab]);
+
+    // The server draws pikchr (and the rest of the HTML) for one scheme: a theme of the other
+    // scheme renders the markdown again. Within a scheme only mermaid, re-initialised with the
+    // theme's palette, draws its diagrams again.
+    const sThemeVersion = useThemeVersion();
+    const sRenderedSchemeRef = useRef(currentScheme());
+    useEffect(() => {
+        if (sThemeVersion === 0) return;
+        if (currentScheme() !== sRenderedSchemeRef.current) init();
+        else redrawMermaid(sShadowRootRef.current);
+    }, [sThemeVersion]);
 
     useEffect(() => {
         return () => {
@@ -171,7 +187,8 @@ export const Markdown = (props: MarkdownProps) => {
     };
 
     const fetchMrk = async (aContents: string, aReperer: string) => {
-        const sData = await rpcMarkdownRender(aContents, true, aReperer);
+        sRenderedSchemeRef.current = currentScheme();
+        const sData = await rpcMarkdownRender(aContents, sRenderedSchemeRef.current !== 'light', aReperer);
         setMdxText(`<article>${sData}</article>`);
     };
 
@@ -207,7 +224,7 @@ export const Markdown = (props: MarkdownProps) => {
         <Page.ContentBlock style={{ padding: 0, margin: 0, whiteSpace: 'normal' }} pHoverNone>
             <ShadowContent
                 html={sMdxText}
-                styles={`${mdCss}${CP_BUTTON_CSS}${pExtraCss ?? ''}`}
+                styles={`${mdCss}${CP_BUTTON_CSS}${currentScheme() === 'light' ? LIGHT_SCHEME_CSS : ''}${pExtraCss ?? ''}`}
                 className={`mrk-form markdown-body markdown-body-dark mrk${sMarkdownId}`}
                 onShadowRootCreated={(shadowRoot) => {
                     sBodyRef.current = shadowRoot.host;

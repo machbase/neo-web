@@ -115,7 +115,7 @@ const TextButton = ({
         <button
             className="extension-tab-text-button"
             style={{
-                backgroundColor: pIsDisable ? '#6f7173' : getColor(),
+                backgroundColor: pIsDisable ? 'var(--neo-neutral-main, #6f7173)' : getColor(),
                 width: pWidth,
                 marginRight: mr,
                 marginBottom: mb,
@@ -261,8 +261,8 @@ const DateTimePicker = ({ pSetApply, pTime }: { pSetApply: (e: any) => void; pTi
                                     flexDirection: 'column',
                                     minWidth: '323px',
                                     maxWidth: '323px',
-                                    border: 'solid 1px rgba(255, 255, 255, 0.13)',
-                                    backgroundColor: '#1c1c21',
+                                    border: 'solid 1px var(--neo-border-color-default, rgba(255, 255, 255, 0.13))',
+                                    backgroundColor: 'var(--neo-bg-primary, #1c1c21)',
                                 }}
                             >
                                 <div style={{ display: 'flex', justifyContent: 'end', height: '45px', alignItems: 'center', marginRight: '8px' }}>
@@ -282,8 +282,8 @@ const DateTimePicker = ({ pSetApply, pTime }: { pSetApply: (e: any) => void; pTi
                                     display: 'flex',
                                     flexDirection: `column${isVertical ? '-reverse' : ''}`,
                                     justifyContent: 'start',
-                                    border: 'solid 1px rgba(255, 255, 255, 0.13)',
-                                    backgroundColor: '#1c1c21',
+                                    border: 'solid 1px var(--neo-border-color-default, rgba(255, 255, 255, 0.13))',
+                                    backgroundColor: 'var(--neo-bg-primary, #1c1c21)',
                                 }}
                             >
                                 <MultiSectionDigitalClock
@@ -361,8 +361,8 @@ const DatePicker = ({ pSetApply, pTime }: { pSetApply: (e: any) => void; pTime: 
                                     flexDirection: 'column',
                                     minWidth: '323px',
                                     maxWidth: '323px',
-                                    border: 'solid 1px rgba(255, 255, 255, 0.13)',
-                                    backgroundColor: '#1c1c21',
+                                    border: 'solid 1px var(--neo-border-color-default, rgba(255, 255, 255, 0.13))',
+                                    backgroundColor: 'var(--neo-bg-primary, #1c1c21)',
                                 }}
                             >
                                 <DateCalendar className="date-calendar" defaultValue={moment(pTime)} onChange={HandleDate} />

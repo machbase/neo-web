@@ -97,11 +97,11 @@ export const ClockWidget = ({ pSettings, pActive }: { pSettings?: ClockSettings;
             <svg viewBox="0 0 120 120" className="nb-clock-face" role="img" aria-label={sSpoken}>
                 <defs>
                     <radialGradient id="nb-clock-dial" cx="50%" cy="40%" r="65%">
-                        <stop offset="0" stopColor="#2a2a2a" />
-                        <stop offset="1" stopColor="#171717" />
+                        <stop offset="0" style={{ stopColor: 'var(--neo-bg-elevated, #2c2c2c)' }} />
+                        <stop offset="1" style={{ stopColor: 'var(--neo-bg-primary, #1e1e1e)' }} />
                     </radialGradient>
                 </defs>
-                <circle cx="60" cy="60" r="57" fill="url(#nb-clock-dial)" stroke="rgba(255,255,255,0.14)" strokeWidth="1" />
+                <circle cx="60" cy="60" r="57" fill="url(#nb-clock-dial)" strokeWidth="1" style={{ stroke: 'var(--neo-border-color-default, rgba(255, 255, 255, 0.13))' }} />
                 {Array.from({ length: 60 }, (_, aIndex) => {
                     const sHourMark = aIndex % 5 === 0;
                     return (
@@ -111,7 +111,8 @@ export const ClockWidget = ({ pSettings, pActive }: { pSettings?: ClockSettings;
                             y1="7"
                             x2="60"
                             y2={sHourMark ? 14 : 10}
-                            stroke={sHourMark ? '#d6d6d6' : '#555'}
+                            // the hour marks in a text shade, the minute marks in the line colour: both read on a light dial too
+                            style={{ stroke: sHourMark ? 'var(--neo-text-secondary, #c4c4c4)' : 'var(--neo-border-color-strong, #767676)' }}
                             strokeWidth={sHourMark ? 1.8 : 0.8}
                             strokeLinecap="round"
                             transform={`rotate(${aIndex * 6} 60 60)`}
@@ -124,14 +125,15 @@ export const ClockWidget = ({ pSettings, pActive }: { pSettings?: ClockSettings;
                     ['6', 60, 101],
                     ['9', 24, 64],
                 ].map(([aText, aX, aY]) => (
-                    <text key={aText} x={aX} y={aY} textAnchor="middle" fontSize="10" fill="#8a8a8a" fontFamily="Pretendard, sans-serif">
+                    <text key={aText} x={aX} y={aY} textAnchor="middle" fontSize="10" fontFamily="Pretendard, sans-serif" style={{ fill: 'var(--neo-text-muted, #818181)' }}>
                         {aText}
                     </text>
                 ))}
-                <line x1="60" y1="64" x2="60" y2="34" stroke="#f1f1f1" strokeWidth="4" strokeLinecap="round" transform={`rotate(${sHourAngle} 60 60)`} />
-                <line x1="60" y1="66" x2="60" y2="20" stroke="#f1f1f1" strokeWidth="2.4" strokeLinecap="round" transform={`rotate(${sMinuteAngle} 60 60)`} />
-                <line x1="60" y1="72" x2="60" y2="16" stroke="#6d8bff" strokeWidth="1.1" strokeLinecap="round" transform={`rotate(${sSecondAngle} 60 60)`} />
-                <circle cx="60" cy="60" r="3.2" fill="#6d8bff" stroke="#171717" strokeWidth="1.2" />
+                {/* the hour and minute hands in the text colour: white on the dark dial, dark on a light one */}
+                <line x1="60" y1="64" x2="60" y2="34" strokeWidth="4" strokeLinecap="round" transform={`rotate(${sHourAngle} 60 60)`} style={{ stroke: 'var(--neo-text-primary, #f1f1f1)' }} />
+                <line x1="60" y1="66" x2="60" y2="20" strokeWidth="2.4" strokeLinecap="round" transform={`rotate(${sMinuteAngle} 60 60)`} style={{ stroke: 'var(--neo-text-primary, #f1f1f1)' }} />
+                <line x1="60" y1="72" x2="60" y2="16" strokeWidth="1.1" strokeLinecap="round" transform={`rotate(${sSecondAngle} 60 60)`} style={{ stroke: 'var(--neo-accent-light, rgb(0, 108, 210))' }} />
+                <circle cx="60" cy="60" r="3.2" strokeWidth="1.2" style={{ fill: 'var(--neo-accent-light, rgb(0, 108, 210))', stroke: 'var(--neo-color-black, #000000)' }} />
             </svg>
             <span className="nb-clock-caption">{sCaption}</span>
             <span className="nb-clock-date">

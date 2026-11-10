@@ -21,28 +21,29 @@
         height: 10px;
     }
 
-    // Color variants - based on Alert component colors
+    // Color variants: each its colour family's own (a Badge's dot takes the same), not a button's —
+    // a theme that changes Danger buttons or Accent leaves the status dots as they are
     &--success {
-        background-color: #198754;
+        background-color: var(--neo-success-main, #37aa3b);
     }
 
     &--error {
-        background-color: #dc3545;
+        background-color: var(--neo-error-main, rgb(255, 83, 83));
     }
 
     &--warning {
-        background-color: #ffc107;
+        background-color: var(--neo-warning-main, #d67f00);
     }
 
     &--info {
-        background-color: #0d6efd;
+        background-color: var(--neo-info-main, #005fb8);
     }
 
     &--running {
-        background-color: #22c55e;
+        background-color: var(--neo-success-main, #37aa3b);
     }
 
     &--neutral {
-        background-color: rgb(117, 117, 120);
+        background-color: var(--neo-neutral-main, #6f7173);
     }
 }

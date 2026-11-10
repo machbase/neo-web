@@ -46,5 +46,83 @@ select {
 // Keep the 1px width — PickersDay is a content-box button, so a thicker
 // border would resize the day cell and break the calendar grid.
 .MuiPickersDay-root.MuiPickersDay-today:not(.Mui-selected) {
-    border: 1px solid t.$primary-base;
+    border: 1px solid t.$accent-main;
+}
+
+// react-tooltip paints with variables of its own, declared on :root by the stylesheet it injects
+// at runtime (after this one): point them at the tooltip tokens. :root:root outranks its :root.
+// The border is a ring (box-shadow), so the transparent default changes no tooltip's size.
+:root:root {
+    --rt-color-dark: #{t.$tooltip-bg};
+    --rt-color-white: #{t.$tooltip-text};
+}
+
+.react-tooltip {
+    box-shadow: 0 0 0 1px t.$tooltip-border;
+}
+
+// Its corner is the 3px of the stylesheet it injects after this one (`.styles-module_tooltip__*`):
+// `body` outranks it, so a tooltip's corner follows the theme's roundness like every other corner.
+body .react-tooltip {
+    border-radius: t.$border-radius-sm;
+}
+
+// File-type and table-type icons keep their identity colours (Material's yellow folders, the table
+// type colours), drawn for a dark page. The file-type icons take theirs from tokens (icon-*,
+// _colors.scss). A theme made with the theme builder sets them itself, each only as deep as its own
+// panels, rows and tabs need. A light-scheme theme that sets none gets these: deeper shades of the
+// same hues, each as deep as the others (luminance 0.13), so they read 3:1 on a mid-tone tab bar, a
+// hovered tab and a selected row, not only on a white panel. A theme's own always wins (`:where` adds
+// no specificity). The table types in DB Explorer's tree (no tokens: getTableTypeIconColor) get the
+// same treatment — their hues, as deep as a light panel and its selected row need (luminance 0.16).
+// The dark screen has none of these.
+:where(:root[data-neo-scheme='light']) {
+    --neo-icon-folder: #915800;
+    --neo-icon-folder-git: #c42400;
+    --neo-icon-folder-git-mark: #ffccbc;
+    --neo-icon-folder-public: #0064bf;
+    --neo-icon-sql: #915800;
+    --neo-icon-tql: #197422;
+    --neo-icon-taz: #007265;
+    --neo-icon-taz-gray: #61656f;
+    --neo-icon-wrk: #0064bf;
+    --neo-icon-md: #0064bf;
+    --neo-icon-json: #915800;
+    --neo-icon-csv: #3d710e;
+    --neo-icon-doc: #4d6976;
+    --neo-icon-image: #007265;
+    --neo-icon-svg: #a04e00;
+    --neo-icon-shell: #c42400;
+    --neo-icon-powershell: #0068af;
+    --neo-icon-new: #656564;
+    --neo-icon-html: #c51e23;
+    --neo-icon-css: #0064bf;
+    --neo-icon-js: #895c00;
+    --neo-icon-dsh: #c51e23;
+    --table-type-log: #c14445;
+    --table-type-fixed: #876c00;
+    --table-type-lookup: #876c00;
+    --table-type-volatile: #8a6b00;
+    --table-type-kv: #007c78;
+    --table-type-tag: #2b74aa;
+    --table-type-view: #6f5fca;
+    --table-type-transaction: #55793d;
+}
+
+// Tag Analyzer's warning wash behind warning-coloured text (hover, active toggles): a light theme's
+// headers are mid tones that the dark screen's 12% wash darkens under the text, so there it is
+// mixed into the raised surface instead (ui/_theme.scss) — 16%, so it still stands apart from the
+// light footer. The panel header is the frame colour, and a pink or lavender frame can be as light
+// as that 16% wash (Aemeath: 1.02, the hover gone); there the wash is the raised surface tinted 6%,
+// lighter than the header (Light 1.33, Aemeath 1.14) with the warning text on it at 5.5 or more.
+:root[data-neo-scheme='light'] {
+    --tag-analyzer-warning-wash: color-mix(in srgb, var(--neo-warning-main, #d67f00) 16%, var(--neo-bg-elevated, #2c2c2c));
+}
+:root[data-neo-scheme='light'] .panel-header {
+    --tag-analyzer-warning-wash: color-mix(in srgb, var(--neo-warning-main, #d67f00) 6%, var(--neo-bg-elevated, #2c2c2c));
+}
+
+// Content drawn dark on its own keeps the dark palette for the controls on it (see _darkIsland.scss).
+.neo-dark-island {
+    @include t.dark-island;
 }

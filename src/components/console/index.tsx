@@ -1,4 +1,5 @@
 import './index.scss';
+import { logLevelColor, logRepeatBadgeStyle } from './logLevelColor';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRecoilState } from 'recoil';
 import { gShellList } from '@/recoil/recoil';
@@ -18,25 +19,24 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
     const [sConsoleTab, setConsoleTab] = useState<any>([]);
     const [sSelectedTab, setSelectedTab] = useState('Console');
     const [sConsoleList, setConsoleList] = useRecoilState<any>(gWsLog);
-    const [sSelectTask, setSelectTask] = useState('none');
+    // the log line clicked: only that line is selected (the lines are kept as they came, so it stays the same object)
+    const [sSelectLine, setSelectLine] = useState<any>(null);
+
+    // A click anywhere but on a log line lets the selected line go; a click on a line selects it, or lets it go,
+    // itself. (useOutsideClick watches one element; here it is "not on any line" — another line moves the selection.)
+    useEffect(() => {
+        if (!sSelectLine) return;
+        const onClick = (aEvent: MouseEvent) => {
+            if (!(aEvent.target instanceof Element && aEvent.target.closest('.is-console .task'))) setSelectLine(null);
+        };
+        document.addEventListener('click', onClick);
+        return () => document.removeEventListener('click', onClick);
+    }, [sSelectLine]);
     const consoleRef = useRef<any>(null);
     const [sShellList] = useRecoilState<any>(gShellList);
     const [sNewLog, setNewLog] = useState(false);
 
-    const setColor = (aItem: string) => {
-        switch (aItem) {
-            case 'TRACE':
-                return '#C4C4C4';
-            case 'DEBUG':
-                return '#F8F8F8';
-            case 'INFO':
-                return '#339900';
-            case 'ERROR':
-                return '#CC3300';
-            case 'WARN':
-                return '#FFCC00';
-        }
-    };
+    const setColor = logLevelColor;
 
     useEffect(() => {
         setNewLog(true);
@@ -211,24 +211,25 @@ const Console = ({ pSetTerminalSizes, pExtentionList, pTerminalSizes }: any) => 
                                             return (
                                                 <ErrorBoundary key={aIdx} name={`console-log:${aIdx}`} variant="inline" resetKeys={[bItem]}>
                                                 <div
-                                                    onClick={() => setSelectTask(bItem.task)}
+                                                    // a click selects the line; a click on it again lets it go
+                                                    onClick={() => setSelectLine((aPrev: any) => (aPrev === bItem ? null : bItem))}
                                                     className="task"
+                                                    data-selected={sSelectLine === bItem ? 'true' : undefined}
                                                     style={{
-                                                        color: sSelectTask === bItem.task ? '#f4f4f4' : '#d1d1d1',
-                                                        background: sSelectTask === bItem.task ? 'rgba(12, 12, 12, 0.6)' : '',
+                                                        color: sSelectLine === bItem ? 'var(--neo-console-text, var(--neo-text-primary, #f1f1f1))' : 'var(--neo-console-text-muted, var(--neo-text-secondary, #c4c4c4))',
+                                                        // the selected line: a selection (console-selected-bg, falling back to the selection colour), not the bar's colour
+                                                        background: sSelectLine === bItem ? 'var(--neo-console-selected-bg, var(--neo-selected-bg, rgb(0, 83, 160)))' : '',
                                                     }}
                                                 >
                                                     <span className="nowrap">
                                                         {changeUtcToText(bItem.timestamp < 10000000000000 ? Math.floor(bItem.timestamp) : Math.floor(bItem.timestamp / 1000000))}
                                                     </span>
-                                                    {bItem.level && <span style={{ color: setColor(bItem.level), whiteSpace: 'nowrap', minWidth: '35px' }}>{bItem.level}</span>}
+                                                    {bItem.level && <span style={{ color: sSelectLine === bItem ? undefined : setColor(bItem.level), whiteSpace: 'nowrap', minWidth: '35px' }}>{bItem.level}</span>}
                                                     {bItem.task && <span className="nowrap">{bItem.task}</span>}
                                                     {bItem.repeat && (
                                                         <div
                                                             className="repeat"
-                                                            style={{
-                                                                background: setColor(bItem.level),
-                                                            }}
+                                                            style={logRepeatBadgeStyle(bItem.level)}
                                                         >
                                                             {bItem.repeat}
                                                         </div>

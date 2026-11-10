@@ -1,0 +1,132 @@
+@use '@/design-system/tokens' as t;
+
+.theme-modal__list {
+    display: flex;
+    flex-direction: column;
+    gap: t.$spacing-12;
+    max-height: 64vh;
+    padding: t.$spacing-2;
+    overflow-y: auto;
+}
+
+.theme-modal__group {
+    display: flex;
+    flex-direction: column;
+    gap: t.$spacing-6;
+}
+
+.theme-modal__group-head {
+    display: flex;
+    align-items: baseline;
+    gap: t.$spacing-8;
+}
+
+.theme-modal__group-label {
+    flex: 1;
+    color: var(--neo-text-primary, #f1f1f1);
+    font-size: t.$font-size-sm;
+    font-weight: 600;
+}
+
+.theme-modal__grid {
+    display: grid;
+    grid-template-columns: repeat(2, 232px);
+    gap: t.$spacing-8;
+}
+
+// A theme, as the theme builder's start cards are: its name and colors are the choice (one button);
+// the user's own have Edit and Delete under it (a button cannot hold a button). The selected one is in use.
+.theme-modal__card {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid t.$border-color-default;
+    border-radius: t.$border-radius-sm;
+
+    &:hover {
+        background: t.$hover-bg;
+    }
+
+    &--selected {
+        border-color: t.$border-color-focus;
+        box-shadow: 0 0 0 1px t.$border-color-focus;
+    }
+}
+
+.theme-modal__option {
+    display: flex;
+    flex-direction: column;
+    gap: t.$spacing-8;
+    width: 100%;
+    padding: t.$spacing-8 t.$spacing-10;
+    border: 0;
+    // the global `button { border-radius: 8px }` (src/index.css) would round the button over the card
+    border-radius: 0;
+    background: transparent;
+    color: var(--neo-text-primary, #f1f1f1);
+    font-size: t.$font-size-base;
+    text-align: left;
+    cursor: pointer;
+}
+
+.theme-modal__card-head {
+    display: flex;
+    align-items: baseline;
+    gap: t.$spacing-6;
+}
+
+.theme-modal__label {
+    flex: 1;
+    overflow: hidden;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.theme-modal__detail {
+    color: t.$text-tertiary;
+    font-size: t.$font-size-sm;
+
+    .theme-modal__card--selected & {
+        color: t.$accent-text;
+        font-weight: 600;
+    }
+}
+
+.theme-modal__card-foot {
+    display: flex;
+    align-items: center;
+    gap: t.$spacing-2;
+    padding: 0 t.$spacing-6 t.$spacing-6 t.$spacing-10;
+}
+
+.theme-modal__saved {
+    flex: 1;
+    color: t.$text-tertiary;
+    font-size: t.$font-size-xs;
+}
+
+.theme-modal__note {
+    margin: t.$spacing-4 0 0;
+    color: t.$text-tertiary;
+    font-size: t.$font-size-sm;
+}
+
+// A theme's colors as a strip (themeCards.ts) — the theme read without choosing it. Fixed colors on
+// purpose: they show the theme on the card, not the theme in force.
+.theme-modal__swatch {
+    display: flex;
+    height: 12px;
+    overflow: hidden;
+    border: 1px solid t.$border-color-default;
+    border-radius: t.$border-radius-xs;
+
+    i {
+        display: block;
+        flex: 1;
+    }
+
+    // not known (the token list could not be read): an empty strip keeps the card's size
+    &--empty {
+        background: t.$bg-panel;
+    }
+}

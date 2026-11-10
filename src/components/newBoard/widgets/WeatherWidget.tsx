@@ -39,17 +39,17 @@ const describe = (aCode: number): { text: string; icon: 'sun' | 'cloud' | 'fog' 
 };
 
 const WeatherIcon = ({ pIcon, pIsDay }: { pIcon: ReturnType<typeof describe>['icon']; pIsDay: boolean }) => {
-    const sun = pIsDay ? <circle cx="16" cy="16" r="7" fill="#f5c142" /> : <path d="M20 9a8 8 0 1 0 5 13 7 7 0 0 1-5-13z" fill="#c4c4c4" />;
+    const sun = pIsDay ? <circle cx="16" cy="16" r="7" style={{ fill: 'var(--neo-event-match-main, #ffdc72)' }} /> : <path d="M20 9a8 8 0 1 0 5 13 7 7 0 0 1-5-13z" style={{ fill: 'var(--neo-text-secondary, #c4c4c4)' }} />;
     // Clear sky gets the whole tile: a bigger sun with rays (or the moon at night).
     const bigSun = pIsDay ? (
         <g>
-            <circle cx="20" cy="20" r="8.5" fill="#f5c142" />
+            <circle cx="20" cy="20" r="8.5" style={{ fill: 'var(--neo-event-match-main, #ffdc72)' }} />
             {Array.from({ length: 8 }, (_, aIndex) => (
                 <line key={aIndex} x1="20" y1="4" x2="20" y2="8" stroke="#f5c142" strokeWidth="2" strokeLinecap="round" transform={`rotate(${aIndex * 45} 20 20)`} />
             ))}
         </g>
     ) : (
-        <path d="M23 7a13 13 0 1 0 10 19 11 11 0 0 1-10-19z" fill="#d6d6d6" />
+        <path d="M23 7a13 13 0 1 0 10 19 11 11 0 0 1-10-19z" style={{ fill: 'var(--neo-text-secondary, #c4c4c4)' }} />
     );
     const cloud = (aX = 0, aY = 0, aFill = '#a3a3a3') => <path transform={`translate(${aX} ${aY})`} d="M10 30h20a6 6 0 0 0 0-12 8 8 0 0 0-15-2 6 6 0 0 0-5 14z" fill={aFill} />;
     return (
@@ -65,7 +65,7 @@ const WeatherIcon = ({ pIcon, pIsDay }: { pIcon: ReturnType<typeof describe>['ic
             {pIcon === 'fog' ? (
                 <>
                     {cloud(0, -4)}
-                    <path d="M8 32h24M11 36h18" stroke="#818181" strokeWidth="2" strokeLinecap="round" />
+                    <path d="M8 32h24M11 36h18" strokeWidth="2" strokeLinecap="round"  style={{ stroke: 'var(--neo-border-color-strong, #767676)' }}/>
                 </>
             ) : null}
             {pIcon === 'rain' || pIcon === 'storm' ? (
@@ -77,7 +77,7 @@ const WeatherIcon = ({ pIcon, pIsDay }: { pIcon: ReturnType<typeof describe>['ic
             {pIcon === 'snow' ? (
                 <>
                     {cloud(0, -4)}
-                    <path d="M14 32h0M21 35h0M28 32h0" stroke="#f1f1f1" strokeWidth="3" strokeLinecap="round" />
+                    <path d="M14 32h0M21 35h0M28 32h0" strokeWidth="3" strokeLinecap="round" style={{ stroke: 'var(--neo-color-white, #ffffff)' }} />
                 </>
             ) : null}
         </svg>

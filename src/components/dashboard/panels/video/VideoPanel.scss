@@ -20,7 +20,7 @@
         justify-content: space-between;
         align-items: center;
         padding: 12px 16px;
-        border-bottom: 1px solid $d-work-sheet-bar;
+        border-bottom: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
         background: transparent;
         flex-shrink: 0;
 
@@ -64,7 +64,7 @@
                     background: t.$error-main;
                     border: 1.5px solid t.$menu-bg;
                     border-radius: 8px;
-                    color: #fff;
+                    color: var(--neo-text-on-accent, #ffffff);
                     font-size: 11px;
                     font-weight: 600;
                     pointer-events: none;
@@ -77,8 +77,8 @@
                 gap: 6px;
                 padding: 4px 8px;
                 border-radius: 4px;
-                background: rgba(34, 197, 94, 0.1);
-                border: 1px solid rgba(34, 197, 94, 0.2);
+                background: color-mix(in srgb, var(--neo-success-fill, #009688) 10%, transparent);
+                border: 1px solid color-mix(in srgb, var(--neo-success-main, #37aa3b) 20%, transparent);
                 box-shadow: 0 0 10px rgba(34, 197, 94, 0.15);
                 margin-right: 8px;
 
@@ -86,14 +86,14 @@
                     width: 6px;
                     height: 6px;
                     border-radius: 50%;
-                    background: #22c55e;
+                    background: var(--neo-success-fill, #009688);
                     animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
                 }
 
                 span {
                     font-size: t.$font-size-xs;
                     font-weight: t.$font-weight-bold;
-                    color: #22c55e;
+                    color: var(--neo-success-text, #9df486);
                     letter-spacing: 0.05em;
                 }
             }
@@ -101,7 +101,7 @@
             .icon-btn {
                 background: none;
                 border: none;
-                color: $text-b;
+                color: t.$text-icon;
                 cursor: pointer;
                 padding: 4px;
                 display: flex;
@@ -142,8 +142,8 @@
         padding: 6px 8px;
         background: t.$menu-bg;
         border: 1px solid t.$menu-border;
-        border-radius: 8px;
-        box-shadow: t.$dropdown-shadow;
+        border-radius: calc(8px * var(--neo-radius-scale, 1));
+        box-shadow: t.$menu-shadow;
         z-index: 102;
         opacity: 0;
         pointer-events: none;
@@ -155,7 +155,7 @@
 
         .drag-handle {
             cursor: grab;
-            color: $text-b;
+            color: t.$text-icon;
             display: flex;
             align-items: center;
             padding: 2px;
@@ -186,7 +186,7 @@
                 border: none !important;
                 font-size: t.$font-size-xs !important;
                 font-weight: t.$font-weight-bold;
-                color: $text-w;
+                color: var(--neo-text-primary, #f1f1f1);
                 text-align: center;
                 outline: none;
 
@@ -204,7 +204,7 @@
         .seek-unit-dropdown {
             min-width: 80px;
             width: 80px;
-            border-radius: 4px;
+            border-radius: calc(4px * var(--neo-radius-scale, 1));
             justify-content: center;
 
             span {
@@ -279,9 +279,9 @@
                     top: 0;
                     transform: translateX(-50%);
                     padding: 3px 8px;
-                    border-radius: 4px;
+                    border-radius: calc(4px * var(--neo-radius-scale, 1));
                     border: none;
-                    background: $color-blue;
+                    background: var(--neo-accent-light, rgb(0, 108, 210));
                     color: $text-w;
                     font-size: 11px;
                     font-weight: 600;
@@ -291,7 +291,7 @@
                 }
 
                 .hover-time-badge {
-                    background: darken($color-blue, 8%);
+                    background: var(--neo-accent-hover, #0075e2);
                     z-index: 71;
                 }
 
@@ -303,7 +303,7 @@
                         .timeline-track {
                             width: 100%;
                             height: 4px;
-                            background: rgba(148, 163, 184, 0.35);
+                            background: var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
                             border-radius: 2px;
                             position: relative;
                             cursor: pointer;
@@ -314,7 +314,7 @@
                             right: 0;
                             top: 0;
                             height: 100%;
-                            border-radius: 2px;
+                            border-radius: calc(2px * var(--neo-radius-scale, 1));
                             pointer-events: none;
                             z-index: 3;
 
@@ -322,17 +322,17 @@
                                 position: absolute;
                                 top: 0;
                                 height: 100%;
-                                border-radius: 2px;
+                                border-radius: calc(2px * var(--neo-radius-scale, 1));
                                 box-sizing: border-box;
                                 background:
                                     repeating-linear-gradient(
                                         -45deg,
-                                        rgba(239, 68, 68, 0.12) 0px,
-                                        rgba(239, 68, 68, 0.12) 5px,
-                                        rgba(239, 68, 68, 0.26) 5px,
-                                        rgba(239, 68, 68, 0.26) 10px
+                                        color-mix(in srgb, var(--neo-error-main, rgb(255, 83, 83)) 12%, transparent) 0px,
+                                        color-mix(in srgb, var(--neo-error-main, rgb(255, 83, 83)) 12%, transparent) 5px,
+                                        color-mix(in srgb, var(--neo-error-main, rgb(255, 83, 83)) 26%, transparent) 5px,
+                                        color-mix(in srgb, var(--neo-error-main, rgb(255, 83, 83)) 26%, transparent) 10px
                                     );
-                                box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.28);
+                                box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--neo-error-main, rgb(255, 83, 83)) 28%, transparent);
                             }
                         }
 
@@ -341,8 +341,8 @@
                             left: 0;
                             top: 0;
                             height: 100%;
-                            background: $color-blue;
-                            border-radius: 2px;
+                            background: var(--neo-accent-light, rgb(0, 108, 210));
+                            border-radius: calc(2px * var(--neo-radius-scale, 1));
                             pointer-events: none;
                             z-index: 2;
                         }
@@ -353,7 +353,7 @@
                             transform: translateY(-50%);
                             width: 12px;
                             height: 12px;
-                            background: $color-blue;
+                            background: var(--neo-accent-light, rgb(0, 108, 210));
                             border-radius: 50%;
                             border: 2px solid $d-work-sheet-bg;
                             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
@@ -400,7 +400,7 @@
                                 height: 0;
                                 border-left: 6px solid transparent;
                                 border-right: 6px solid transparent;
-                                border-bottom: 8px solid #ef4444;
+                                border-bottom: 8px solid var(--neo-error-main, rgb(255, 83, 83));
                                 filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.45));
                             }
 
@@ -416,7 +416,7 @@
                         }
 
                         &.is-disabled {
-                            background: rgba(148, 163, 184, 0.22);
+                            background: var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
                             cursor: not-allowed;
 
                             .timeline-missing-overlay {
@@ -425,13 +425,13 @@
 
                             .timeline-progress {
                                 width: 0 !important;
-                                background: rgba(148, 163, 184, 0.35);
+                                background: var(--neo-neutral-main, #6f7173);
                             }
 
                             .timeline-thumb {
-                                background: #94a3b8;
-                                border-color: rgba(51, 65, 85, 0.9);
-                                box-shadow: 0 0 0 1px rgba(30, 41, 59, 0.25);
+                                background: var(--neo-neutral-main, #6f7173);
+                                border-color: var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
+                                box-shadow: 0 0 0 1px var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
                             }
                         }
                     }
@@ -456,7 +456,7 @@
                         width: 36px;
                         height: 36px;
                         border-radius: t.$border-radius-circle;
-                        background: t.$bg-hover;
+                        background: var(--neo-bg-elevated, #2c2c2c);
                         border: none;
                         color: var(--panel-text-color);
                         cursor: pointer;
@@ -466,7 +466,7 @@
                         transition: background-color 0.2s ease, transform 0.1s ease;
 
                         &:hover {
-                            background: t.$bg-hover-block;
+                            background: t.$toolbar-hover-bg;
                             color: var(--panel-text-color);
                         }
                     }
@@ -474,11 +474,11 @@
                     .nav-btn {
                         background: none;
                         border: none;
-                        color: $text-b;
+                        color: t.$text-icon;
                         cursor: pointer;
                         width: 32px;
                         height: 32px;
-                        border-radius: 4px;
+                        border-radius: calc(4px * var(--neo-radius-scale, 1));
                         display: flex;
                         align-items: center;
                         justify-content: center;
@@ -486,7 +486,7 @@
                         transition: background-color 0.2s ease, transform 0.1s ease;
 
                         &:hover:not(:disabled) {
-                            background: t.$bg-hover;
+                            background: t.$hover-bg;
                             color: var(--panel-text-color);
                         }
 
@@ -538,7 +538,7 @@
 
     // Fullscreen Styles
     &.fullscreen {
-        background-color: #000;
+        background-color: var(--neo-color-black, #000);
         justify-content: center;
         z-index: 9999;
 
@@ -549,7 +549,7 @@
         .video-container {
             height: 100%;
             width: 100%;
-            background: #000;
+            background: var(--neo-color-black, #000);
 
             video {
                 object-fit: contain;
@@ -564,7 +564,7 @@
             width: 80px;
             height: 80px;
             border-radius: 50%;
-            background: rgba(0, 0, 0, 0.6);
+            background: var(--neo-color-black, rgba(0, 0, 0, 0.6));
             backdrop-filter: blur(4px);
             display: flex;
             align-items: center;
@@ -572,7 +572,7 @@
             opacity: 0;
             transition: opacity 0.3s ease, transform 0.3s ease;
             z-index: 96;
-            color: #fff;
+            color: var(--neo-text-primary, #f1f1f1);
             pointer-events: none;
 
             &.visible {
@@ -678,8 +678,8 @@
             padding: 4px 8px;
             background: t.$menu-bg;
             border: 1px solid t.$menu-border;
-            border-radius: 8px;
-            box-shadow: t.$dropdown-shadow;
+            border-radius: calc(8px * var(--neo-radius-scale, 1));
+            box-shadow: t.$menu-shadow;
 
             .seek-btn {
                 min-width: 18px;
@@ -695,7 +695,7 @@
                     border: none !important;
                     font-size: t.$font-size-xs !important;
                     font-weight: t.$font-weight-bold;
-                    color: $text-w;
+                    color: var(--neo-text-primary, #f1f1f1);
                     text-align: center;
                     outline: none;
 
@@ -713,7 +713,7 @@
             .seek-unit-dropdown {
                 min-width: 80px;
                 width: 80px;
-                border-radius: 4px;
+                border-radius: calc(4px * var(--neo-radius-scale, 1));
                 justify-content: center;
 
                 span {
@@ -752,7 +752,7 @@
             }
 
             > span:last-child {
-                color: t.$warning-main !important;
+                color: t.$warning-text !important;
             }
         }
 
@@ -764,7 +764,7 @@
             }
 
             > span:last-child {
-                color: t.$success-main !important;
+                color: t.$success-text !important;
             }
         }
 
@@ -776,19 +776,19 @@
             }
 
             > span:last-child {
-                color: t.$error-main !important;
+                color: t.$error-text !important;
             }
         }
 
         &.event-type-badge--unknown {
-            border-color: t.$text-disabled;
+            border-color: var(--neo-status-none, #717171);
 
             > span:first-child {
-                background-color: t.$text-disabled !important;
+                background-color: var(--neo-status-none, #717171) !important;
             }
 
             > span:last-child {
-                color: t.$text-disabled !important;
+                color: t.$text-muted !important;
             }
         }
     }
@@ -799,7 +799,7 @@
     justify-content: space-between;
     align-items: center;
     padding: t.$spacing-12 t.$spacing-16;
-    background: t.$bg-hover;
+    background: var(--neo-dialog-bg, var(--neo-bg-elevated, #2c2c2c));
     border-bottom: 1px solid t.$menu-border;
 
     .header-left {
@@ -811,7 +811,7 @@
 
 .event-modal-body {
     padding: 0 !important;
-    background: t.$menu-bg !important;
+    background: var(--neo-dialog-bg, var(--neo-bg-elevated, #2c2c2c)) !important;
     min-height: 0;
 }
 
@@ -824,7 +824,7 @@
 
     .event-item {
         padding: t.$spacing-12 t.$spacing-16;
-        border-bottom: 1px solid t.$dropdown-option-hover-bg-light;
+        border-bottom: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
 
         .event-row {
             display: flex;
@@ -872,11 +872,11 @@
             background: t.$text-muted;
 
             &.value-2 {
-                background: #ffdc72;
+                background: var(--neo-event-match-main, #ffdc72);
             }
 
             &.value-1 {
-                background: #ff9800;
+                background: var(--neo-warning-main, #d67f00);
             }
 
             &.value-0 {
@@ -892,7 +892,10 @@
             font-family: monospace;
             font-size: t.$font-size-xs;
             color: t.$text-primary;
-            background: t.$bg-hover-block;
+            // a read-only value box: a field's colour (not a hover's)
+            background: var(--neo-field-bg, var(--neo-bg-elevated, #2c2c2c));
+            // and a field's outline, drawn inside so nothing moves (none on the dark screen)
+            box-shadow: inset 0 0 0 1px var(--neo-field-border, var(--neo-border-color-default, rgba(255, 255, 255, 0.13)));
             padding: t.$spacing-4 t.$spacing-6;
             border-radius: t.$border-radius-sm;
             white-space: nowrap;
@@ -930,7 +933,8 @@
     align-items: center;
     padding: t.$spacing-8 t.$spacing-16;
     border-top: 1px solid t.$menu-border;
-    background: t.$bg-hover;
+    // the dialog's footer: the dialog's colour (the dark screen keeps its lighter band)
+    background: var(--neo-dialog-bg, var(--neo-bg-elevated, #2c2c2c));
 
     .event-pagination-controls {
         width: 100%;
@@ -962,10 +966,10 @@
     .page-input {
         width: 52px;
         height: 22px;
-        border: 1px solid t.$menu-border;
+        border: 1px solid var(--neo-field-border, var(--neo-border-color-default, rgba(255, 255, 255, 0.13)));
         border-radius: t.$border-radius-sm;
-        background: t.$menu-bg;
-        color: t.$text-primary;
+        background: var(--neo-field-bg, var(--neo-bg-elevated, #2c2c2c));
+        color: var(--neo-text-primary, #f1f1f1);
         font-size: t.$font-size-xs;
         text-align: center;
         outline: none;

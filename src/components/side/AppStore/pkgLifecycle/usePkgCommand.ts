@@ -9,6 +9,7 @@
 // Admin-gated: non-admins see no buttons, but defensive guard here protects
 // against non-admin callers slipping through.
 
+import { declaresTheme, forgetPackageTheme } from '@/design-system/theme';
 import { useRecoilCallback } from 'recoil';
 import { Toast } from '@/design-system/components';
 import { SEARCH_RES, APP_INFO } from '@/api/repository/appStore';
@@ -244,6 +245,7 @@ export function usePkgCommand() {
                         installed_frontend: isInstalled,
                         installed_version,
                         installed_packageService: isInstalled ? manifest?.packageService : undefined,
+                        installed_theme: isInstalled && declaresTheme(appName, manifest),
                         // issue #1452: the icon file name is read off the server by
                         // the archive scan, which the rebuild above has just
                         // refreshed — so a package installed a moment ago shows its
@@ -286,6 +288,8 @@ export function usePkgCommand() {
                 // from snapshot here would let us write back stale state that reverts
                 // installed_frontend back to true.
                 if (command === 'uninstall' && result.ok) {
+                    // its theme, when it was the one in use, gives way to the dark default now
+                    forgetPackageTheme(appName);
                     const selectedTab = await snapshot.getPromise(gSelectedTab);
                     let nextSelectedId: string | null = null;
                     set(gBoardList, (currentBoardList: any) => {

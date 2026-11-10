@@ -569,7 +569,7 @@ export const CameraPage = ({ mode = 'edit', pCode }: CameraPageProps) => {
                                         size="md"
                                         label={
                                             <>
-                                                Camera name <span style={{ color: 'var(--color-danger, #e74c3c)' }}>*</span>
+                                                Camera name <span style={{ color: 'var(--color-danger, var(--neo-error-main, rgb(255, 83, 83)))' }}>*</span>
                                             </>
                                         }
                                         placeholder="CAM-01"

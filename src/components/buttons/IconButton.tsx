@@ -39,12 +39,12 @@ export const IconButton = (props: IconButtonProps) => {
     // sql-result-wrapper
     return (
         <div
-            className={`${sDisabledClass} ${sIsActiveHoverClass} icon-btn-wrapper`}
+            className={`${sDisabledClass} ${sIsActiveHoverClass} ${pIsActive ? 'icon-btn-toggled' : ''} icon-btn-wrapper`}
             style={{
                 width: Number(pWidth) ? pWidth + 'px' : pWidth,
                 minWidth: Number(pWidth) ? pWidth + 'px' : pWidth,
                 height: pHeight + 'px',
-                backgroundColor: pIsActive ? '#52535A' : '',
+                backgroundColor: pIsActive ? 'var(--neo-active-bg, var(--neo-selected-bg, rgb(0, 83, 160)))' : '',
                 opacity: pDisabled ? 0.5 : 1,
             }}
             onClick={!pDisabled ? onClick : () => null}

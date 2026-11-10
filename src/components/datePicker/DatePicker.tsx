@@ -78,18 +78,18 @@ const DatePicker = ({ pTimeValue, pSetApply, onChange, pTopPixel, pAutoFocus }: 
                         </div>
                         <div className="date-picker-button">
                             <TextButton
-                                pBorderColor="#4199ff"
+                                pBorderColor="var(--neo-accent-light, rgb(0, 108, 210))"
                                 pHeight={28}
                                 pWidth={65}
-                                pFontColor="#4199ff"
+                                pFontColor="var(--neo-accent-text, #4199ff)"
                                 pBorderRadius={2}
                                 onClick={() => apply()}
                                 pText="Apply"
                                 pBackgroundColor="transparent"
                             />
                             <TextButton
-                                pFontColor="rgb(231 65 131)"
-                                pBorderColor="rgb(231 65 131)"
+                                pFontColor="var(--neo-error-text, #fa6464)"
+                                pBorderColor="var(--neo-error-main, rgb(255, 83, 83))"
                                 pHeight={28}
                                 pWidth={65}
                                 pBorderRadius={2}

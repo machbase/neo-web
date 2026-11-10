@@ -164,7 +164,7 @@ html {
         background-clip: padding-box;
 
         &:hover {
-            background-color: var(--scrollbar-thumb-hover, #{t.$scrollbar-thumb-hover});
+            background-color: var(--scrollbar-thumb-hover, #{t.$scrollbar-hover-thumb});
         }
     }
 }
@@ -193,14 +193,6 @@ input[type='number'] {
 }
 
 // Scrollbar global classes (using design system mixins)
-.scrollbar-light {
-    @include sb.scrollbar-light;
-}
-
-.scrollbar-light-border {
-    @include sb.scrollbar-light-border;
-}
-
 .scrollbar-dark {
     @include sb.scrollbar-dark;
 }
@@ -211,7 +203,7 @@ input[type='number'] {
 
 .xterm .xterm-viewport {
     --scrollbar-thumb: #{t.$scrollbar-thumb};
-    --scrollbar-thumb-hover: #{t.$scrollbar-thumb-hover};
+    --scrollbar-thumb-hover: #{t.$scrollbar-hover-thumb};
     --scrollbar-track: transparent;
 
     scrollbar-width: thin;

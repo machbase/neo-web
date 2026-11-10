@@ -156,8 +156,6 @@ input[type='number'] {
     -moz-appearance: textfield;
 }
 
-.scrollbar-light,
-.scrollbar-light-border,
 .scrollbar-dark,
 .scrollbar-dark-border {
     @supports not selector(::-webkit-scrollbar) {
@@ -193,39 +191,22 @@ input[type='number'] {
     }
 }
 
-
-.scrollbar-light {
-    --scrollbar-thumb: #{t.$scrollbar-thumb-light};
-    --scrollbar-thumb-hover: #{t.$scrollbar-thumb-light-hover};
-    --scrollbar-track: transparent;
-}
-
-
-.scrollbar-light-border {
-    --scrollbar-thumb: #{t.$scrollbar-thumb-light};
-    --scrollbar-thumb-hover: #{t.$scrollbar-thumb-light-hover};
-    --scrollbar-track: #{t.$scrollbar-track-light-bg};
-    --scrollbar-thumb-border: 2px solid #{t.$scrollbar-border-light};
-}
-
-
 .scrollbar-dark {
     --scrollbar-thumb: #{t.$scrollbar-thumb};
-    --scrollbar-thumb-hover: #{t.$scrollbar-thumb-hover};
+    --scrollbar-thumb-hover: #{t.$scrollbar-hover-thumb};
     --scrollbar-track: transparent;
 }
-
 
 .scrollbar-dark-border {
     --scrollbar-thumb: #{t.$scrollbar-thumb};
-    --scrollbar-thumb-hover: #{t.$scrollbar-thumb-hover};
+    --scrollbar-thumb-hover: #{t.$scrollbar-hover-thumb};
     --scrollbar-track: #{t.$scrollbar-track-bg};
     --scrollbar-thumb-border: 2px solid #{t.$scrollbar-border};
 }
 
 .xterm .xterm-viewport {
     --scrollbar-thumb: #{t.$scrollbar-thumb};
-    --scrollbar-thumb-hover: #{t.$scrollbar-thumb-hover};
+    --scrollbar-thumb-hover: #{t.$scrollbar-hover-thumb};
     --scrollbar-track: transparent;
 
     scrollbar-width: thin;

@@ -556,3 +556,14 @@ describe('SQL with a backtick', () => {
         expect(sqlBasicFormatter("select 'a''b'\nfrom example", 1, 'ns', 'UTC')).toContain("SQL(`select 'a''b'\nfrom example`)");
     });
 });
+
+describe('sqlBasicChartFormatter chart look', () => {
+    const axis = { x: 'TIME', y: 'VALUE', xIndex: 0, yIndex: 1, list: ['TIME', 'VALUE'] };
+    test('the dark panel by default, the given look otherwise', () => {
+        expect(sqlBasicChartFormatter('SELECT 1', axis)).toContain('theme("dark"),\n            chartOption({\n                backgroundColor: "#252525",');
+        const light = sqlBasicChartFormatter('SELECT 1', axis, undefined, { theme: 'white', background: '#f0f2fb' });
+        expect(light).toContain('theme("white")');
+        expect(light).toContain('backgroundColor: "#f0f2fb"');
+        expect(light).not.toContain('#252525');
+    });
+});

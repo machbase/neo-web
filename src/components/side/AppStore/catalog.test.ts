@@ -115,6 +115,22 @@ describe('buildCatalog — hub reachable', () => {
         expect(pkgs[0].installed_packageService).toEqual({ managed: false, reason: 'child services' });
         expect(pkgs[1].installed_frontend).toBeUndefined();
     });
+
+    test('a theme package — one stylesheet or an index of them — is marked a theme (no run switch)', async () => {
+        mockHub.mockResolvedValue([hubCard('neo-pkg-theme-light'), hubCard('neo-pkg-theme-builder'), hubCard('pkg-a')]);
+        mockGetFiles.mockResolvedValue(publicListing(['neo-pkg-theme-light', 'neo-pkg-theme-builder', 'pkg-a']));
+        mockManifest.mockImplementation(async (aName: string) =>
+            aName === 'neo-pkg-theme-light'
+                ? { version: '1.0.0', neoTheme: { stylesheet: 'theme.css' } }
+                : aName === 'neo-pkg-theme-builder'
+                  ? { version: '1.0.0', neoTheme: { label: 'Theme Builder', index: ['themes.json'] } }
+                  : { version: '1.0.0' }
+        );
+
+        const { pkgs } = await buildCatalog();
+
+        expect(Object.fromEntries(pkgs.map((p) => [p.name, p.installed_theme]))).toEqual({ 'neo-pkg-theme-light': true, 'neo-pkg-theme-builder': true, 'pkg-a': false });
+    });
 });
 
 // ---------------------------------------------------------------------------

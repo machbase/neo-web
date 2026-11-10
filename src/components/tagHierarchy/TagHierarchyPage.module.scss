@@ -5,7 +5,7 @@
     flex-direction: column;
     height: 100%;
     min-height: 0;
-    // Match the surrounding Page content area (design-system Page uses $bg-tab-active = #252525)
+    // Match the surrounding Page content area (design-system Page uses $bg-secondary = #252525)
     background: t.$bg-secondary;
 }
 
@@ -42,10 +42,10 @@
 .select,
 .input,
 .textarea {
-    border: 1px solid t.$border-color-default;
+    border: 1px solid var(--neo-field-border, var(--neo-border-color-default, rgba(255, 255, 255, 0.13)));
     border-radius: t.$border-radius-sm;
-    background: t.$bg-input-dark;
-    color: t.$text-primary;
+    background: var(--neo-field-bg, var(--neo-bg-elevated, #2c2c2c));
+    color: var(--neo-text-primary, #f1f1f1);
     font-size: t.$font-size-sm;
 }
 
@@ -77,7 +77,7 @@
     align-items: center;
     gap: t.$spacing-6;
     padding: t.$spacing-8;
-    border-bottom: 1px solid t.$border-color-light;
+    border-bottom: 1px solid t.$border-color-default;
 }
 
 .treeActions {
@@ -145,7 +145,7 @@
     gap: t.$spacing-6;
     flex: 0 0 auto;
     padding: t.$spacing-6 t.$spacing-8;
-    border-bottom: 1px solid t.$border-color-light;
+    border-bottom: 1px solid t.$border-color-default;
     color: t.$text-secondary;
     font-size: t.$font-size-base;
     // Not a clickable row: detail opens via the ⋯ button only, so the title/icon/count
@@ -173,7 +173,7 @@
 
 .unassignedIcon {
     flex: 0 0 auto;
-    color: t.$primary-hover;
+    color: t.$accent-text;
 }
 
 .unassignedTitle {
@@ -194,7 +194,7 @@
 // active state against the muted total to its left.
 .selectedCount {
     flex: 0 0 auto;
-    color: t.$primary-hover;
+    color: t.$accent-text;
     font-size: t.$font-size-xs;
     white-space: nowrap;
 }
@@ -218,7 +218,7 @@
 .unassignedSearch {
     flex: 0 0 auto;
     padding: t.$spacing-6 t.$spacing-8;
-    border-bottom: 1px solid t.$border-color-light;
+    border-bottom: 1px solid t.$border-color-default;
 }
 
 /* Wraps the list so the loading progress bar can sit at its top (below the search), without
@@ -256,7 +256,7 @@
 }
 
 .node:hover {
-    background: t.$bg-hover;
+    background: t.$hover-bg;
 }
 
 /* Force pointer across the whole interactive row (tree nodes, tag rows) including
@@ -273,19 +273,19 @@
 
 /* Drag-and-drop drop target indicator */
 .dragOver {
-    background: rgba(0, 95, 184, 0.16);
+    background: color-mix(in srgb, var(--neo-accent-main, #005fb8) 16%, transparent);
     box-shadow: inset 0 0 0 2px t.$border-color-active;
 }
 
 /* Strong highlight = the single active node (tree focus / radio target) */
 .selected {
-    background: t.$bg-active;
-    color: t.$text-active;
+    background: t.$selected-bg;
+    color: t.$selected-text;
 }
 
-/* Subtler highlight = multi-selected tag rows (checkbox selection) */
+/* Subtler highlight = multi-selected tag rows (checkbox selection): a wash of the selection */
 .tagNode.selected {
-    background: t.$bg-hover-block;
+    background: color-mix(in srgb, var(--neo-selected-bg, rgb(0, 83, 160)) 40%, transparent);
     color: t.$text-primary;
 }
 
@@ -343,7 +343,7 @@
     color: t.$text-secondary;
 
     .tagLinkButton svg {
-        color: t.$primary-hover;
+        color: t.$accent-text;
         flex: 0 0 auto;
     }
 }
@@ -374,7 +374,7 @@
 .tagCheckbox {
     flex: 0 0 auto;
     margin: 0 t.$spacing-4 0 t.$spacing-6;
-    accent-color: t.$primary-base;
+    accent-color: t.$accent-main;
     cursor: pointer;
 }
 
@@ -390,12 +390,12 @@
     cursor: pointer;
 
     input {
-        accent-color: t.$primary-base;
+        accent-color: t.$accent-main;
         cursor: pointer;
     }
 
     &:hover {
-        background: t.$bg-hover;
+        background: t.$hover-bg;
         color: t.$text-primary;
     }
 }
@@ -451,9 +451,9 @@
 }
 
 .activeTab {
-    background: t.$bg-sub-tab-active;
+    background: t.$sub-tab-active-bg;
     color: t.$text-primary;
-    border-bottom-color: t.$primary-base;
+    border-bottom-color: t.$accent-main;
 }
 
 .panel {
@@ -493,12 +493,12 @@
 }
 
 .error {
-    color: t.$error-main;
+    color: t.$error-text;
     font-size: t.$font-size-sm;
 }
 
 .warning {
-    color: t.$warning-main;
+    color: t.$warning-text;
     font-size: t.$font-size-sm;
 }
 
@@ -608,7 +608,7 @@
     transition: background 0.15s ease;
 
     &:hover {
-        background: t.$bg-hover;
+        background: t.$hover-bg;
     }
 }
 
@@ -648,7 +648,7 @@
     gap: t.$spacing-4;
     padding: 1px t.$spacing-6 1px 2px;
     border-radius: t.$border-radius-round;
-    background: t.$bg-hover;
+    background: var(--neo-bg-elevated, #2c2c2c);
     color: t.$text-secondary;
     font-size: t.$font-size-sm;
 }
@@ -665,8 +665,8 @@
     height: 18px;
     padding: 0;
     border-radius: t.$border-radius-circle;
-    background: t.$primary-base;
-    color: t.$color-white;
+    background: t.$accent-main;
+    color: t.$text-on-accent;
     font-size: t.$font-size-xs;
     line-height: 1;
 }
@@ -723,7 +723,7 @@
 /* Inline validation message under a schema input (mirrors .treeRowError) */
 .schemaRowError {
     margin-top: t.$spacing-2;
-    color: t.$error-main;
+    color: t.$error-text;
     font-size: t.$font-size-xs;
     line-height: 1.4;
 }
@@ -736,9 +736,9 @@
     bottom: 50%;
     width: 11px;
     height: calc(50% + #{t.$spacing-6});
-    border-left: 1px solid t.$border-color-light;
-    border-bottom: 1px solid t.$border-color-light;
-    border-bottom-left-radius: 6px;
+    border-left: 1px solid t.$border-color-default;
+    border-bottom: 1px solid t.$border-color-default;
+    border-bottom-left-radius: calc(6px * var(--neo-radius-scale, 1));
     pointer-events: none;
 }
 
@@ -810,7 +810,7 @@
     }
 
     &:hover {
-        background: t.$bg-hover;
+        background: t.$hover-bg;
         border-color: t.$border-color-active;
         color: t.$text-secondary;
     }
@@ -843,7 +843,7 @@
     &:not(:last-child)::after {
         content: '·';
         margin-left: t.$spacing-4;
-        color: t.$text-disabled;
+        color: t.$text-muted;
     }
 }
 
@@ -886,7 +886,7 @@
 
 .treeRowError {
     margin-top: t.$spacing-2;
-    color: t.$error-main;
+    color: t.$error-text;
     font-size: t.$font-size-xs;
     line-height: 1.4;
 }
@@ -983,13 +983,13 @@
     cursor: pointer;
 
     input {
-        accent-color: t.$primary-base;
+        accent-color: t.$accent-main;
         cursor: pointer;
     }
 }
 
 .placementTarget:hover {
-    background: t.$bg-hover;
+    background: t.$hover-bg;
 }
 
 .placementBreadcrumb {
@@ -1118,7 +1118,7 @@
     height: 2px;
     overflow: hidden;
     z-index: 2;
-    background: t.$border-color-light;
+    background: t.$border-color-default;
     pointer-events: none;
 }
 
@@ -1128,7 +1128,7 @@
     top: 0;
     bottom: 0;
     width: 40%;
-    background: t.$primary-hover;
+    background: t.$accent-hover;
     animation: tableProgressSlide 1s linear infinite;
 }
 
@@ -1155,8 +1155,8 @@
     left: -1000px;
     padding: t.$spacing-4 t.$spacing-10;
     border-radius: t.$border-radius-base;
-    background: t.$primary-base;
-    color: t.$color-white;
+    background: t.$accent-main;
+    color: t.$text-on-accent;
     font-size: t.$font-size-sm;
     font-weight: 600;
     white-space: nowrap;

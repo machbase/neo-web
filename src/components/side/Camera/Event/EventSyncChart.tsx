@@ -7,6 +7,7 @@ import {
 } from 'react';
 import { getTqlChart } from '@/api/repository/machiot';
 import { getEcharts } from '@/plugin/echartsRuntime';
+import { appChartTheme } from '@/design-system/theme';
 import { DetermineTqlResultType, E_TQL_SCR, TqlResType } from '@/utils/TQL/TqlResParser';
 import { ShowVisualization } from '@/components/tql/ShowVisualization';
 import type { CameraInfo } from '@/api/repository/mediaSvr';
@@ -114,15 +115,17 @@ export const EventSyncChart = ({
                         : {}),
                 }));
 
+                // The server draws the chart: the app theme's chart look, as colours.
+                const chartLook = appChartTheme();
                 const chartOption = {
                     title: {
                         text: 'Detection Count',
-                        textStyle: { color: '#fff', fontSize: 14 },
+                        textStyle: { color: chartLook.text, fontSize: 14 },
                         left: 'left',
                         top: 0,
                     },
                     animation: false,
-                    backgroundColor: '#252525',
+                    backgroundColor: chartLook.background,
                     // No containLabel, so v6's default outerBoundsMode ('auto') would pull the grid inward
                     // whenever a label overflows; 'none' keeps it where these margins put it, as in v5.
                     grid: { left: 50, right: 20, top: 50, bottom: 50, outerBoundsMode: 'none' },
@@ -187,6 +190,9 @@ export const EventSyncChart = ({
     });
 }`;
 
+                // on a light chart the legend takes the theme's text instead of the dark panel's white
+                if (chartLook.theme !== 'dark') chartOption.legend.textStyle.color = chartLook.text;
+
                 const width = containerRef.current?.clientWidth || 600;
                 const height = containerRef.current?.clientHeight || 360;
                 const chartId = chartIdRef.current;
@@ -194,7 +200,7 @@ export const EventSyncChart = ({
                 const tql = `FAKE(linspace(0,0,0))
 CHART(
     chartID('${chartId}'),
-    theme('dark'),
+    theme('${chartLook.theme}'),
     size('${width}px','${height}px'),
     chartOption(${JSON.stringify(chartOption)}),
     chartJSCode(${chartJsCode})
@@ -349,17 +355,17 @@ CHART(
         <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
             {isLoading && (
                 <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>Loading detection data...</span>
+                    <span style={{ fontSize: '12px', color: 'var(--neo-text-muted, #818181)' }}>Loading detection data...</span>
                 </div>
             )}
             {!isLoading && !hasData && !error && (
                 <div style={{ height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>No detection data available</span>
+                    <span style={{ fontSize: '11px', color: 'var(--neo-text-muted, #818181)' }}>No detection data available</span>
                 </div>
             )}
             {error && (
                 <div style={{ height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span style={{ fontSize: '11px', color: '#ef4444' }}>{error}</span>
+                    <span style={{ fontSize: '11px', color: 'var(--neo-error-text, #fa6464)' }}>{error}</span>
                 </div>
             )}
             {hasData && visualData && <ShowVisualization pData={visualData} pLoopMode={false} pPanelRef={containerRef} />}

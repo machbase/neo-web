@@ -34,18 +34,18 @@
         }
 
         &.twitter {
-            background: #000000;
+            background: var(--neo-color-black, #000000);
             color: white;
         }
 
         &.facebook {
-            background: #1877f2;
-            color: white;
+            background: var(--neo-accent-hover, #0075e2);
+            color: var(--neo-text-on-accent, white);
         }
 
         &.email {
-            background: #ea4335;
-            color: white;
+            background: var(--neo-error-main, rgb(255, 83, 83));
+            color: var(--neo-text-on-accent, white);
         }
 
         &.whatsapp {
@@ -84,15 +84,15 @@
             cursor: pointer;
             font-size: 14px;
             font-weight: normal;
-            color: rgba(255, 255, 255, 0.5);
+            color: var(--neo-text-primary, #f1f1f1);
             transition: color 0.2s ease;
 
             &:hover {
-                color: #f8f8f8;
+                color: var(--neo-text-primary, #f1f1f1);
             }
 
             &.active {
-                color: #4199ff;
+                color: var(--neo-accent-text, #4199ff);
             }
         }
     }

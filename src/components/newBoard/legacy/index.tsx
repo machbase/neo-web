@@ -170,8 +170,8 @@ const NewBoard = (props: NewBoardProps) => {
                 style={
                     sFileUploadStyle
                         ? {
-                              border: '1px dashed rgba(255, 255, 255, 0.16)',
-                              backgroundColor: 'rgba(200, 200, 200, 0.24)',
+                              border: '1px dashed var(--neo-border-color-default, rgba(255, 255, 255, 0.13))',
+                              backgroundColor: 'var(--neo-hover-bg, rgba(200, 200, 200, 0.24))',
                           }
                         : {}
                 }

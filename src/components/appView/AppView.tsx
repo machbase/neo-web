@@ -8,6 +8,7 @@ import { AppFrameStatus } from './AppFrameStatus';
 import { useAppFrameHealth } from './useAppFrameHealth';
 import { AppReadmePanel } from './AppReadmePanel';
 import { useInstalledReadme } from './useInstalledReadme';
+import { pkgPageUrl } from '@/components/side/AppStore/pkgHtml';
 
 interface AppViewProps {
     pAppName: string;
@@ -17,7 +18,6 @@ interface AppViewProps {
 export const AppView = ({ pAppName, pIsActiveTab }: AppViewProps) => {
     const setBoardList = useSetRecoilState<GBoardListType[]>(gBoardList);
     const setSelectedTab = useSetRecoilState(gSelectedTab);
-    const defaultUrl = `${window.location.origin}/public/${pAppName}/main.html`;
     const iframeRef = useRef<HTMLIFrameElement>(null);
     // Mount on first activation, then never unmount. Tearing the iframe down on
     // tab switch destroyed the document, so every package reloaded from scratch
@@ -30,9 +30,12 @@ export const AppView = ({ pAppName, pIsActiveTab }: AppViewProps) => {
     // so coming back to a package finds its README exactly as it was left.
     const [sReadmeOpen, setReadmeOpen] = useState<boolean>(false);
     const readme = useInstalledReadme(pAppName);
+    // The frame's address carries the installed version (pkgPageUrl), so the frame
+    // waits for that read — it is the same one the README button waits for.
+    const sFrameUrl = readme.loading ? '' : `${window.location.origin}${pkgPageUrl(pAppName, 'main.html', readme.version)}`;
     // Inspect only while the tab is on screen: a frame parked behind another tab
     // is not painted, and probing it there yields false verdicts.
-    const health = useAppFrameHealth(iframeRef, { enabled: sMounted && pIsActiveTab, resetKey: pAppName });
+    const health = useAppFrameHealth(iframeRef, { enabled: sMounted && pIsActiveTab && !!sFrameUrl, resetKey: pAppName });
 
     useEffect(() => {
         if (pIsActiveTab) setMounted(true);
@@ -86,10 +89,10 @@ export const AppView = ({ pAppName, pIsActiveTab }: AppViewProps) => {
                 )}
             </Page.Header>
             <Page.Body fullHeight style={{ overflow: 'hidden', height: '100%' }}>
-                {sMounted && (
+                {sMounted && sFrameUrl && (
                     <div className="app-view-stack">
                         <div className="app-frame">
-                            <iframe ref={iframeRef} src={defaultUrl} title={`App: ${pAppName}`} />
+                            <iframe ref={iframeRef} src={sFrameUrl} title={`App: ${pAppName}`} data-testid={`app-frame-${encodeURIComponent(pAppName)}`} />
                             {pIsActiveTab && <AppFrameStatus pAppName={pAppName} pHealth={health} />}
                         </div>
                         {sReadmeOpen && readme.readme && (

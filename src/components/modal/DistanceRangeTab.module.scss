@@ -3,10 +3,10 @@
    `.neo-data-viewer` design tokens, which are scoped to that page; the same numbers are written out
    literally here so the two editors read as one control rather than two. */
 
-$accent: rgb(0, 108, 210);
-$on-surface: #f1f1f1;
-$on-surface-tertiary: #a3a3a3;
-$on-surface-disabled: #818181;
+$accent: var(--neo-accent-light, rgb(0, 108, 210));
+$on-surface: var(--neo-text-primary, #f1f1f1);
+$on-surface-tertiary: var(--neo-text-tertiary, #a3a3a3);
+$on-surface-disabled: var(--neo-text-disabled, #818181);
 
 .wrapper {
     display: flex;
@@ -36,7 +36,7 @@ $on-surface-disabled: #818181;
 .readoutValue {
     font-size: 22px;
     font-weight: 700;
-    color: $on-surface;
+    color: var(--neo-text-primary, #f1f1f1);
     /* The two edges change width as they are dragged; without tabular figures the whole readout
        jitters sideways on every step of the slider. */
     font-variant-numeric: tabular-nums;
@@ -45,16 +45,16 @@ $on-surface-disabled: #818181;
 /* Inherited numbers: shown so the editor opens on what is on screen, dimmed so they do not read as
    a choice somebody made here. */
 .readoutMuted {
-    color: #8a8d94;
+    color: var(--neo-text-muted, #818181);
 }
 
 /* Whose range these numbers are. */
 .badge {
     margin-left: 10px;
     padding: 2px 7px;
-    border-radius: 10px;
-    background: rgba(0, 108, 210, 0.18);
-    color: #6fb0ff;
+    border-radius: calc(10px * var(--neo-radius-scale, 1));
+    background: color-mix(in srgb, var(--neo-accent-light, rgb(0, 108, 210)) 18%, transparent);
+    color: var(--neo-accent-text, #4199ff);
     font-size: 11px;
     font-weight: 600;
     letter-spacing: 0.02em;
@@ -62,8 +62,8 @@ $on-surface-disabled: #818181;
 }
 
 .badgeInherited {
-    background: rgba(255, 255, 255, 0.08);
-    color: #9aa0a6;
+    background: var(--neo-bg-elevated, #2c2c2c);
+    color: var(--neo-text-tertiary, #a3a3a3);
 }
 
 .dash {
@@ -97,19 +97,19 @@ $on-surface-disabled: #818181;
     gap: 4px;
     height: 24px;
     padding: 0 8px;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 4px;
-    background: rgba(255, 255, 255, 0.04);
-    color: #c8ccd6;
+    border: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
+    border-radius: calc(4px * var(--neo-radius-scale, 1));
+    background: var(--neo-bg-elevated, #2c2c2c);
+    color: var(--neo-text-secondary, #c4c4c4);
     font-size: 11px;
     cursor: pointer;
     white-space: nowrap;
     transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
 
     &:hover {
-        border-color: rgba(255, 255, 255, 0.32);
-        background: rgba(255, 255, 255, 0.1);
-        color: #f1f1f1;
+        border-color: var(--neo-border-color-strong, #767676);
+        background: var(--neo-hover-bg, rgba(255, 255, 255, 0.08));
+        color: var(--neo-text-primary, #f1f1f1);
     }
 }
 
@@ -118,13 +118,13 @@ $on-surface-disabled: #818181;
 .resetDisabled {
     border-color: transparent;
     background: transparent;
-    color: #6f737c;
+    color: var(--neo-text-muted, #818181);
     cursor: default;
 
     &:hover {
         border-color: transparent;
         background: transparent;
-        color: #6f737c;
+        color: var(--neo-text-muted, #818181);
     }
 }
 
@@ -146,7 +146,7 @@ $on-surface-disabled: #818181;
     right: 0;
     height: 6px;
     border-radius: 3px;
-    background-color: rgba(255, 255, 255, 0.12);
+    background-color: var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
 }
 
 .fill {
@@ -179,8 +179,8 @@ $on-surface-disabled: #818181;
         height: 22px;
         /* Stated, not inherited: the global `button, input { border-radius: 8px }` in src/index.css
            would otherwise round this 8px-wide bar into a circle. */
-        border-radius: 3px;
-        border: 2px solid #1b1b1b;
+        border-radius: calc(3px * var(--neo-radius-scale, 1));
+        border: 2px solid var(--neo-dialog-bg, var(--neo-bg-elevated, #2c2c2c));
         background-color: $accent;
         cursor: ew-resize;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
@@ -190,8 +190,8 @@ $on-surface-disabled: #818181;
         pointer-events: auto;
         width: 8px;
         height: 22px;
-        border-radius: 3px;
-        border: 2px solid #1b1b1b;
+        border-radius: calc(3px * var(--neo-radius-scale, 1));
+        border: 2px solid var(--neo-dialog-bg, var(--neo-bg-elevated, #2c2c2c));
         background-color: $accent;
         cursor: ew-resize;
     }
@@ -254,7 +254,7 @@ $on-surface-disabled: #818181;
 .tickMark {
     width: 1px;
     height: 5px;
-    background-color: rgba(255, 255, 255, 0.22);
+    background-color: var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
 }
 
 .tickLabel {
@@ -279,23 +279,23 @@ $on-surface-disabled: #818181;
         height: 32px;
         min-width: 0;
         padding: 0 12px;
-        border: 1px solid #3e3e3e;
+        border: 1px solid var(--neo-field-border, var(--neo-border-color-default, rgba(255, 255, 255, 0.13)));
         /* The global `button, input { border-radius: 8px }` in src/index.css leaks into every
            control in the app; stating the radius here keeps this field on the same one as the
            controls beside it. */
-        border-radius: 4px;
+        border-radius: calc(4px * var(--neo-radius-scale, 1));
         outline: none;
-        background-color: #2a2a2a;
-        color: $on-surface;
+        background-color: var(--neo-field-bg, var(--neo-bg-elevated, #2c2c2c));
+        color: var(--neo-text-primary, #f1f1f1);
         font-size: 13px;
         font-variant-numeric: tabular-nums;
         transition: border-color 0.3s ease;
 
         &:hover {
-            border-color: #5a5a5a;
+            border-color: var(--neo-border-color-strong, #767676);
         }
         &:focus {
-            border-color: $accent;
+            border-color: var(--neo-border-color-focus, rgb(0, 108, 210));
         }
     }
 }
@@ -340,26 +340,26 @@ $on-surface-disabled: #818181;
 .quickButton {
     min-height: 30px;
     padding: 0 8px;
-    border: 1px solid #3e3e3e;
-    border-radius: 4px;
-    background-color: #2a2a2a;
-    color: #c4c4c4;
+    border: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
+    border-radius: calc(4px * var(--neo-radius-scale, 1));
+    background-color: var(--neo-bg-elevated, #2c2c2c);
+    color: var(--neo-text-secondary, #c4c4c4);
     font-size: 12px;
     cursor: pointer;
     transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
 
     &:hover {
-        border-color: #5a5a5a;
-        background-color: #343434;
+        border-color: var(--neo-border-color-strong, #767676);
+        background-color: var(--neo-hover-bg, rgba(255, 255, 255, 0.08));
         color: $on-surface;
     }
 }
 
 .notice {
     padding: 6px 10px;
-    border: 1px solid rgba(255, 83, 83, 0.35);
-    border-radius: 4px;
-    background-color: rgba(255, 83, 83, 0.15);
-    color: rgb(255, 133, 133);
+    border: 1px solid color-mix(in srgb, var(--neo-error-main, rgb(255, 83, 83)) 35%, transparent);
+    border-radius: calc(4px * var(--neo-radius-scale, 1));
+    background-color: color-mix(in srgb, var(--neo-error-main, rgb(255, 83, 83)) 15%, transparent);
+    color: var(--neo-error-text, #fa6464);
     font-size: 12px;
 }

@@ -17,12 +17,12 @@
     padding: 6px 10px;
     background-color: t.$menu-bg;
     box-shadow: 0 -8px 0 0 t.$menu-bg;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
     font-size: 11px;
-    color: #9a9a9a;
+    color: var(--neo-text-tertiary, #a3a3a3);
 
     strong {
-        color: #4aa3e0; // current server version → blue
+        color: var(--neo-accent-text, #4199ff); // current server version → blue
         font-weight: 600;
     }
 }
@@ -35,7 +35,7 @@
     padding: 8px 10px;
     font-size: 11px;
     line-height: 1.5;
-    color: #9a9a9a;
+    color: var(--neo-text-tertiary, #a3a3a3);
 }
 
 // Row content wrapper — bleeds over the menu__item padding so hovering anywhere
@@ -70,7 +70,7 @@
 .pkg-version-menu-min {
     margin-left: auto;
     padding-left: 8px;
-    color: #8a8a8a;
+    color: var(--neo-text-muted, #818181);
     font-size: 11px;
     white-space: nowrap;
     flex-shrink: 0;
@@ -81,7 +81,7 @@
     display: none;
     margin-left: auto;
     padding-left: 8px;
-    color: #4ac26b;
+    color: var(--neo-success-text, #9df486);
     font-size: 11px;
     font-weight: 600;
     white-space: nowrap;
@@ -97,7 +97,7 @@
     z-index: 2;
     margin: 2px -#{t.$spacing-4} 0;
     padding: 8px 10px;
-    border-top: 1px solid #333;
+    border-top: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
     background-color: t.$menu-bg;
     box-shadow: 0 8px 0 0 t.$menu-bg;
 
@@ -107,7 +107,7 @@
         gap: 6px;
         margin-bottom: 6px;
         font-size: 11px;
-        color: #9a9a9a;
+        color: var(--neo-text-tertiary, #a3a3a3);
     }
 
     // design-system Input (fullWidth) + IconButton
@@ -138,33 +138,33 @@
 
 .pkg-version-menu-dev {
     padding: 0 5px;
-    border-radius: 3px;
+    border-radius: calc(3px * var(--neo-radius-scale, 1));
     font-size: 9px;
     font-weight: 700;
     letter-spacing: 0.3px;
-    background-color: rgba(209, 134, 22, 0.2);
-    color: #d6943a;
+    background-color: color-mix(in srgb, var(--neo-warning-main, #d67f00) 20%, transparent);
+    color: var(--neo-warning-text, #ff9800);
 }
 
 // state badge — sits right after the package version
 .pkg-version-menu-badge {
     padding: 1px 6px;
-    border-radius: 3px;
+    border-radius: calc(3px * var(--neo-radius-scale, 1));
     font-size: 10px;
     font-weight: 600;
     white-space: nowrap;
 
     &--default {
-        background-color: rgba(63, 185, 80, 0.18);
-        color: #4ac26b;
+        background-color: color-mix(in srgb, var(--neo-success-main, #37aa3b) 18%, transparent);
+        color: var(--neo-success-text, #9df486);
     }
     &--current {
-        background-color: rgba(74, 163, 224, 0.18);
-        color: #4aa3e0;
+        background-color: color-mix(in srgb, var(--neo-accent-light, rgb(0, 108, 210)) 18%, transparent);
+        color: var(--neo-accent-text, #4199ff);
     }
     &--ineligible {
-        background-color: rgba(209, 134, 22, 0.18);
-        color: #d6943a;
+        background-color: color-mix(in srgb, var(--neo-warning-main, #d67f00) 18%, transparent);
+        color: var(--neo-warning-text, #ff9800);
     }
     // issue #1452 — this version's archive sits in the local package directory, so
     // it installs with no network. The blue MUST stay in sync with `span.local` in
@@ -172,13 +172,13 @@
     // version, and two different colours for one meaning reads as two meanings.
     // Distinct from the green "default" target, since a row can be both.
     &--local {
-        background-color: rgba(45, 156, 219, 0.18);
-        color: #7cc4f0;
+        background-color: color-mix(in srgb, var(--neo-accent-hover, #0075e2) 18%, transparent);
+        color: var(--neo-accent-text, #4199ff);
     }
     // ...and its opposite: hub-only version, hub unreachable → nothing to install from.
     &--offline {
-        background-color: rgba(140, 140, 140, 0.18);
-        color: #9a9a9a;
+        background-color: var(--neo-bg-elevated, #2c2c2c);
+        color: var(--neo-text-tertiary, #a3a3a3);
     }
 }
 
@@ -189,10 +189,10 @@
     gap: 6px;
     margin: 0 -#{t.$spacing-4} 2px;
     padding: 6px 10px;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--neo-border-color-default, rgba(255, 255, 255, 0.13));
     font-size: 11px;
     line-height: 1.4;
-    color: #d6943a;
+    color: var(--neo-warning-text, #ff9800);
 
     svg {
         flex-shrink: 0;

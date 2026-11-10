@@ -522,6 +522,8 @@ export const ChartThemeTextColor: { [key in ChartTheme]: string } = {
     wonderland: '#666666',
 };
 export const ChartThemeList = Object.keys(ChartThemeBackgroundColor);
+/** Chart themes drawn on a dark background: a panel on one keeps the dark palette for its controls (.neo-dark-island). */
+export const DARK_CHART_THEMES: ReadonlySet<string> = new Set(['dark', 'chalk', 'purple-passion']);
 
 export const ChartXAxisTypeList = ['category', 'time'];
 export const ChartSeriesColorList = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc', '#FADE2A'];
