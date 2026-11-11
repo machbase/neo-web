@@ -6,6 +6,7 @@ import { listPanelExtensions } from '../extensions/registry';
 
 jest.mock('@/api/repository/fileTree', () => ({ getFiles: jest.fn(async () => ({ data: { children: [] } })) }));
 jest.mock('../extensions/registry', () => ({ listPanelExtensions: jest.fn(), loadPanelExtension: jest.fn() }));
+const fieldInput = () => ({ panel: { id: 'panel', type: 'Extension', extension: { packageId: 'example/note', typeId: 'note' } }, getSettings: () => ({}), onReplaceSettings: jest.fn() });
 
 test('shows extension options without sending the extension type to the built-in chart converter', async () => {
     render(
@@ -24,14 +25,14 @@ test('shows extension options without sending the extension type to the built-in
             pExtensionEditorProps={{
                 settings: {},
                 settingErrors: { schedule: 'Enter a date string.' },
-                onSettingsChange: jest.fn(),
+                ...fieldInput(),
             }}
         />
     );
     expect(await screen.findByText('Enter a date string.')).toBeVisible();
 });
 
-test('selecting the current extension type preserves the existing draft', async () => {
+test('selecting the current API extension type preserves the existing draft', async () => {
     jest.mocked(listPanelExtensions).mockResolvedValue([
         { packageId: 'example/note', typeId: 'note', label: 'Note', revision: 'one', moduleId: 0, contractVersion: 1 },
     ]);
@@ -42,7 +43,7 @@ test('selecting the current extension type preserves the existing draft', async 
                 pPanelOption={{ id: 'panel', type: 'Extension', extension: { packageId: 'example/note', typeId: 'note', settings: { text: 'saved' } } }}
                 pSetPanelOption={setPanel}
                 pType="edit"
-                pExtensionEditorProps={{ settings: {}, settingErrors: {}, onSettingsChange: jest.fn() }}
+                pExtensionEditorProps={{ settings: {}, settingErrors: {}, ...fieldInput() }}
             />
         </PanelExtensionProvider>
     );
@@ -70,7 +71,7 @@ test.each(['Line', 'Bar', 'Scatter', 'Adv scatter', 'Gauge', 'Pie', 'Liquid fill
                 pPanelOption={previous}
                 pSetPanelOption={(update: any) => { next = typeof update === 'function' ? update(previous) : update; }}
                 pType="edit"
-                pExtensionEditorProps={{ settings: previous.extension.settings, settingErrors: {}, onSettingsChange: jest.fn() }}
+                pExtensionEditorProps={{ settings: previous.extension.settings, settingErrors: {}, ...fieldInput() }}
             />
         );
         const errors: unknown[] = [];
@@ -102,7 +103,7 @@ test('a fresh built-in panel picks the first table using the existing table orde
             pSetPanelOption={(update: any) => { next = update(previous); }}
             pType="edit"
             pTableList={[[1, 'SYS', '', 'LOGS', 0], [2, 'SYS', '', 'TAGS', 6]]}
-            pExtensionEditorProps={{ settings: {}, settingErrors: {}, onSettingsChange: jest.fn() }}
+            pExtensionEditorProps={{ settings: {}, settingErrors: {}, ...fieldInput() }}
         />
     );
     fireEvent.click(await screen.findByRole('button', { name: 'Unavailable extension' }));

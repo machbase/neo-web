@@ -36,7 +36,7 @@ describe('dashboard panel deployment', () => {
         return JSON.parse(rows[0]);
     }
 
-    function stage(job: string, panels: { typeId: string; label: string; module: string }[] | null, appName = 'sample') {
+    function stage(job: string, panels: { typeId: string; label: string; module: string }[] | null, appName = 'sample', contractVersion = 1) {
         const body = work + '/.extension/dashboard-panels/.staging/' + job + '/body';
         fs.mkdirSync(body, { recursive: true });
         fs.writeFileSync(body + '/package.json', JSON.stringify({ name: appName, version: job }));
@@ -44,7 +44,7 @@ describe('dashboard panel deployment', () => {
         if (panels) {
             const ext = body + '/.extension/dashboard-panels';
             fs.mkdirSync(ext, { recursive: true });
-            fs.writeFileSync(ext + '/manifest.json', JSON.stringify({ packageId: 'example/sample', contractVersion: 1, panels }));
+            fs.writeFileSync(ext + '/manifest.json', JSON.stringify({ packageId: 'example/sample', contractVersion, panels }));
             fs.writeFileSync(ext + '/note.js', 'export function activate() {}');
             fs.writeFileSync(ext + '/other.mjs', 'export function activate() { /* 메모 */ }');
             fs.mkdirSync(ext + '/folder.js');
@@ -53,6 +53,50 @@ describe('dashboard panel deployment', () => {
 
     const panel = (typeId: string, module = './note.js') => ({ typeId, label: typeId, module });
     const deployment = (action: string, job: string, mode = 'update') => run(PANEL_PACKAGE_SCRIPT, { action, name: 'sample', job, mode, source: 'local' });
+
+    test.each([0, 2])('rejects unsupported contract %i before changing the installed API extension or user files', (unsupportedVersion) => {
+        stage('api', [panel('note')], 'sample', 1);
+        deployment('prepare', 'api', 'install');
+        deployment('copy', 'api', 'install');
+        bodyInstalled('api', 'install');
+        deployment('finish', 'api', 'install');
+        const userPath = work + '/public/sample/user.dsh';
+        const original = '{"panels":[{"id":"keep","extension":{"settings":{"camera":"a"}}}]}';
+        fs.writeFileSync(userPath, original);
+        const registry = run(READ_PANEL_EXTENSIONS);
+        stage('unsupported', [panel('note')], 'sample', unsupportedVersion);
+        expect(() => deployment('prepare', 'unsupported')).toThrow('Invalid dashboard panel extension manifest');
+        expect(run(READ_PANEL_EXTENSIONS)).toEqual(registry);
+        expect(fs.readFileSync(userPath, 'utf8')).toBe(original);
+        expect(deployment('pending', 'unsupported')).toBeNull();
+    });
+
+    test('updates API extensions without changing user files', () => {
+        stage('api-v1', [panel('note')], 'sample', 1);
+        deployment('prepare', 'api-v1', 'install');
+        deployment('copy', 'api-v1', 'install');
+        bodyInstalled('api-v1', 'install');
+        deployment('finish', 'api-v1', 'install');
+        expect(run(READ_PANEL_EXTENSIONS)).toEqual([expect.objectContaining({ contractVersion: 1, typeId: 'note' })]);
+        const dashboard = '{"panels":[{"id":"preserved","type":"Video","chartOptions":{"source":{"serverId":"server-1"}}}]}';
+        fs.writeFileSync(work + '/public/sample/user.dsh', dashboard);
+        stage('api-update', [panel('note')]);
+        deployment('prepare', 'api-update');
+        deployment('copy', 'api-update');
+        bodyInstalled('api-update');
+        deployment('finish', 'api-update');
+        expect(run(READ_PANEL_EXTENSIONS)).toEqual([expect.objectContaining({ contractVersion: 1 })]);
+        expect(fs.readFileSync(work + '/public/sample/user.dsh', 'utf8')).toBe(dashboard);
+    });
+
+    test('rejects unknown contracts before touching an installed package', () => {
+        fs.mkdirSync(work + '/public/sample');
+        fs.writeFileSync(work + '/public/sample/user.json', '{"original":true}');
+        stage('future', [panel('note')], 'sample', 3);
+        expect(() => deployment('prepare', 'future')).toThrow('Invalid dashboard panel extension manifest');
+        expect(fs.readFileSync(work + '/public/sample/user.json', 'utf8')).toBe('{"original":true}');
+        expect(fs.existsSync(work + '/.extension/dashboard-panels/sample/pending.json')).toBe(false);
+    });
 
     function bodyInstalled(job: string, mode = 'update') {
         // Stand in for the existing package installer, outside the extension script.

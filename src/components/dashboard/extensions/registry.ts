@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { supportsPanelContract } from './contracts';
 import { runScript } from '@/components/side/AppStore/pkgLifecycle/script';
 import { READ_PANEL_EXTENSIONS } from './registryScript';
 import { extensionKey, type ExtensionDefinition, type ExtensionEntry } from './types';
@@ -30,8 +31,8 @@ export async function listPanelExtensions() {
 }
 
 export async function loadPanelExtension(entry: ExtensionEntry, entries: ExtensionEntry[]): Promise<Map<string, ExtensionDefinition>> {
-    if (entry.contractVersion !== 1) throw new Error('Unsupported dashboard extension version.');
-    const { packageId, typeId, revision } = entry;
+    const { packageId, typeId, revision, contractVersion } = entry;
+    if (!supportsPanelContract(contractVersion)) throw new Error('Unsupported dashboard extension version.');
     const [source, ...duplicates] = await readRegistry({ packageId, typeId, revision });
     if (typeof source !== 'string' || duplicates.length) throw new Error('Dashboard extension module is unavailable.');
 
@@ -50,7 +51,7 @@ export async function loadPanelExtension(entry: ExtensionEntry, entries: Extensi
                 }
                 const { settings } = validateExtensionSettings(definition.defaults);
                 if (!settings) throw new Error('Invalid dashboard panel defaults.');
-                definitions.set(definition.typeId, { ...definition, defaults: settings });
+                definitions.set(definition.typeId, { ...definition, defaults: settings, contractVersion });
             },
         });
         return definitions;

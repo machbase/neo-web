@@ -1,4 +1,5 @@
 import { isExtensionPanel } from '../extensions/types';
+import { useHostActions } from '../extensions/HostReact';
 import moment from 'moment';
 import { Delete, GearFill, VscRecord, GoGrabber, VscGraphScatter, Download, VscSync, Duplicate, ZoomPan, Checkmark, VscMultipleWindows, VscScreenFull } from '@/assets/icons/Icon';
 import { gBoardList, GBoardListType, gSelectedTab, gRollupTableList } from '@/recoil/recoil';
@@ -31,6 +32,7 @@ import { createTagAnalyzerBoardFromDashboard } from '@/components/tagAnalyzer/in
 import AutoRefreshControl from '@/components/dashboard/AutoRefreshControl';
 
 const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pBoardInfo, pOnFullscreen, pResolvedTheme, pRefreshCycleId }: any) => {
+    const hostActions = useHostActions(pPanelInfo.id);
     const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
     const [sSelectedTab, setSelectedTab] = useRecoilState(gSelectedTab);
     const sRollupTableList = useRecoilValue(gRollupTableList);
@@ -428,6 +430,12 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                 />
                             </Menu.Trigger>
                             <Menu.Content>
+                                {hostActions.map((action) => <Menu.Item key={action.ownerId + ':' + action.id} icon={action.icon} disabled={action.disabled}
+                                    rightIcon={action.checked === undefined ? undefined : <Page.Switch pState={action.checked} pCallback={() => {}} />}
+                                    onClick={() => {
+                                        try { Promise.resolve(action.onSelect()).catch(() => Toast.error('The extension action failed.')); }
+                                        catch { Toast.error('The extension action failed.'); }
+                                    }}>{action.label}</Menu.Item>)}
                                 <Menu.Item onClick={() => handleMoveEditOnMenu(pPanelInfo.id)} icon={<GearFill />}>
                                     Setting
                                 </Menu.Item>

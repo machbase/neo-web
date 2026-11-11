@@ -24,7 +24,7 @@ import { isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
 import { Toast } from '@/design-system/components';
 import { getDefaultVersionForExtension } from '@/utils/version/utils';
 import { E_VERSIONED_EXTENSION } from '@/utils/version/constants';
-import { handlePanelEdit } from '@/hooks/useVideoSync';
+import { useHostBoard } from '../extensions/HostReact';
 import { getFirstMissingTagSelectionBlockId, getTagSelectionValidationMessage } from './validation';
 import TimeRangeModal from '@/components/modal/TimeRangeModal';
 import RangeChips from '../RangeChips';
@@ -63,6 +63,7 @@ const CreatePanel = ({
     pResolveBoardTimeRange: (start: any, end: any) => void;
     pSetBoardTimeMinMax: (aTimeRange: { min: number; max: number }) => void;
 }) => {
+    const hostBoard = useHostBoard();
     const [sSideSizes, setSideSizes] = useState<any>(['75%', '25%']);
     const [sBottomSizes, setBottomSizes] = useState<any>(['50%', '50%']);
     const [sInsetDraging, setInsetDraging] = useState(false);
@@ -81,6 +82,8 @@ const CreatePanel = ({
     const [extensionSaving, setExtensionSaving] = useState(false);
     const isExtension = isExtensionPanel(sPanelOption);
     const extension = sPanelOption.extension;
+    const extensionDraftRef = useRef<Settings>({});
+    extensionDraftRef.current = extension?.settings ?? {};
     const selectedExtension = extension ? extensionKey(extension) : undefined;
     const { definition, error: loadError } = usePanelExtension(extension?.packageId, extension?.typeId);
     const versionMismatch = definition && !sPanelOption.extensionPending && definition.settingsVersion !== extension?.settingsVersion;
@@ -103,14 +106,16 @@ const CreatePanel = ({
     }, [definition, extension, sPanelOption.extensionPending]);
 
     const extensionEditorProps = {
+        panel: sPanelOption,
+        getSettings: () => extensionDraftRef.current,
+        onReplaceSettings: (settings: Settings) => {
+            extensionDraftRef.current = settings;
+            setPanelOption((panel: any) => !panel.extension || extensionKey(panel.extension) !== selectedExtension ? panel : ({
+                ...panel, extension: { ...panel.extension, settings },
+            }));
+        },
         settings: extension?.settings ?? {},
         settingErrors,
-        onSettingsChange: (patch: Settings) => {
-            setPanelOption((panel: any) => {
-                if (!isExtensionPanel(panel) || !panel.extension || extensionKey(panel.extension) !== selectedExtension) return panel;
-                return { ...panel, extension: { ...panel.extension, settings: { ...panel.extension.settings, ...patch } } };
-            });
-        },
     };
 
     const validatedExtension = () => {
@@ -123,7 +128,8 @@ const CreatePanel = ({
 
     const saveExtension = async () => {
         if (savingExtension.current) return;
-        const panel = validatedExtension();
+        const validated = validatedExtension();
+        const panel = validated && pType === 'edit' ? { ...validated, id: pPanelId } : validated;
         const board = sBoardList.find((item) => item.id === pBoardInfo.id);
         if (!panel || !board) return;
 
@@ -147,6 +153,7 @@ const CreatePanel = ({
                 const latest = updateBoard(item);
                 return board.path ? { ...latest, savedCode: JSON.stringify(updated.dashboard) } : latest;
             }));
+            if (pType === 'edit') hostBoard?.invalidatePanel(pPanelId);
             if (!pBoardTimeMinMax) pResolveBoardTimeRange(pBoardInfo.dashboard.timeRange.start, pBoardInfo.dashboard.timeRange.end);
             handleClose();
         } catch {
@@ -265,35 +272,9 @@ const CreatePanel = ({
         const sTmpPanelInfo = checkXAxisInterval(sPanelOption);
         sTmpPanelInfo.version = getDefaultVersionForExtension(E_VERSIONED_EXTENSION.DSH);
 
-        const sNewPanelId = generateUUID();
-        const isNewTypeVideo = sTmpPanelInfo.type === 'Video';
-
-        // Update video sync store for panel id change
-        handlePanelEdit(pBoardInfo.id, pPanelId, sNewPanelId, isNewTypeVideo);
-
-        // Helper function to update panels including video dependent references
-        const updatePanels = (panels: any[]) => {
-            return panels.map((panel: any) => {
-                // Update the edited panel with new ID
-                if (panel.id === pPanelId) {
-                    return { ...sTmpPanelInfo, id: sNewPanelId };
-                }
-                // Update video panels that have the old panel ID in their dependent.panels
-                if (panel.type === 'Video' && panel.chartOptions?.dependent?.panels?.includes(pPanelId)) {
-                    return {
-                        ...panel,
-                        chartOptions: {
-                            ...panel.chartOptions,
-                            dependent: {
-                                ...panel.chartOptions.dependent,
-                                panels: panel.chartOptions.dependent.panels.map((depId: string) => (depId === pPanelId ? sNewPanelId : depId)),
-                            },
-                        },
-                    };
-                }
-                return panel;
-            });
-        };
+        // Keep stored IDs and references stable; restart only the edited execution.
+        const updatePanels = (panels: any[]) => panels.map((panel: any) =>
+            panel.id === pPanelId ? { ...sTmpPanelInfo, id: pPanelId } : panel);
 
         if (sSaveTarget.path !== '') {
             const sTabList = sBoardList.map((aItem) => {
@@ -329,6 +310,7 @@ const CreatePanel = ({
             setBoardList(() => sTabList);
         }
 
+        hostBoard?.invalidatePanel(pPanelId);
         handleClose();
     };
     const checkXAxisInterval = (aPanelInfo: any) => {

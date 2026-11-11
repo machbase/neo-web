@@ -1,5 +1,6 @@
 import { ExtensionErrorBoundary, ExtensionView } from '../extensions/ExtensionPanels';
 import { isExtensionPanel } from '../extensions/types';
+import { useHostBoard } from '../extensions/HostReact';
 import LineChart from './chart/LineChart';
 import VideoPanel from './video/VideoPanel';
 import PanelHeader from './PanelHeader';
@@ -25,6 +26,7 @@ const BuiltInPanel = ({
     pBoardTimeMinMax,
     pIsActiveTab,
 }: any) => {
+    const hostBoard = useHostBoard();
     const [sRefreshCount, setRefreshCount] = useState<number>(0);
     // Bumped by the chart every time its own refresh timer fires. The header's countdown ring restarts
     // on it, so the animation is anchored to the real fetch instead of free-running from mount: a CSS
@@ -80,6 +82,7 @@ const BuiltInPanel = ({
                     />
                 ) : (
                     <LineChart
+                        pHostRuntime={hostBoard?.runtime}
                         pLoopMode={pLoopMode}
                         pDragStat={pDragStat}
                         pInsetDraging={pInsetDraging}
@@ -114,6 +117,7 @@ const Panel = (props: any) => {
             <div className="panel-wrap" style={{ backgroundColor: ChartThemeBackgroundColor[pPanelInfo.theme as ChartTheme] }}>
                 <PanelHeader {...props} pResolvedTheme={pPanelInfo.theme} />
                 <ExtensionView
+                    panel={pPanelInfo}
                     data={pPanelInfo.extension}
                     mode={props.pExtensionMode ?? 'dashboard'}
                     timeRange={timeRange}

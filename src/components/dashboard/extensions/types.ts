@@ -1,5 +1,6 @@
 import type { ComponentType, ReactNode } from 'react';
 import type { SettingErrors, Settings, SettingValidators } from './settings';
+import type { ExtensionContext, ExtensionHost } from './hostTypes';
 
 export interface ExtensionId {
     packageId: string;
@@ -19,21 +20,20 @@ export interface ExtensionData extends ExtensionId {
 }
 
 export interface ExtensionViewProps {
+    context: ExtensionContext;
+    host: ExtensionHost;
     settings: Settings;
-    mode: 'preview' | 'dashboard';
-    timeRange: { start: number; end: number } | null;
-    distanceRange: { start: string | number; end: string | number };
-    title: string;
-    theme?: string;
 }
 
 export interface ExtensionEditorProps {
+    context: ExtensionContext;
+    host: ExtensionHost;
     settings: Settings;
     settingErrors: SettingErrors;
-    onSettingsChange: (patch: Settings) => void;
 }
 
 export interface ExtensionDefinition {
+    contractVersion?: 1;
     typeId: string;
     label: string;
     icon?: ReactNode;

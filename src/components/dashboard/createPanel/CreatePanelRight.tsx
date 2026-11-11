@@ -1,6 +1,6 @@
-import { ExtensionErrorBoundary, ExtensionFields, useExtensionEntries } from '../extensions/ExtensionPanels';
+import { ExtensionErrorBoundary, ExtensionFields, useExtensionEntries, type ExtensionFieldInput } from '../extensions/ExtensionPanels';
+import { supportsPanelContract } from '../extensions/contracts';
 import { extensionKey, isExtensionPanel, type ExtensionDefinition } from '../extensions/types';
-import type { ExtensionEditorProps } from '../extensions/types';
 import { ChangeEvent, useEffect, useMemo, useState } from 'react';
 import { ChartCommonOptions } from './option/ChartCommonOptions';
 import { CheckCustomChartType, CheckPlgChart, DefaultChartOption, DefaultCommonOption, chartTypeConverter, getAvailableChartTypeKeys, getDefaultSeriesOption } from '@/utils/eChartHelper';
@@ -35,7 +35,7 @@ interface CreatePanelRightProps {
     pBoardInfo?: any;
     pTableList?: any[];
     pExtensionDefinition?: ExtensionDefinition;
-    pExtensionEditorProps: ExtensionEditorProps;
+    pExtensionEditorProps: ExtensionFieldInput;
     pExtensionError?: string;
     pExtensionSaving?: boolean;
 }
@@ -199,7 +199,7 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
     }, []);
 
     const sChartTypeOptions = useMemo(() => getAvailableChartTypeKeys(sInstalledPkgs), [sInstalledPkgs]);
-    const extensionOptions = entries.filter((entry) => entry.contractVersion === 1).map((entry) => ({ label: entry.label, value: extensionKey(entry) }));
+    const extensionOptions = entries.filter((entry) => supportsPanelContract(entry.contractVersion)).map((entry) => ({ label: entry.label, value: extensionKey(entry) }));
     if (isExtension && !extensionOptions.some((option) => option.value === selected)) {
         extensionOptions.push({ label: 'Unavailable extension', value: selected });
     }

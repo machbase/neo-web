@@ -6,7 +6,9 @@ import { isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
 import { fetchBlockBaseMinMax } from '@/utils/dashboardBaseMinMax';
 import { isDistanceAnchorEdge, isDistanceEdgeSet, resolveDistanceEdge } from '@/utils/distanceRange';
 import { subscribeTimeRangeChange, unsubscribeTimeRangeChange, TimeRangeEvent, getVideoPanelStateForChart } from '@/hooks/useVideoSync';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import type { DashboardHostRuntime } from '../../extensions/hostRuntime';
+import { attachChartOverlays, chartRangePolicy } from '../../extensions/chartHostAdapter';
 import {
     DashboardQueryParser,
     // DashboardHasValueQueryParser,
@@ -55,8 +57,23 @@ const LineChart = ({
     pBoardInfo,
     pOnResolveTheme,
     pOnRefreshTick,
+    pHostRuntime,
 }: any) => {
     const ChartRef = useRef<HTMLDivElement>(null);
+    const hostRuntime = pHostRuntime as DashboardHostRuntime | undefined;
+    const subscribeHost = useCallback((listener: () => void) => hostRuntime?.subscribe(listener) ?? (() => {}), [hostRuntime]);
+    const readHost = useCallback(() => hostRuntime?.getSnapshot() ?? 0, [hostRuntime]);
+    const hostRevision = useSyncExternalStore(subscribeHost, readHost, readHost);
+    const hostState = useMemo(() => hostRuntime?.getPanelState(pPanelInfo.id), [hostRuntime, hostRevision, pPanelInfo.id]);
+    const numericBase = isNumericBaseTimeBlock(pPanelInfo.blockList?.[0]);
+    const hostPolicy = chartRangePolicy(hostState, numericBase);
+    const hostRange = numericBase ? hostState?.rangeOverrides.distance : hostState?.rangeOverrides.time;
+    // Board-source overrides follow current render props, not a previous runtime snapshot.
+    const hostTimeRange = hostState?.rangePolicies.time?.source === 'board'
+        ? (pBoardTimeMinMax ? { start: pBoardTimeMinMax.min, end: pBoardTimeMinMax.max } : undefined)
+        : hostState?.rangeOverrides.time;
+    const hostDistanceRange = hostState?.rangePolicies.distance?.source === 'board'
+        ? (pBoardInfo?.dashboard?.distanceRange ?? { start: '', end: '' }) : hostState?.rangeOverrides.distance;
     const [sChartData, setChartData] = useState<any>(undefined);
     const [sIsMessage, setIsMessage] = useState<any>('Please set up a Query.');
     const [sIsError, setIsError] = useState<boolean>(false);
@@ -94,8 +111,9 @@ const LineChart = ({
     let sRefClientHeight = 0;
 
     const calculateTimeRange = () => {
+        if (hostTimeRange) return hostTimeRange;
         // Check if this chart is dependent on a Live video
-        const videoState = getVideoPanelStateForChart(pBoardInfo?.id, pPanelInfo.id);
+        const videoState = hostPolicy ? null : getVideoPanelStateForChart(pBoardInfo?.id, pPanelInfo.id);
 
         // Live video charts always use dashboard time (ignore video time range and panel custom time)
         // This is a core design principle: Live charts follow dashboard time, not video time
@@ -161,6 +179,7 @@ const LineChart = ({
      */
     const executeTqlChart = async (aWidth?: number, aForceRefresh?: boolean, aSelfRefresh?: boolean) => {
         if (!pIsActiveTab && pType !== 'create' && pType !== 'edit') return;
+        if (hostPolicy && !numericBase && !hostTimeRange) return;
         setIsLoading(true);
         if (ChartRef.current && ChartRef.current.clientWidth !== 0 && !aWidth) {
             sRefClientWidth = ChartRef.current.clientWidth;
@@ -176,15 +195,18 @@ const LineChart = ({
         let sEndTime = undefined;
 
         // Check if this chart is dependent on a Live video
-        const videoState = getVideoPanelStateForChart(pBoardInfo?.id, pPanelInfo.id);
+        const videoState = hostPolicy ? null : getVideoPanelStateForChart(pBoardInfo?.id, pPanelInfo.id);
 
         // Live video charts always use dashboard time (ignore video time range and panel custom time)
         // This is a core design principle: Live charts follow dashboard time, not video time
-        if (videoState?.isLive) {
+        if (!numericBase && hostTimeRange) {
+            sStartTime = hostTimeRange.start;
+            sEndTime = hostTimeRange.end;
+        } else if (videoState?.isLive) {
             // Always use board time for Live charts (ignore panel's useCustomTime setting)
             sStartTime = setUnitTime(pBoardTimeMinMax?.min);
             sEndTime = setUnitTime(pBoardTimeMinMax?.max);
-        } else if (sVideoTimeRange) {
+        } else if (sVideoTimeRange && !hostPolicy) {
             // Use video time range for Normal/Sync video charts
             sStartTime = sVideoTimeRange.start.getTime();
             sEndTime = sVideoTimeRange.end.getTime();
@@ -195,7 +217,7 @@ const LineChart = ({
             const sBoardDistanceRange = pBoardInfo?.dashboard?.distanceRange ?? {};
             const sPanelDistanceRange = pPanelInfo.useCustomDistance ? pPanelInfo.distanceRange ?? {} : {};
             const sPick = (aPanelEdge: any, aBoardEdge: any) => (isDistanceEdgeSet(aPanelEdge) ? aPanelEdge : aBoardEdge);
-            const sDistanceRange = { start: sPick(sPanelDistanceRange.start, sBoardDistanceRange.start), end: sPick(sPanelDistanceRange.end, sBoardDistanceRange.end) };
+            const sDistanceRange = hostDistanceRange ?? { start: sPick(sPanelDistanceRange.start, sBoardDistanceRange.start), end: sPick(sPanelDistanceRange.end, sBoardDistanceRange.end) };
             const sHasStart = isDistanceEdgeSet(sDistanceRange.start);
             const sHasEnd = isDistanceEdgeSet(sDistanceRange.end);
             // An unset edge is the data's own end, and so is an anchored one ('last-5000', 'first') —
@@ -257,7 +279,7 @@ const LineChart = ({
 
             // On a self refresh the window above was resolved for *this* query; `calculateTimeRange()`
             // would read the board's frozen snapshot again and hand the TQL file stale $from_/$to_.
-            const sTqlTimeRange = aSelfRefresh ? { start: sStartTime, end: sEndTime } : calculateTimeRange();
+            const sTqlTimeRange = aSelfRefresh || hostRange ? { start: sStartTime, end: sEndTime } : calculateTimeRange();
             const sResult: any = await getTqlScripts(TqlChartParser(pPanelInfo.tqlInfo, sTqlTimeRange, sIntervalInfo, pBoardInfo.dashboard.variables));
             const { parsedStatus, parsedType, parsedData } = DetermineTqlResultType(E_TQL_SCR.DSH, { status: sResult?.status, headers: sResult?.headers, data: sResult?.data, text: sResult?.request?.response });
 
@@ -460,6 +482,7 @@ const LineChart = ({
         pSetModifyState({ id: '', state: false });
     };
     const sSetIntervalTime = () => {
+        if (hostPolicy?.followPanelRefresh === false) return null;
         if (pPanelInfo.type === 'Geomap' && !pPanelInfo.chartOptions?.useAutoRefresh) return null;
         // markdown/text/csv sink TQL panels opt out of auto refresh. The sink kind is only known from
         // the first response, so the timer runs until then and is cleared once the response lands.
@@ -520,6 +543,11 @@ const LineChart = ({
 
         // Case 1: Refresh 버튼 클릭 또는 사용자의 명시적 시간 변경 (chartVariableId 변경됨)
         // → 모든 차트 재조회
+        if (hostPolicy) {
+            prevBoardTimeMinMaxRef.current = pBoardTimeMinMax;
+            if (hostPolicy.followBoardRefresh) executeTqlChart(undefined, chartVariableIdChanged);
+            return;
+        }
         if (chartVariableIdChanged) {
             executeTqlChart(undefined, true);
             return;
@@ -545,7 +573,7 @@ const LineChart = ({
             if (sSetIntervalTime() !== null) return;
         }
 
-        const videoState = getVideoPanelStateForChart(pBoardInfo?.id, pPanelInfo.id);
+        const videoState = hostPolicy ? null : getVideoPanelStateForChart(pBoardInfo?.id, pPanelInfo.id);
 
         if (videoState) {
             // 이 차트는 비디오에 종속됨
@@ -598,7 +626,38 @@ const LineChart = ({
         setIsMounted(true);
     }, []);
 
-    // Subscribe to video panel time range changes
+    // A host target request is independent of board ticks and unrelated host messages/menus.
+    const previousHostRangeRevision = useRef(hostState?.rangeRevision ?? 0);
+    const previousHostRefreshRevision = useRef(hostState?.refresh.revision ?? 0);
+    const pendingHostQuery = useRef(false);
+    const previousActiveTab = useRef(pIsActiveTab);
+    useEffect(() => {
+        const becameActive = pIsActiveTab && !previousActiveTab.current;
+        previousActiveTab.current = pIsActiveTab;
+        const rangeChanged = previousHostRangeRevision.current !== (hostState?.rangeRevision ?? 0);
+        const refreshChanged = previousHostRefreshRevision.current !== (hostState?.refresh.revision ?? 0);
+        previousHostRangeRevision.current = hostState?.rangeRevision ?? 0;
+        previousHostRefreshRevision.current = hostState?.refresh.revision ?? 0;
+        if (rangeChanged || (refreshChanged && hostState?.refresh.reasons.includes('panel-request'))) pendingHostQuery.current = true;
+        if (!pIsActiveTab && pType !== 'create' && pType !== 'edit') return;
+        const needsInitialQuery = becameActive && sIsMounted && ChartRef.current?.dataset && !ChartRef.current.dataset.processed;
+        if (!pendingHostQuery.current && !needsInitialQuery) return;
+        if (hostPolicy && !numericBase && !hostTimeRange) return;
+        // Keep requests pending while hidden, including when later board refreshes
+        // replace their reasons. On return, query only the latest effective range.
+        pendingHostQuery.current = false;
+        executeTqlChart();
+    }, [hostState?.rangeRevision, hostState?.refresh.revision, pIsActiveTab, pType, sIsMounted, hostTimeRange?.start, hostTimeRange?.end]);
+
+    const hostOverlays = useRef(hostState?.overlays ?? []);
+    hostOverlays.current = hostState?.overlays ?? [];
+    const overlayKey = JSON.stringify(hostState?.overlays ?? []);
+    useEffect(() => {
+        if (!ChartRef.current || !hostOverlays.current.length) return;
+        return attachChartOverlays(ChartRef.current, () => hostOverlays.current);
+    }, [overlayKey]);
+
+    // Legacy fallback until the existing Video implementation moves to Blackbox.
     useEffect(() => {
         const panelId = pPanelInfo.id;
         const boardId = pBoardInfo?.id;
@@ -641,26 +700,20 @@ const LineChart = ({
 
         if (!sIsMounted) return;
 
+        if (hostPolicy) return;
         if (sVideoTimeRange) {
             // New video range set - reload with video range
             executeTqlChart();
         } else if (prevRange) {
             // Video range cleared (was set, now null)
             // Check if video panel is in live mode
-            const videoState = getVideoPanelStateForChart(pBoardInfo?.id, pPanelInfo.id);
+            const videoState = hostPolicy ? null : getVideoPanelStateForChart(pBoardInfo?.id, pPanelInfo.id);
             if (videoState?.isLive) {
                 // Live mode - reload with dashboard time range
                 executeTqlChart();
             }
         }
     }, [sVideoTimeRange]);
-
-    useEffect(() => {
-        if (!(ChartRef && ChartRef?.current)) return;
-        if (pIsActiveTab && sIsMounted && ChartRef.current.dataset && !ChartRef.current.dataset.processed) {
-            executeTqlChart();
-        }
-    }, [pIsActiveTab]);
 
     useOverlapTimeout(() => {
         // Announce the tick before the (possibly skipped) query: the next one is scheduled from this

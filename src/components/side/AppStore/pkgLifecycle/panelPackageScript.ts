@@ -1,4 +1,5 @@
 import { COPY_PACKAGE_FILE } from './archiveScript';
+import { PANEL_CONTRACT_VERSIONS } from '@/components/dashboard/extensions/contracts';
 import { SCRIPT_ERROR_SENTINEL } from './types';
 
 export const PANEL_EXTENSIONS_CHANGED = 'neo:dashboard-panel-extensions-changed';
@@ -28,7 +29,7 @@ function manifestFor(stage) {
     if (!fs.existsSync(declaration)) return null;
     var manifest = read(declaration);
     if (!manifest || typeof manifest.packageId !== "string" || !/^[a-zA-Z0-9][a-zA-Z0-9._/-]*$/.test(manifest.packageId) ||
-        manifest.contractVersion !== 1 || !Array.isArray(manifest.panels) || manifest.panels.length === 0) {
+        ${JSON.stringify(PANEL_CONTRACT_VERSIONS)}.indexOf(manifest.contractVersion) === -1 || !Array.isArray(manifest.panels) || manifest.panels.length === 0) {
         throw new Error("Invalid dashboard panel extension manifest.");
     }
     var seen = Object.create(null);

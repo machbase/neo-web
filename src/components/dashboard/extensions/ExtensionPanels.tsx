@@ -1,7 +1,28 @@
 import { Component, createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { PANEL_EXTENSIONS_CHANGED } from '@/components/side/AppStore/pkgLifecycle/panelPackageScript';
 import { listPanelExtensions, loadPanelExtension } from './registry';
-import { extensionKey, type ExtensionData, type ExtensionDefinition, type ExtensionEditorProps, type ExtensionEntry, type ExtensionViewProps } from './types';
+import { extensionKey, type ExtensionData, type ExtensionDefinition, type ExtensionEditorProps, type ExtensionEntry } from './types';
+import { useExtensionHost } from './HostReact';
+import type { Settings } from './settings';
+import type { HostDistanceRange, HostTimeRange } from './hostTypes';
+import { supportsPanelContract } from './contracts';
+
+interface ExtensionViewInput {
+    data?: ExtensionData;
+    panel?: any;
+    mode: 'dashboard' | 'preview';
+    timeRange: HostTimeRange | null;
+    distanceRange: HostDistanceRange;
+    title: string;
+    theme?: string;
+}
+
+/** Internal draft adapters; extensions receive only ExtensionEditorProps. */
+export type ExtensionFieldInput = Pick<ExtensionEditorProps, 'settings' | 'settingErrors'> & {
+    panel: any;
+    getSettings(): Settings;
+    onReplaceSettings(settings: Settings): void;
+};
 
 type Registry = { entries: ExtensionEntry[]; loads: Map<string, Promise<Map<string, ExtensionDefinition>>>; error?: string };
 const RegistryContext = createContext<Registry | undefined>(undefined);
@@ -54,7 +75,7 @@ export function usePanelExtension(packageId?: string, typeId?: string): { defini
     const entry = registry?.entries.find((item) => item.packageId === packageId && item.typeId === typeId);
     const [result, setResult] = useState<{ entry: ExtensionEntry; definition?: ExtensionDefinition; error?: string }>();
     useEffect(() => {
-        if (!entry || !registry) return;
+        if (!entry || !registry || !supportsPanelContract(entry.contractVersion)) return;
         const key = moduleKey(entry);
         let load = registry.loads.get(key);
         if (!load) {
@@ -77,6 +98,7 @@ export function usePanelExtension(packageId?: string, typeId?: string): { defini
 
     if (!registry || (!packageId && !typeId)) return {};
     if (!entry) return { error: registry.error ?? 'This dashboard extension is unavailable.' };
+    if (!supportsPanelContract(entry.contractVersion)) return { error: 'Unsupported dashboard extension version.' };
     if (result?.entry === entry) return result;
     return {};
 }
@@ -94,20 +116,39 @@ export class ExtensionErrorBoundary extends Component<{ children: ReactNode; res
     }
 }
 
-export function ExtensionView({ data, ...props }: { data?: ExtensionData } & Omit<ExtensionViewProps, 'settings'>) {
+export function ExtensionView({ data, panel, ...props }: ExtensionViewInput) {
     const { definition, error } = usePanelExtension(data?.packageId, data?.typeId);
     if (!data || typeof data.packageId !== 'string' || typeof data.typeId !== 'string' || !data.settings || Array.isArray(data.settings) || typeof data.settings !== 'object' || error) return <div role="alert">{error ?? 'Invalid dashboard extension settings.'}</div>;
     if (!definition) return <div>Loading dashboard extension…</div>;
     if (data.settingsVersion !== definition.settingsVersion) return <div role="alert">This dashboard extension settings version is unsupported.</div>;
-    const { View } = definition;
     return (
         <ExtensionErrorBoundary resetOn={data.settings}>
-            <View {...props} settings={data.settings} />
+            <BoundExtensionView key={JSON.stringify([data.packageId, data.typeId])} definition={definition} panel={panel ?? { id: 'standalone', type: 'Extension', extension: data }} {...props} settings={data.settings} />
         </ExtensionErrorBoundary>
     );
 }
 
-export function ExtensionFields({ definition, area, ...props }: ExtensionEditorProps & { definition?: ExtensionDefinition; area: 'Editor' | 'Options' }) {
+function BoundExtensionView({ definition, panel, settings, ...props }: Omit<ExtensionViewInput, 'data'> & { definition: ExtensionDefinition; settings: Settings }) {
+    const bound = useExtensionHost({ panel, definition, surface: props.mode, settings, timeRange: props.timeRange, distanceRange: props.distanceRange });
+    const { View } = definition;
+    if (!bound.host) return <div>Preparing dashboard extension…</div>;
+    return <div ref={bound.rootRef} className="dashboard-extension-view" style={{ width: '100%', height: '100%', minHeight: 0 }}>
+        <View settings={settings} context={bound.context} host={bound.host} />
+    </div>;
+}
+
+export function ExtensionFields({ definition, area, ...props }: ExtensionFieldInput & {
+    definition?: ExtensionDefinition; area: 'Editor' | 'Options';
+}) {
     const Fields = definition?.[area];
-    return Fields ? <Fields {...props} /> : null;
+    if (!Fields || !definition) return null;
+    return <BoundExtensionFields definition={definition} area={area} {...props} />;
+}
+
+function BoundExtensionFields({ definition, area, panel, getSettings, onReplaceSettings, settings, settingErrors }: ExtensionFieldInput & {
+    definition: ExtensionDefinition; area: 'Editor' | 'Options';
+}) {
+    const bound = useExtensionHost({ panel, definition, surface: area === 'Editor' ? 'editor' : 'options', settings, getSettings, onReplaceSettings });
+    const Fields = definition[area]!;
+    return bound.host ? <Fields settings={settings} settingErrors={settingErrors} context={bound.context} host={bound.host} /> : null;
 }

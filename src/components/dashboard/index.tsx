@@ -1,4 +1,6 @@
 import { PanelExtensionProvider } from './extensions/ExtensionPanels';
+import { HostBoardProvider, useHostBoard } from './extensions/HostReact';
+import { useHostRefresh } from './extensions/useHostRefresh';
 import { isExtensionPanel } from './extensions/types';
 import GridLayout from 'react-grid-layout';
 import { useState, useEffect, useRef } from 'react';
@@ -35,7 +37,22 @@ import ShareModal from './ShareModal';
 import { Button, Input, Page, Drawer } from '@/design-system/components';
 import { clearBoardVideoStore } from '@/hooks/useVideoSync';
 
+// Keep the saved/grid ID stable. Only a committed edit invalidates this panel's execution.
+const HostManagedPanel = (props: any) => {
+    const board = useHostBoard();
+    return <Panel key={board?.executionRevisions[props.pPanelInfo.id] ?? 0} {...props} />;
+};
+
 const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveModal, pIsSave }: any) => {
+    const [hostRefresh, signalHostRefresh] = useHostRefresh();
+    const previousDistance = useRef(JSON.stringify(pInfo.dashboard.distanceRange ?? {}));
+    const distanceKey = JSON.stringify(pInfo.dashboard.distanceRange ?? {});
+    useEffect(() => {
+        if (previousDistance.current !== distanceKey) {
+            previousDistance.current = distanceKey;
+            signalHostRefresh('range-change');
+        }
+    }, [distanceKey, signalHostRefresh]);
     const rangeRequest = useRef(0);
     const boardIdRef = useRef<string>(pInfo?.id);
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
@@ -201,6 +218,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
         const sTimeMinMax = timeMinMaxConverter(aTimeRange.start, aTimeRange.end, sSvrRes) ?? { min: setUnitTime(aTimeRange.start), max: setUnitTime(aTimeRange.end) };
         sTimeMinMax.refresh = true;
         setBoardTimeMinMax(() => sTimeMinMax);
+        signalHostRefresh('manual');
         GenChartVariableId();
     };
     const handleDashboardTimeRange = async (sStart: any, sEnd: any, aIsAutoRefresh?: boolean) => {
@@ -213,6 +231,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
         // Refresh button is unaffected (it bumps chartVariableId), and time-arrows / TimeRangeModal
         // Save carry no flag at all.
         setBoardTimeMinMax(() => (aIsAutoRefresh ? { ...sTimeMinMax, autoRefresh: true } : sTimeMinMax));
+        signalHostRefresh(aIsAutoRefresh ? 'auto' : 'range-change');
     };
     const handleSaveTimeRange = (sStart: any, sEnd: any) => {
         const sChartpanelList = pInfo.dashboard.panels.filter((aPanel: any) => !isExtensionPanel(aPanel) && aPanel.type !== 'Tql chart');
@@ -305,6 +324,13 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
     }, [sRefreshDelay]);
 
     return (
+        <HostBoardProvider
+            boardInfo={pInfo}
+            timeRange={Number.isFinite(sBoardTimeMinMax?.min) && Number.isFinite(sBoardTimeMinMax?.max)
+                ? { start: sBoardTimeMinMax.min, end: sBoardTimeMinMax.max } : null}
+            active={pInfo.id === sActiveTabId}
+            refresh={hostRefresh}
+        >
         <PanelExtensionProvider enabled={sCreateModal || Boolean(pInfo.dashboard?.panels?.some(isExtensionPanel))}>
         {sLoadedRollupTable && (
             <>
@@ -387,7 +413,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                                     pInfo.dashboard.panels.map((aItem: any) => {
                                         return (
                                             <div key={aItem.id} data-grid={{ x: aItem.x, y: aItem.y, w: aItem.w, h: aItem.h }}>
-                                                <Panel
+                                                <HostManagedPanel
                                                     pLoopMode={!isExtensionPanel(aItem) && (pInfo.dashboard.timeRange.refresh !== 'Off' || aItem.timeRange.refresh !== 'Off')}
                                                     pDragStat={pDragStat}
                                                     pType={sThisPanelStatus}
@@ -460,6 +486,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
             </>
         )}
         </PanelExtensionProvider>
+        </HostBoardProvider>
     );
 };
 export default Dashboard;
