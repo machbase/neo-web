@@ -1,3 +1,4 @@
+import { isBuiltInDashboardPanel } from '@/utils/dashboardPanelSupport';
 import { ExtensionErrorBoundary, ExtensionFields, usePanelExtension } from '../extensions/ExtensionPanels';
 import { extensionKey, isExtensionPanel } from '../extensions/types';
 import { validateExtensionSettings, type SettingErrors, type Settings } from '../extensions/settings';
@@ -236,11 +237,11 @@ const CreatePanel = ({
             setBoardList(() => sTabList);
         }
 
-        if (pBoardInfo.dashboard.panels.every(isExtensionPanel)) {
+        if (pBoardInfo.dashboard.panels.every((panel: any) => !isBuiltInDashboardPanel(panel))) {
             pSetBoardTimeMinMax(await getTimeMinMax(sTmpPanelInfo.useCustomTime ? sTmpPanelInfo.timeRange : pBoardInfo.dashboard.timeRange, sTmpPanelInfo));
             pSetModifyState({ id: PanelIdParser(pChartVariableId + '-' + sTmpPanelInfo.id), state: true });
         } else {
-            const sChartPanelList = pBoardInfo.dashboard.panels.filter((panel: any) => !isExtensionPanel(panel) && panel.type !== 'Tql chart');
+            const sChartPanelList = pBoardInfo.dashboard.panels.filter((panel: any) => isBuiltInDashboardPanel(panel) && panel.type !== 'Tql chart');
             if (sChartPanelList.length === 0) {
                 pSetBoardTimeMinMax(await getTimeMinMax(sTmpPanelInfo.useCustomTime ? sTmpPanelInfo.timeRange : pBoardInfo.dashboard.timeRange, sTmpPanelInfo));
                 pSetModifyState({ id: PanelIdParser(pChartVariableId + '-' + sTmpPanelInfo.id), state: true });
@@ -431,7 +432,7 @@ const CreatePanel = ({
                     pSetModifyState({ id: PanelIdParser('undefined-' + sTmpPanelOption.id), state: true });
                 }
             } else {
-                const sChartPanelList = pBoardInfo.dashboard.panels.filter((panel: any) => !isExtensionPanel(panel) && panel.type !== 'Tql chart');
+                const sChartPanelList = pBoardInfo.dashboard.panels.filter((panel: any) => isBuiltInDashboardPanel(panel) && panel.type !== 'Tql chart');
                 if (isValidJSON(JSON.stringify(sTmpPanelOption))) {
                     setAppliedPanelOption(sTmpPanelOption);
                 }
@@ -459,7 +460,7 @@ const CreatePanel = ({
         const sTargetPanel = getPanelTimeMinMaxTarget(aTargetPanel ?? sPanelOption, pBoardInfo?.dashboard?.panels ?? [], pPanelId);
         const sTargetTag = sTargetPanel?.blockList?.length > 0 ? sTargetPanel.blockList[0] : { tag: '', table: '', filter: [], useCustom: false };
         const sIsTagName = sTargetTag.tag && sTargetTag.tag !== '';
-        const sIsCreateModeFirstPanel = pType === 'create' && pBoardInfo.dashboard.panels.every(isExtensionPanel);
+        const sIsCreateModeFirstPanel = pType === 'create' && pBoardInfo.dashboard.panels.every((panel: any) => !isBuiltInDashboardPanel(panel));
         const sCustomTag =
             sIsTagName &&
             sTargetTag.filter?.filter((aFilter: any) => {

@@ -8,7 +8,7 @@ export const TYPE_ALIASES: Record<string, string> = {
     Tql: 'Tql chart',
 };
 
-export const VALID_TYPES = ['Line', 'Bar', 'Scatter', 'Adv scatter', 'Gauge', 'Pie', 'Liquid fill', 'Text', 'Geomap', 'Tql chart', 'Video'];
+export const VALID_TYPES = ['Line', 'Bar', 'Scatter', 'Adv scatter', 'Gauge', 'Pie', 'Liquid fill', 'Text', 'Geomap', 'Tql chart'];
 
 // Chart types that require blockList processing in CheckDataCompatibility
 export const BLOCK_CHART_TYPES = new Set(['Line', 'Bar', 'Scatter', 'Adv scatter', 'Gauge', 'Pie', 'Liquid fill', 'Text', 'Geomap']);
@@ -65,7 +65,6 @@ export const TYPE_SPECIFIC_KEYS: Record<string, RequiredKeyDef[]> = {
         { key: 'chartOptions', defaultFactory: () => structuredClone(getDefaultSeriesOption('tql' as ChartType)) },
         { key: 'commonOptions', defaultFactory: () => structuredClone(DefaultCommonOption) },
     ],
-    Video: [{ key: 'chartOptions', defaultFactory: () => structuredClone(getDefaultSeriesOption('video' as ChartType)) }],
 };
 
 // Type-specific deep validation (nested key checks + cross-field consistency)
@@ -143,27 +142,6 @@ export const TYPE_DEEP_VALIDATORS: Record<string, (panel: any) => string[]> = {
         return repaired;
     },
 
-    Video: (panel) => {
-        const repaired: string[] = [];
-        const co = panel.chartOptions;
-        if (!co.source || typeof co.source !== 'object') {
-            co.source = { table: '', camera: '', serverIp: '', serverPort: 0, serverAlias: '', liveModeOnStart: false, enableSync: false };
-            repaired.push('chartOptions.source');
-        }
-        if (!co.event || typeof co.event !== 'object') {
-            co.event = {};
-            repaired.push('chartOptions.event');
-        }
-        if (!co.dependent || typeof co.dependent !== 'object') {
-            co.dependent = { panels: [], color: '#009CE0' };
-            repaired.push('chartOptions.dependent');
-        }
-        if (co.childBoard === undefined) {
-            co.childBoard = '';
-            repaired.push('chartOptions.childBoard');
-        }
-        return repaired;
-    },
 };
 
 // BlockList item structural validation

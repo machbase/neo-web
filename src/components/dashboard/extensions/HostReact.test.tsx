@@ -26,7 +26,7 @@ const hosts = new Map<string, ExtensionHost>();
 it.each(['Adv scatter', 'Liquid fill'])('advertises refresh and range for the existing %s panel spelling', (type) => {
     expect(hostPanelInfo({ id: 'native', type }).capabilities).toEqual(expect.arrayContaining(['refresh', 'range:time']));
 });
-const panel = { id: 'video-a', type: 'Extension', title: 'Video A', x: 1, y: 2, w: 6, h: 4,
+const panel = { id: 'extension-a', type: 'Extension', title: 'Extension A', x: 1, y: 2, w: 6, h: 4,
     extension: { packageId: 'test/pkg', typeId: 'player', settingsVersion: 1, settings: { source: { camera: 'a', serverId: 's' }, keep: 7 } } };
 const other = { id: 'chart-b', type: 'Line', title: 'Chart B', x: 8, y: 2, w: 6, h: 4, chartOptions: { retained: true } };
 const board: any = { id: 'board-a', name: 'board.dsh', path: '/', savedCode: 'original-bytes', dashboard: { panels: [panel, other], custom: { retained: true } } };
@@ -71,7 +71,7 @@ it('isolates preview mutations and gives editor a complete panel list', async ()
     });
     expect(JSON.parse(screen.getByTestId('boards').textContent!)[0]).toEqual(board);
     expect(JSON.parse(screen.getByTestId('draft-editor').textContent!).keep).toBe(-1);
-    expect(JSON.parse(screen.getByTestId('context-editor').textContent!).panels.map((p: any) => p.id)).toEqual(expect.arrayContaining(['video-a', 'chart-b']));
+    expect(JSON.parse(screen.getByTestId('context-editor').textContent!).panels.map((p: any) => p.id)).toEqual(expect.arrayContaining(['extension-a', 'chart-b']));
 });
 it('keeps StrictMode host usable and rejects calls after unmount', async () => {
     const view = setup(<Owner />, true); const api = await host();
@@ -117,7 +117,7 @@ it('shares the latest draft between Editor and Options without losing same-turn 
 it.each([0, 2, 3])('rejects contract v%i without running the extension or changing saved data', async (version) => {
     const before = JSON.stringify(board);
     jest.mocked(listPanelExtensions).mockResolvedValue([{ packageId: 'test/pkg', typeId: 'player', label: 'Player', contractVersion: version, revision: 'r1', moduleId: 0 }]);
-    setup(<PanelExtensionProvider enabled><ExtensionView data={panel.extension} panel={panel} mode="dashboard" timeRange={{ start: 100, end: 200 }} distanceRange={{ start: '', end: '' }} title="Video A" /></PanelExtensionProvider>);
+    setup(<PanelExtensionProvider enabled><ExtensionView data={panel.extension} panel={panel} mode="dashboard" timeRange={{ start: 100, end: 200 }} distanceRange={{ start: '', end: '' }} title="Extension A" /></PanelExtensionProvider>);
     expect(await screen.findByRole('alert')).toHaveTextContent('Unsupported dashboard extension version.');
     expect(loadPanelExtension).not.toHaveBeenCalled();
     expect(JSON.parse(screen.getByTestId('boards').textContent!)).toEqual([board]);
@@ -129,27 +129,27 @@ it('exposes settings, context and host as the only View props', async () => {
     const entry = { packageId: 'test/pkg', typeId: 'player', label: 'Player', contractVersion: 1, revision: 'r1', moduleId: 0 };
     jest.mocked(listPanelExtensions).mockResolvedValue([entry]);
     jest.mocked(loadPanelExtension).mockResolvedValue(new Map([['player', { ...definition, View }]]));
-    setup(<PanelExtensionProvider enabled><ExtensionView data={panel.extension} panel={panel} mode="dashboard" timeRange={{ start: 100, end: 200 }} distanceRange={{ start: '', end: '' }} title="Video A" /></PanelExtensionProvider>);
+    setup(<PanelExtensionProvider enabled><ExtensionView data={panel.extension} panel={panel} mode="dashboard" timeRange={{ start: 100, end: 200 }} distanceRange={{ start: '', end: '' }} title="Extension A" /></PanelExtensionProvider>);
     await screen.findByText('API-only View');
     const props = receive.mock.calls.at(-1)![0];
     expect(Object.keys(props).sort()).toEqual(['context', 'host', 'settings']);
     expect(props.host.settings.patch).toEqual(expect.any(Function));
     expect(props.context.surface).toBe('dashboard');
     expect(props.context.capabilities.contractVersion).toBe(1);
-    expect(props.context.panel.title).toBe('Video A');
+    expect(props.context.panel.title).toBe('Extension A');
     expect(props.context.ranges.panelTime).toEqual({ start: 100, end: 200 });
 });
 it('registers and removes only the owner header actions', async () => {
-    function Header() { const actions = useHostActions('video-a'); return <>{actions.map((action) => <button key={action.id} onClick={action.onSelect}>{action.label}</button>)}</>; }
+    function Header() { const actions = useHostActions('extension-a'); return <>{actions.map((action) => <button key={action.id} onClick={action.onSelect}>{action.label}</button>)}</>; }
     setup(<><Owner /><Header /></>); const api = await host(); const click = jest.fn(); let handle: any;
     act(() => { const result = api.header.registerActions([{ id: 'play', label: 'Play this owner', onSelect: click }]); if (result.ok) handle = result.value; });
     fireEvent.click(screen.getByText('Play this owner')); expect(click).toHaveBeenCalledTimes(1);
     act(() => { handle.dispose(); }); expect(screen.queryByText('Play this owner')).toBeNull();
 });
 it('invalidates only the selected execution and keeps saved ids unchanged', () => {
-    function Revisions() { const context = useHostBoard()!; return <><button onClick={() => context.invalidatePanel('video-a')}>Edit one</button><pre data-testid="revisions">{JSON.stringify(context.executionRevisions)}</pre></>; }
+    function Revisions() { const context = useHostBoard()!; return <><button onClick={() => context.invalidatePanel('extension-a')}>Edit one</button><pre data-testid="revisions">{JSON.stringify(context.executionRevisions)}</pre></>; }
     setup(<Revisions />); fireEvent.click(screen.getByText('Edit one'));
-    expect(JSON.parse(screen.getByTestId('revisions').textContent!)).toEqual({ 'video-a': 1 });
+    expect(JSON.parse(screen.getByTestId('revisions').textContent!)).toEqual({ 'extension-a': 1 });
     expect(JSON.parse(screen.getByTestId('boards').textContent!)[0]).toEqual(board);
 });
 it('does not open a tab when an asynchronous file read finishes after the owner exits', async () => {

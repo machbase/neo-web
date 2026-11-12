@@ -49,11 +49,6 @@ jest.mock('@/design-system/components', () => ({
     Toast: { error: jest.fn(), info: jest.fn(), success: jest.fn() },
 }));
 
-jest.mock('@/hooks/useVideoSync', () => ({
-    subscribeTimeRangeChange: jest.fn(),
-    unsubscribeTimeRangeChange: jest.fn(),
-    getVideoPanelStateForChart: () => undefined,
-}));
 
 const MARKDOWN_RES = { status: 200, headers: { 'content-type': 'text/markdown' }, data: '## same content every time' };
 const VISUAL_RES = {

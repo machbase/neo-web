@@ -173,6 +173,14 @@ it('disposes removed panel owners without changing another panel owner or an unr
     expect(runtime.getPanelState('chart').overlays.map((overlay) => overlay.id)).toEqual(['b']);
     expect(runtime.getPanelState('untouched').overlays).toEqual([]);
 });
+it.each(['dashboard', 'preview', 'editor', 'options'] as const)('exposes contract information without an API availability list on %s', (surface) => {
+    const runtime = new DashboardHostRuntime(board());
+    const context = runtime.getContext('a', surface);
+    expect(context.capabilities).toEqual({ contractVersion: 1 });
+    expect(context.surface).toBe(surface);
+    runtime.dispose();
+});
+
 it('rejects unsupported targets and preserves merged refresh reasons within one notification turn', () => {
     const runtime = new DashboardHostRuntime(board());
     const host = runtime.createHost(owner()).host;
@@ -255,16 +263,13 @@ it('separately disposes header actions and cannot invoke callbacks captured befo
     expect(runtime.getPanelState('a').actions).toEqual([]);
 });
 
-it('provides detached context values and advertises only installed optional adapter APIs', () => {
+it('provides detached context values without a dynamic API list', () => {
     const runtime = new DashboardHostRuntime(board());
-    const context = runtime.getContext('a', 'dashboard', { selectFile: async () => null });
+    const context = runtime.getContext('a', 'dashboard');
     context.panels[0].id = 'tampered';
     context.ranges.time!.start = 999;
     expect(runtime.getContext('a').panels[0].id).toBe('a');
     expect(runtime.getContext('a').ranges.time!.start).toBe(100);
-    expect(context.capabilities.apis).toContain('files.select');
-    expect(context.capabilities.apis).not.toContain('navigation.open');
-    expect(runtime.getContext('a', 'preview').capabilities.apis).not.toContain('settings.patch');
 });
 
 it('aborts pending navigation and file adapters when their owner closes', async () => {
@@ -287,12 +292,11 @@ it('aborts pending navigation and file adapters when their owner closes', async 
     expect((await selection).ok).toBe(false);
 });
 
-it.each(['preview', 'editor', 'options'] as const)('does not advertise or accept header actions on the %s surface', (surface) => {
+it.each(['preview', 'editor', 'options'] as const)('does not accept header actions on the %s surface', (surface) => {
     const runtime = new DashboardHostRuntime(board());
     const session = runtime.createHost(owner('a', { surface }));
     const result = session.host.header.registerActions([{ id: 'action', label: 'Action', onSelect: jest.fn() }]);
     expect(result).toEqual({ ok: false, error: { code: 'UNSUPPORTED', message: expect.any(String) } });
-    expect(runtime.getContext('a', surface).capabilities.apis).not.toContain('header.registerActions');
     expect(runtime.getPanelState('a').actions).toEqual([]);
 });
 
@@ -311,7 +315,6 @@ it.each(['editor', 'options'] as const)('rejects unavailable target/message oper
         await host.messages.send({ targetPanelIds: ['b'], topic: 'example/play', payload: null }),
     ];
     for (const result of results) expect(result).toEqual({ ok: false, error: { code: 'UNSUPPORTED', message: expect.any(String) } });
-    expect(runtime.getContext('a', surface).capabilities.apis).toEqual(['settings.patch']);
     expect(runtime.getPanelState('chart')).toEqual(before);
     expect(host.settings.patch({ incomplete: '' }).ok).toBe(true);
     expect(applied).toHaveBeenCalledWith({ incomplete: '' });

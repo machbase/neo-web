@@ -84,5 +84,6 @@ export interface LifecycleContext {
     source?: 'hub' | 'local';
     manifest?: PkgManifest;
     logs: string[];
+    extensionInstallApi?: string;
     onProgress?: (label: string) => void;
 }

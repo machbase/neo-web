@@ -24,7 +24,8 @@ export type ExtensionFieldInput = Pick<ExtensionEditorProps, 'settings' | 'setti
     onReplaceSettings(settings: Settings): void;
 };
 
-type Registry = { entries: ExtensionEntry[]; loads: Map<string, Promise<Map<string, ExtensionDefinition>>>; error?: string };
+type ModuleLoad = { promise: Promise<Map<string, ExtensionDefinition>>; failed: boolean };
+type Registry = { entries: ExtensionEntry[]; loads: Map<string, ModuleLoad>; error?: string };
 const RegistryContext = createContext<Registry | undefined>(undefined);
 const emptyEntries: ExtensionEntry[] = [];
 const moduleKey = ({ packageId, revision, moduleId }: ExtensionEntry) => JSON.stringify([packageId, revision, moduleId]);
@@ -37,9 +38,10 @@ function refreshEntries(previous: Registry | undefined, entries: ExtensionEntry[
         return old && old.revision === entry.revision && old.moduleId === entry.moduleId &&
             old.contractVersion === entry.contractVersion && old.label === entry.label ? old : entry;
     });
-    if (!previous.error && next.length === previous.entries.length && next.every((entry, index) => entry === previous.entries[index])) return previous;
+    const hasFailedLoad = [...previous.loads.values()].some((load) => load.failed);
+    if (!previous.error && !hasFailedLoad && next.length === previous.entries.length && next.every((entry, index) => entry === previous.entries[index])) return previous;
     const validModules = new Set(next.map(moduleKey));
-    return { entries: next, loads: new Map([...previous.loads].filter(([key]) => validModules.has(key))) };
+    return { entries: next, loads: new Map([...previous.loads].filter(([key, load]) => validModules.has(key) && !load.failed)) };
 }
 
 export function PanelExtensionProvider({ enabled, children }: { enabled: boolean; children: ReactNode }) {
@@ -78,12 +80,15 @@ export function usePanelExtension(packageId?: string, typeId?: string): { defini
         if (!entry || !registry || !supportsPanelContract(entry.contractVersion)) return;
         const key = moduleKey(entry);
         let load = registry.loads.get(key);
-        if (!load) {
-            load = loadPanelExtension(entry, registry.entries);
-            registry.loads.set(key, load);
+        if (!load || load.failed) {
+            const pending: ModuleLoad = { promise: loadPanelExtension(entry, registry.entries), failed: false };
+            // Keep failures retryable without invalidating a newer request or causing a retry loop.
+            void pending.promise.catch(() => { pending.failed = true; });
+            registry.loads.set(key, pending);
+            load = pending;
         }
         let active = true;
-        load.then(
+        load.promise.then(
             (definitions) => {
                 if (!active) return;
                 const definition = definitions.get(entry.typeId);

@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react';
-import type { SettingErrors, Settings, SettingValidators } from './settings';
+import type { Settings, SettingValidators } from './settings';
+import type { HostAdapters } from '@/extensions/host/types';
+import type { HostFromModules } from '@/extensions/host/modules';
+import type { dashboardHostModules } from './hostModules';
+export type { HostErrorCode, HostResult, HostHandle, HostFileSelection, HostOpenRequest, HostNotification, HostAdapters } from '@/extensions/host/types';
 
 export type HostSurface = 'dashboard' | 'preview' | 'editor' | 'options';
-export type HostErrorCode = 'INVALID_INPUT' | 'UNSUPPORTED' | 'TARGET_NOT_FOUND' | 'PREVIEW_FORBIDDEN' | 'DISPOSED' | 'ADAPTER_ERROR';
-export type HostResult<T = void> = { ok: true; value: T } | { ok: false; error: { code: HostErrorCode; message: string; settingErrors?: SettingErrors } };
-export interface HostHandle { readonly id: string; dispose(): HostResult<void>; }
 export interface HostTimeRange { start: number; end: number; }
 export interface HostDistanceRange { start: string | number; end: string | number; }
 export type HostRefreshReason = 'manual' | 'auto' | 'range-change' | 'panel-request';
@@ -26,10 +27,11 @@ export interface HostBoardInput {
     timeRange: HostTimeRange | null;
     distanceRange: HostDistanceRange;
     active?: boolean;
+    editing?: boolean;
     refresh?: HostRefresh;
 }
 export interface ExtensionContext {
-    board: { id: string };
+    board: { id: string; editing: boolean };
     panel: HostPanelInfo;
     panels: HostPanelInfo[];
     ranges: {
@@ -42,7 +44,7 @@ export interface ExtensionContext {
     surface: HostSurface;
     active: boolean;
     refresh: HostRefresh;
-    capabilities: { contractVersion: 1; apis: string[] };
+    capabilities: { contractVersion: 1 };
 }
 export type HostRangeRequest = {
     kind: 'time' | 'distance';
@@ -63,6 +65,7 @@ export interface HostOverlay {
     width?: number;
 }
 export interface RegisteredHostOverlay extends HostOverlay { ownerId: string; }
+export interface HostBorder { color: string; }
 export interface HostHeaderAction {
     id: string;
     label: string;
@@ -77,6 +80,7 @@ export interface HostPanelState {
     rangeOverrides: { time?: HostTimeRange; distance?: HostDistanceRange };
     rangePolicies: { time?: HostRangePolicy; distance?: HostRangePolicy };
     overlays: RegisteredHostOverlay[];
+    border?: HostBorder;
     actions: RegisteredHostAction[];
     refresh: HostRefresh;
 }
@@ -88,17 +92,6 @@ export interface HostMessage {
     sender: { panelId: string; packageId: string; typeId: string };
 }
 export interface HostDelivery { panelId: string; status: 'delivered' | 'not-listening' | 'not-found'; }
-export interface HostFileSelection { extensions?: string[]; startPath?: string; }
-export interface HostOpenRequest { path: string; kind: 'dashboard' | 'file'; target?: 'tab' | 'window'; }
-export interface HostNotification { message: string; level?: 'info' | 'success' | 'error'; }
-export interface HostAdapters {
-    selectFile?(request: HostFileSelection, signal?: AbortSignal): Promise<string | null>;
-    open?(request: HostOpenRequest, signal?: AbortSignal): void | Promise<void>;
-    notify?(request: HostNotification): void;
-    confirm?(message: string): Promise<boolean>;
-    enterFullscreen?(): void | Promise<void>;
-    exitFullscreen?(): void | Promise<void>;
-}
 export interface HostOwner {
     panelId: string;
     packageId: string;
@@ -109,23 +102,5 @@ export interface HostOwner {
     validateSettings?: SettingValidators;
     adapters?: HostAdapters;
 }
-export interface ExtensionHost {
-    settings: { patch(changes: Settings, options?: { removeKeys?: string[] }): HostResult<Settings> };
-    messages: {
-        send(message: HostMessageInput): Promise<HostResult<HostDelivery[]>>;
-        subscribe(topic: string, handler: (message: HostMessage) => void | Promise<void>): HostResult<HostHandle>;
-    };
-    panels: {
-        setRangeOverride(panelId: string, request: HostRangeRequest): HostResult<HostHandle>;
-        clearRangeOverride(handle: HostHandle): HostResult<void>;
-        setOverlay(panelId: string, overlay: HostOverlay): HostResult<HostHandle>;
-        clearOverlay(handle: HostHandle): HostResult<void>;
-        refresh(panelId: string): HostResult<void>;
-    };
-    header: { registerActions(actions: HostHeaderAction[]): HostResult<HostHandle> };
-    viewport: { enterFullscreen(): Promise<HostResult<void>>; exitFullscreen(): Promise<HostResult<void>> };
-    files: { select(request?: HostFileSelection): Promise<HostResult<string | null>> };
-    navigation: { open(request: HostOpenRequest): Promise<HostResult<void>> };
-    ui: { notify(request: HostNotification): HostResult<void>; confirm(message: string): Promise<HostResult<boolean>> };
-}
+export type ExtensionHost = HostFromModules<typeof dashboardHostModules>;
 export interface HostSession { host: ExtensionHost; dispose(): void; }

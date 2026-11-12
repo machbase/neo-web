@@ -1,7 +1,7 @@
 import Panel from '../panels/Panel';
 import { useEffect, useRef, useState } from 'react';
 import GridLayout from 'react-grid-layout';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import moment from 'moment';
 import { MdRefresh } from '../../assets/icons/Icon';
 import { calcRefreshTime, setUnitTime } from '../../utils/dashboardUtil';
@@ -12,11 +12,10 @@ import AutoRefreshControl from '@/components/dashboard/AutoRefreshControl';
 import RangeChips from '@/components/dashboard/RangeChips';
 import DistanceRangeModal from '../modal/DistanceRangeModal';
 import { fetchBlockBaseMinMax } from '../../utils/dashboardBaseMinMax';
-import { isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
 import { isDistanceAnchorEdge, isDistanceEdgeSet, resolveDistanceEdge } from '@/utils/distanceRange';
 import { timeMinMaxConverter } from '../../utils/bgnEndTimeRange';
 import { executeQuery, fetchMountTimeMinMax, fetchTimeMinMax } from '../../api/repository/machiot';
-import { getTimeMinMaxFetchTarget, pickBoardTimeMinMaxPanel, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { getTimeMinMaxFetchTarget, pickBoardTimeMinMaxPanel, pickBoardDistanceMinMaxPanel, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
 import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
 import { CheckDataCompatibility } from '../../utils/CheckDataCompatibility';
 import { VariableHeader } from '../variable/VariableHeader';
@@ -32,7 +31,6 @@ import ShareModal from '../../components/modal/ShareModal';
 
 const DashboardView = () => {
     const sParams = useParams();
-    const [sSearchParams] = useSearchParams();
     const sBodyRef = useRef<HTMLDivElement>(null);
     const [sBoardInformation, setBoardInformation] = useState<{ dashboard: any; name: string; id: string; panelHeader: boolean }>();
     const [sNotfound, setNotFound] = useState<boolean>(false);
@@ -59,16 +57,6 @@ const DashboardView = () => {
                 const sResult = await response.text();
                 const sParsedRes = CheckDataCompatibility(sResult, 'dsh');
                 await handleDashboardTimeRange(sParsedRes.dashboard.timeRange.start, sParsedRes.dashboard.timeRange.end, sParsedRes);
-
-                // Filter panels by video query parameter
-                const videoId = sSearchParams.get('video');
-                if (videoId) {
-                    const videoPanel = sParsedRes.dashboard.panels.find((p: any) => p.id === videoId && p.type === 'Video');
-                    if (videoPanel) {
-                        const dependentPanelIds: string[] = videoPanel.chartOptions?.dependent?.panels ?? [];
-                        sParsedRes.dashboard.panels = sParsedRes.dashboard.panels.filter((p: any) => p.id === videoId || dependentPanelIds.includes(p.id));
-                    }
-                }
 
                 setBoardInformation(sParsedRes);
                 setNotFound(false);
@@ -108,7 +96,7 @@ const DashboardView = () => {
     const fetchTableTimeMinMax = async (aBoardInfo: any): Promise<{ min: number; max: number }> => {
         // Source the board time min/max from a TIME (non-distance) panel — distance panels self-resolve.
         const sTargetPanel = pickBoardTimeMinMaxPanel(aBoardInfo.dashboard.panels);
-        // No usable candidate (e.g. a TQL/Video-only board). Without this guard the TypeError below
+        // No usable candidate (e.g. a non-query-only board). Without this guard the TypeError below
         // stops handleRefresh before GenChartVariableId(), leaving Refresh silently dead.
         if (!sTargetPanel?.blockList?.length) return defaultMinMax();
         const sTargetTag = sTargetPanel.blockList[0];
@@ -153,7 +141,7 @@ const DashboardView = () => {
     // same resolution rule: an anchored edge is measured first, then written out as coordinates.
     const moveDistanceRange = async (aDir: 'l' | 'r') => {
         const sDR = sBoardInformation?.dashboard?.distanceRange ?? {};
-        const sDistancePanel = sBoardInformation?.dashboard?.panels?.find((aPanel: any) => aPanel.type !== 'Tql chart' && isNumericBaseTimeBlock(aPanel.blockList?.[0]));
+        const sDistancePanel = pickBoardDistanceMinMaxPanel(sBoardInformation?.dashboard?.panels);
         const sAnchored = isDistanceAnchorEdge(sDR.start) || isDistanceAnchorEdge(sDR.end);
         let sFrom = Number(sDR.start);
         let sTo = Number(sDR.end);

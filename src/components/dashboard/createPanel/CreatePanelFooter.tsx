@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { PlusCircle } from '@/assets/icons/Icon';
 import { generateUUID } from '@/utils';
 import { TqlBlock } from './TqlBlock';
-import { VideoBlock } from './VideoBlock';
 import { getTagColor, getUseColorList } from '@/utils/helpers/tags';
 import { Transform } from './Transform';
 import { chartTypeConverter } from '@/utils/eChartHelper';
@@ -22,8 +21,7 @@ type FOOTER_MENU_TYPE = 'Series' | 'Transform' | 'Time';
 const CreatePanelFooter = ({ pTableList, pVariables, pType, pGetTables, pSetPanelOption, pPanelOption, pMissingTagBlockId }: any) => {
     const [sTab, setTab] = useState<FOOTER_MENU_TYPE>('Series');
     const isTqlChart = pPanelOption.type === 'Tql chart';
-    const isVideo = pPanelOption.type === 'Video';
-    const isNormalType = !(isTqlChart || isVideo);
+    const isNormalType = !isTqlChart;
     // One panel is on one axis, so the range tab is that axis: a distance panel has no `last-1h` to
     // pick and no timestamp to type, and the time editor written into it would edit a field the
     // panel never reads (see the distance branch in LineChart).
@@ -184,7 +182,6 @@ const CreatePanelFooter = ({ pTableList, pVariables, pType, pGetTables, pSetPane
                 </>
             ) : null}
             {isTqlChart ? <TqlBlock pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} /> : null}
-            {isVideo ? <VideoBlock pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} pTableList={pTableList} /> : null}
         </Page>
     );
 };

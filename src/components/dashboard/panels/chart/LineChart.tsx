@@ -5,7 +5,6 @@ import { calcInterval, calcRefreshTime, decodeFormatterFunction, PanelIdParser, 
 import { isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
 import { fetchBlockBaseMinMax } from '@/utils/dashboardBaseMinMax';
 import { isDistanceAnchorEdge, isDistanceEdgeSet, resolveDistanceEdge } from '@/utils/distanceRange';
-import { subscribeTimeRangeChange, unsubscribeTimeRangeChange, TimeRangeEvent, getVideoPanelStateForChart } from '@/hooks/useVideoSync';
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { DashboardHostRuntime } from '../../extensions/hostRuntime';
 import { attachChartOverlays, chartRangePolicy } from '../../extensions/chartHostAdapter';
@@ -95,8 +94,6 @@ const LineChart = ({
     // why they always redraw. Bump a render key on every sink response to force a remount instead.
     const [sSinkRenderKey, setSinkRenderKey] = useState<number>(0);
     const [sGeomapTitle, setGeomapTitle] = useState<string | undefined>(undefined);
-    const [sVideoTimeRange, setVideoTimeRange] = useState<{ start: Date; end: Date } | null>(null);
-    const prevVideoTimeRangeRef = useRef<{ start: Date; end: Date } | null | undefined>(undefined);
     // Lift the server-resolved theme (pData.theme) so the parent panel chrome can match the
     // rendered chart. For non-TQL charts this equals the panel theme; for TQL it's the .tql's own
     // theme (issue #1435). React bails on an unchanged value, so this causes no re-render loop.
@@ -112,33 +109,6 @@ const LineChart = ({
 
     const calculateTimeRange = () => {
         if (hostTimeRange) return hostTimeRange;
-        // Check if this chart is dependent on a Live video
-        const videoState = hostPolicy ? null : getVideoPanelStateForChart(pBoardInfo?.id, pPanelInfo.id);
-
-        // Live video charts always use dashboard time (ignore video time range and panel custom time)
-        // This is a core design principle: Live charts follow dashboard time, not video time
-        if (videoState?.isLive) {
-            // Always use board time for Live charts (ignore panel's useCustomTime setting)
-            let sStartTimeBeforeStart = pBoardTimeMinMax?.min;
-            let sStartTimeBeforeEnd = pBoardTimeMinMax?.max;
-
-            // Convert if either start or end contains 'now' or 'last'
-            const sStartStr = String(sStartTimeBeforeStart);
-            const sEndStr = String(sStartTimeBeforeEnd);
-
-            if (sStartStr.includes('now') || sStartStr.includes('last') || sEndStr.includes('now') || sEndStr.includes('last')) {
-                sStartTimeBeforeStart = setUnitTime(sStartTimeBeforeStart);
-                sStartTimeBeforeEnd = setUnitTime(sStartTimeBeforeEnd);
-            }
-
-            return { start: sStartTimeBeforeStart ?? setUnitTime(undefined), end: sStartTimeBeforeEnd ?? setUnitTime(undefined) };
-        }
-
-        // Use video time range if available (for Normal/Sync videos only)
-        if (sVideoTimeRange) {
-            return { start: sVideoTimeRange.start.getTime(), end: sVideoTimeRange.end.getTime() };
-        }
-
         let sStartTimeBeforeStart = pPanelInfo.useCustomTime ? pPanelInfo.timeRange.start : pBoardTimeMinMax?.min;
         let sStartTimeBeforeEnd = pPanelInfo.useCustomTime ? pPanelInfo.timeRange.end : pBoardTimeMinMax?.max;
 
@@ -194,22 +164,9 @@ const LineChart = ({
         let sStartTime = undefined;
         let sEndTime = undefined;
 
-        // Check if this chart is dependent on a Live video
-        const videoState = hostPolicy ? null : getVideoPanelStateForChart(pBoardInfo?.id, pPanelInfo.id);
-
-        // Live video charts always use dashboard time (ignore video time range and panel custom time)
-        // This is a core design principle: Live charts follow dashboard time, not video time
         if (!numericBase && hostTimeRange) {
             sStartTime = hostTimeRange.start;
             sEndTime = hostTimeRange.end;
-        } else if (videoState?.isLive) {
-            // Always use board time for Live charts (ignore panel's useCustomTime setting)
-            sStartTime = setUnitTime(pBoardTimeMinMax?.min);
-            sEndTime = setUnitTime(pBoardTimeMinMax?.max);
-        } else if (sVideoTimeRange && !hostPolicy) {
-            // Use video time range for Normal/Sync video charts
-            sStartTime = sVideoTimeRange.start.getTime();
-            sEndTime = sVideoTimeRange.end.getTime();
         } else if (isNumericBaseTimeBlock(pPanelInfo.blockList?.[0])) {
             // Distance (numeric base) panel — resolve from the kind-separated distanceRange: the
             // panel's own window when it has one, otherwise the board's. Numeric start/end are used
@@ -553,9 +510,6 @@ const LineChart = ({
             return;
         }
 
-        // Case 2: loopMode 자동 갱신 (chartVariableId 동일)
-        // → Live 비디오에 종속된 차트만 재조회
-        //
         // Dashboard auto-refresh ticks (autoRefresh flag) are NOT applied to markdown/text/csv sink
         // TQL panels. The Refresh button is already handled by Case 1, and time-arrows / TimeRangeModal
         // Save carry no flag, so those still re-query — TQL files may use $from_*/$to_* params.
@@ -573,21 +527,7 @@ const LineChart = ({
             if (sSetIntervalTime() !== null) return;
         }
 
-        const videoState = hostPolicy ? null : getVideoPanelStateForChart(pBoardInfo?.id, pPanelInfo.id);
-
-        if (videoState) {
-            // 이 차트는 비디오에 종속됨
-            if (!videoState.isLive) {
-                // 종속 비디오가 Live가 아니면 재조회 안 함 (비디오의 시간 범위를 따름)
-                return;
-            } else {
-                // 종속 비디오가 Live면 재조회 (실시간 데이터 갱신)
-                executeTqlChart();
-            }
-        } else {
-            // 비디오에 종속되지 않은 독립 차트는 항상 대시보드 시간을 따름
-            executeTqlChart();
-        }
+        executeTqlChart();
         // distanceRange is board-level (not carried by pBoardTimeMinMax), so re-query when it changes.
     }, [pBoardTimeMinMax, pChartVariableId, pBoardInfo?.dashboard?.distanceRange?.start, pBoardInfo?.dashboard?.distanceRange?.end]);
     useEffect(() => {
@@ -656,64 +596,6 @@ const LineChart = ({
         if (!ChartRef.current || !hostOverlays.current.length) return;
         return attachChartOverlays(ChartRef.current, () => hostOverlays.current);
     }, [overlayKey]);
-
-    // Legacy fallback until the existing Video implementation moves to Blackbox.
-    useEffect(() => {
-        const panelId = pPanelInfo.id;
-        const boardId = pBoardInfo?.id;
-        if (!boardId || !panelId) return;
-
-        subscribeTimeRangeChange(boardId, panelId, (event: TimeRangeEvent) => {
-            // Clear event: revert to dashboard time range
-            if (event.clear || !event.start || !event.end) {
-                setVideoTimeRange(null);
-            } else {
-                // Check if time range actually changed (avoid unnecessary re-renders)
-                const newStart = event.start;
-                const newEnd = event.end;
-                setVideoTimeRange((prev) => {
-                    if (prev && prev.start.getTime() === newStart.getTime() && prev.end.getTime() === newEnd.getTime()) {
-                        // Same time range - don't update state
-                        return prev;
-                    }
-                    // Different time range - update state
-                    return { start: newStart, end: newEnd };
-                });
-            }
-        });
-
-        return () => {
-            unsubscribeTimeRangeChange(boardId, panelId);
-        };
-    }, [pBoardInfo?.id, pPanelInfo.id]);
-
-    // Reload chart when video time range changes
-    useEffect(() => {
-        // Skip initial mount
-        if (prevVideoTimeRangeRef.current === undefined) {
-            prevVideoTimeRangeRef.current = sVideoTimeRange;
-            return;
-        }
-
-        const prevRange = prevVideoTimeRangeRef.current;
-        prevVideoTimeRangeRef.current = sVideoTimeRange;
-
-        if (!sIsMounted) return;
-
-        if (hostPolicy) return;
-        if (sVideoTimeRange) {
-            // New video range set - reload with video range
-            executeTqlChart();
-        } else if (prevRange) {
-            // Video range cleared (was set, now null)
-            // Check if video panel is in live mode
-            const videoState = hostPolicy ? null : getVideoPanelStateForChart(pBoardInfo?.id, pPanelInfo.id);
-            if (videoState?.isLive) {
-                // Live mode - reload with dashboard time range
-                executeTqlChart();
-            }
-        }
-    }, [sVideoTimeRange]);
 
     useOverlapTimeout(() => {
         // Announce the tick before the (possibly skipped) query: the next one is scheduled from this

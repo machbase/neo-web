@@ -1,3 +1,4 @@
+import { assertDashboardPanelObjects, isBuiltInDashboardPanel } from '@/utils/dashboardPanelSupport';
 import { SqlResDataType } from './DashboardQueryParser';
 import { CheckObjectKey, SEPARATE_DIFF, geomapAggregatorList, logAggregatorList, nameValueAggregatorList, nameValueVirtualAggList, tagAggregatorList } from './dashboardUtil';
 import { chartTypeConverter } from './eChartHelper';
@@ -11,6 +12,7 @@ export const VARIABLE_RM_REGEX = /^{+|}+$/g;
 
 const DashboardCompatibility = (aData: any) => {
     const sDashboardInfo = JSON.parse(aData);
+    assertDashboardPanelObjects(sDashboardInfo?.dashboard?.panels);
 
     // Check variables
     if (!sDashboardInfo?.dashboard?.variables) {
@@ -23,6 +25,7 @@ const DashboardCompatibility = (aData: any) => {
     if (sDashboardInfo?.dashboard.panels.length > 0) {
         const sPanelList = sDashboardInfo.dashboard.panels;
         const sVaildPanelList = sPanelList.map((aPanel: any) => {
+            if (!isBuiltInDashboardPanel(aPanel)) return aPanel;
             // Add version
             aPanel.version = getVersionByKey(aPanel);
 

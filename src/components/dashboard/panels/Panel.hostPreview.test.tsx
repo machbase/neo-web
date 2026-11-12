@@ -14,16 +14,12 @@ jest.mock('@/api/repository/machiot', () => ({
     getTqlChart: jest.fn(), fetchTimeMinMax: jest.fn(), fetchMountTimeMinMax: jest.fn(),
 }));
 jest.mock('recoil', () => ({ ...jest.requireActual('recoil'), useRecoilValue: () => [] }));
-jest.mock('@/components/dashboard/extensions/HostReact', () => ({ useHostBoard: () => ({ runtime: mockRuntime }) }));
+jest.mock('@/components/dashboard/extensions/HostReact', () => ({ useHostBoard: () => ({ runtime: mockRuntime }), useHostBorder: () => undefined }));
 jest.mock('./PanelHeader', () => ({ __esModule: true, default: () => <div /> }));
-jest.mock('./video/VideoPanel', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/tql/ShowVisualization', () => ({ ShowVisualization: () => <div data-testid="visual" /> }));
 jest.mock('@/components/worksheet/Markdown', () => ({ Markdown: () => null }));
 jest.mock('@/design-system/components', () => ({ CommonTable: () => null }));
 jest.mock('@/utils/DashboardTqlChartParser', () => ({ TqlChartParser: (_info: unknown, range: unknown) => range }));
-jest.mock('@/hooks/useVideoSync', () => ({
-    subscribeTimeRangeChange: jest.fn(), unsubscribeTimeRangeChange: jest.fn(), getVideoPanelStateForChart: () => undefined,
-}));
 
 const PANEL = {
     id: 'chart-1', type: 'Tql chart', title: 'Connected chart', theme: 'dark', w: 6, h: 6,

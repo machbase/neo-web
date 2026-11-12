@@ -44,11 +44,6 @@ jest.mock('@/design-system/components', () => ({
     Toast: { error: jest.fn(), info: jest.fn(), success: jest.fn() },
 }));
 
-jest.mock('@/hooks/useVideoSync', () => ({
-    subscribeTimeRangeChange: jest.fn(),
-    unsubscribeTimeRangeChange: jest.fn(),
-    getVideoPanelStateForChart: () => undefined,
-}));
 
 const VISUAL_RES = {
     status: 200,

@@ -34,12 +34,8 @@ import DataViewerPage from '../dataViewer/DataViewerPage';
 import { EXTENSION_SET, IMAGE_EXTENSION_LIST } from '@/utils/constants';
 import { UnknownExtension } from '../unknownExtension';
 import { SaveModal } from '../side/FileExplorer/SaveModal';
-import { CameraPage } from '../side/Camera/cameraPage';
-import { EventPage } from '../side/Camera/Event';
-import { ServerPage } from '../side/Camera/serverPage';
 import {
     gActiveBridge,
-    gActiveCamera,
     gActiveKey,
     gActiveShellManage,
     gActiveSubr,
@@ -88,7 +84,6 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
     const setActiveKey = useSetRecoilState<any>(gActiveKey);
     const setActiveBridge = useSetRecoilState(gActiveBridge);
     const setActiveSubr = useSetRecoilState(gActiveSubr);
-    const setActiveCamera = useSetRecoilState(gActiveCamera);
     // Selecting an `APP: x` tab reveals package x in the App Store panel. It does
     // NOT reach into the panel's own state directly: `useRevealPkgView` owns the
     // "only packages with a side.html get a pill" rule and the cached probe that
@@ -208,7 +203,6 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
         if (board.type === 'key') setActiveKey(undefined);
         if (board.type === 'bridge') setActiveBridge(undefined);
         if (board.type === 'subscriber') setActiveSubr(undefined);
-        if (board.type === 'camera') setActiveCamera(undefined);
         // ONE PACKAGE IS ONE SESSION ACROSS TWO SURFACES. Closing an `APP:` tab
         // closes its pill in the App Store panel, and the pill's × closes this tab
         // (AppStore/pkgViews.ts `useClosePkgSession`) — the symmetry is the point.
@@ -530,11 +524,6 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                                 {checkExtension(aItem.type, 'appView') && <AppView pAppName={aItem.code?.appName} pIsActiveTab={aItem.id === sSelectedTab} />}
                                 {checkExtension(aItem.type, 'DBTable') && <DBTablePage pCode={aItem} pIsActiveTab={aItem.id === sSelectedTab} />}
                                 {checkExtension(aItem.type, 'DataViewer') && <DataViewerPage pCode={aItem.code} embedded />}
-                                {checkExtension(aItem.type, 'camera') && <CameraPage pCode={aItem.code} mode={aItem.mode} />}
-                                {checkExtension(aItem.type, 'blackboxsvr') && <ServerPage pCode={aItem.code} />}
-                                {checkExtension(aItem.type, 'event') && (
-                                    <EventPage key={aItem.refreshKey} pServerConfig={aItem.code} />
-                                )}
                                 {checkExtension(aItem.type, 'unknown') && (
                                     <UnknownExtension pIsActiveTab={aItem.id === sSelectedTab} pCode={aItem.code} />
                                 )}

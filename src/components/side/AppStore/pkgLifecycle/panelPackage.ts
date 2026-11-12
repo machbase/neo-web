@@ -79,7 +79,13 @@ export async function deployPanelPackage(
         }
 
         if (existing?.phase !== 'body-ready') {
-            const bodyContext = { ...ctx, source: target.source, tag: target.tag, fullName: target.fullName };
+            const bodyContext = {
+                ...ctx,
+                extensionInstallApi: `${PANEL_PACKAGE_ROOT}/.staging/${target.job}/neo-install-api.js`,
+                source: target.source,
+                tag: target.tag,
+                fullName: target.fullName,
+            };
             const result = await run(bodyContext, target.mode, async (restartAfterCopy) => {
                 const marked = await step('copy', restartAfterCopy);
                 if (!marked.ok) return marked;

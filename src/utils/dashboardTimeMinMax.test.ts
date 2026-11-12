@@ -1,4 +1,4 @@
-import { getPanelTimeMinMaxTarget, hasResolvedTimeRange, pickBoardTimeMinMaxPanel } from './dashboardTimeMinMax';
+import { getPanelTimeMinMaxTarget, hasResolvedTimeRange, pickBoardTimeMinMaxPanel, pickBoardDistanceMinMaxPanel } from './dashboardTimeMinMax';
 
 const timePanel = (id: string) => ({ id, type: 'Line', blockList: [{ timeBaseTime: true, timeType: 6 }] });
 const distancePanel = (id: string) => ({ id, type: 'Line', blockList: [{ timeBaseTime: true, timeType: 20 }] });
@@ -51,11 +51,12 @@ describe('dashboard time min max helpers', () => {
     test('prefers the currently edited panel as min max target', () => {
         const currentPanel = {
             id: 'edited',
+            type: 'Line',
             blockList: [{ table: 'NEW_VIEW' }],
         };
         const fallbackPanels = [
-            { id: 'old-first', blockList: [{ table: 'OLD_TAG' }] },
-            { id: 'edited', blockList: [{ table: 'OLD_VIEW' }] },
+            { id: 'old-first', type: 'Line', blockList: [{ table: 'OLD_TAG' }] },
+            { id: 'edited', type: 'Line', blockList: [{ table: 'OLD_VIEW' }] },
         ];
 
         expect(getPanelTimeMinMaxTarget(currentPanel, fallbackPanels, 'edited')).toBe(currentPanel);
@@ -63,10 +64,41 @@ describe('dashboard time min max helpers', () => {
 
     test('falls back to the saved edited panel before the first dashboard panel', () => {
         const fallbackPanels = [
-            { id: 'old-first', blockList: [{ table: 'OLD_TAG' }] },
-            { id: 'edited', blockList: [{ table: 'SAVED_EDITED' }] },
+            { id: 'old-first', type: 'Line', blockList: [{ table: 'OLD_TAG' }] },
+            { id: 'edited', type: 'Line', blockList: [{ table: 'SAVED_EDITED' }] },
         ];
 
         expect(getPanelTimeMinMaxTarget(undefined, fallbackPanels, 'edited')).toBe(fallbackPanels[1]);
+    });
+});
+
+describe('unsupported panel query isolation', () => {
+    const unavailable = (numeric = false) => ({
+        id: 'unavailable', type: 'Unavailable panel',
+        blockList: [{ table: 'RETAINED_DATA', tag: 'retained', timeBaseTime: true, timeType: numeric ? 20 : 6 }],
+        opaque: { retained: ['settings'] },
+    });
+
+    test('keeps unsupported retained blocks out of board time selection and leaves all input data unchanged', () => {
+        const panels = [unavailable(), distancePanel('numeric'), timePanel('first-time'), timePanel('second-time')];
+        const saved = JSON.stringify(panels);
+        expect(pickBoardTimeMinMaxPanel(panels)).toBe(panels[2]);
+        expect(pickBoardTimeMinMaxPanel([panels[0]])).toBeUndefined();
+        expect(JSON.stringify(panels)).toBe(saved);
+    });
+
+    test('keeps unsupported retained numeric blocks out of distance selection and keeps supported order', () => {
+        const panels = [unavailable(true), timePanel('time'), distancePanel('first-distance'), distancePanel('second-distance')];
+        const saved = JSON.stringify(panels);
+        expect(pickBoardDistanceMinMaxPanel(panels)).toBe(panels[2]);
+        expect(pickBoardDistanceMinMaxPanel([panels[0], panels[1]])).toBeUndefined();
+        expect(JSON.stringify(panels)).toBe(saved);
+    });
+
+    test('does not use an unsupported current or saved edited panel as an editor query target', () => {
+        const retired = unavailable(); const panels = [retired, timePanel('normal')]; const saved = JSON.stringify(panels);
+        expect(getPanelTimeMinMaxTarget(retired, panels)).toBe(panels[1]);
+        expect(getPanelTimeMinMaxTarget(retired, panels, retired.id)).toBeUndefined();
+        expect(JSON.stringify(panels)).toBe(saved);
     });
 });

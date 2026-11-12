@@ -1,13 +1,15 @@
+import { isBuiltInDashboardPanel } from '@/utils/dashboardPanelSupport';
+import { UnsupportedPanel } from '@/components/dashboard/panels/UnsupportedPanel';
 import './Panel.scss';
 import { useState, useEffect } from 'react';
 import LineChart from './chart/LineChart';
-import VideoPanel from '@/components/dashboard/panels/video/VideoPanel';
 import PanelHeader from './PanelHeader';
 import { ChartThemeBackgroundColor, ChartThemeTextColor } from '../../utils/constants';
 import { ChartTheme } from '../../type/eChart';
 import AutoRefreshControl from '@/components/dashboard/AutoRefreshControl';
 
 const Panel = ({ pLoopMode, pChartVariableId, pBoardInfo, pPanelInfo, pParentWidth, pIsHeader, pBoardTimeMinMax, pIsActiveTab, pOnChangePanelRefresh }: any) => {
+    const sIsBuiltIn = isBuiltInDashboardPanel(pPanelInfo);
     // Match panel chrome to the theme the chart actually renders (issue #1435). TQL charts own their
     // theme in the .tql, so seed the chrome as undetermined (never the hardcoded 'dark' default) and
     // let LineChart lift the server-resolved theme. Non-TQL keep their explicit panel theme.
@@ -26,7 +28,7 @@ const Panel = ({ pLoopMode, pChartVariableId, pBoardInfo, pPanelInfo, pParentWid
                 PanelHeader because this view renders panels with the header off (`pIsHeader={false}`),
                 so nothing inside it is ever on screen. A Geomap honours the interval only with its own
                 useAutoRefresh on, so there it is not drawn either. */}
-            {(pPanelInfo?.timeRange?.refresh ?? 'Off') !== 'Off' && (pPanelInfo?.type !== 'Geomap' || !!pPanelInfo?.chartOptions?.useAutoRefresh) && (
+            {sIsBuiltIn && (pPanelInfo?.timeRange?.refresh ?? 'Off') !== 'Off' && (pPanelInfo?.type !== 'Geomap' || !!pPanelInfo?.chartOptions?.useAutoRefresh) && (
                 <div className="public-panel-refresh">
                     <AutoRefreshControl
                         pValue={pPanelInfo?.timeRange?.refresh ?? 'Off'}
@@ -40,18 +42,7 @@ const Panel = ({ pLoopMode, pChartVariableId, pBoardInfo, pPanelInfo, pParentWid
             )}
             <PanelHeader pPanelInfo={pPanelInfo} pIsHeader={pIsHeader} pResolvedTheme={sResolvedTheme} />
             {pPanelInfo ? (
-                pPanelInfo?.type === 'Video' ? (
-                    <VideoPanel
-                        pLoopMode={pLoopMode}
-                        pIsActiveTab={pIsActiveTab}
-                        pChartVariableId={pChartVariableId}
-                        pPanelInfo={pPanelInfo}
-                        pBoardInfo={pBoardInfo}
-                        pBoardTimeMinMax={pBoardTimeMinMax}
-                        pParentWidth={pParentWidth}
-                        pIsHeader={pIsHeader}
-                    />
-                ) : (
+                !sIsBuiltIn ? <UnsupportedPanel /> : (
                     <LineChart
                         pLoopMode={pLoopMode}
                         pBoardInfo={pBoardInfo}

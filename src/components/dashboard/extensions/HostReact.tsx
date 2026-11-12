@@ -21,6 +21,7 @@ interface HostBoardContextValue {
     boardInfo: any;
     timeRange: HostTimeRange | null;
     active: boolean;
+    editing: boolean;
     refresh: HostRefresh;
     executionRevisions: Record<string, number>;
     invalidatePanel(panelId: string): void;
@@ -35,17 +36,23 @@ const noopSubscribe = () => () => {};
 const zeroSnapshot = () => 0;
 const emptyActions: RegisteredHostAction[] = [];
 export function hostPanelInfo(panel: any, executionRevision = 0): HostPanelInfo {
-    const chart = ChartTypeList.some(({ key, value }) => key === panel.type && value !== 'video');
+    const chart = ChartTypeList.some(({ key }) => key === panel.type);
     const cartesian = ['Line', 'Bar', 'Scatter'].includes(panel.type) && !panel.chartOptions?.isPolar;
     const range = isNumericBaseTimeBlock(panel.blockList?.[0]) ? 'range:distance' : 'range:time';
     return { id: panel.id, type: panel.type, title: panel.title, theme: panel.theme, width: panel.w, height: panel.h, executionRevision,
-        capabilities: panel.type === 'Extension' ? ['refresh', 'range:time', 'range:distance'] : chart ? ['refresh', range, ...(cartesian ? ['overlay'] : [])] : [] };
+        capabilities: ['border', ...(panel.type === 'Extension' ? ['refresh', 'range:time', 'range:distance'] : chart ? ['refresh', range, ...(cartesian ? ['overlay'] : [])] : [])] };
 }
-function boardInput(boardInfo: any, timeRange: HostTimeRange | null, active: boolean, refresh: HostRefresh, revisions: Record<string, number>): HostBoardInput {
+function boardInput(boardInfo: any, timeRange: HostTimeRange | null, active: boolean, refresh: HostRefresh, revisions: Record<string, number>, editing: boolean): HostBoardInput {
     return { id: String(boardInfo?.id ?? 'standalone'), panels: (boardInfo?.dashboard?.panels ?? []).map((panel: any) => hostPanelInfo(panel, revisions[panel.id] ?? 0)),
-        timeRange, distanceRange: { start: boardInfo?.dashboard?.distanceRange?.start ?? '', end: boardInfo?.dashboard?.distanceRange?.end ?? '' }, active, refresh };
+        timeRange, distanceRange: { start: boardInfo?.dashboard?.distanceRange?.start ?? '', end: boardInfo?.dashboard?.distanceRange?.end ?? '' }, active, editing, refresh };
 }
 export function useHostBoard() { return useContext(HostBoardContext); }
+
+export function useHostBorder(panelId: string): string | undefined {
+    const board = useHostBoard();
+    useSyncExternalStore(board ? (listener) => board.runtime.subscribe(listener) : noopSubscribe, board ? board.runtime.getSnapshot : zeroSnapshot);
+    return board?.runtime.getPanelState(panelId).border?.color;
+}
 
 function loadHostWorksheet(content: string) {
     const document = JSON.parse(content);
@@ -127,7 +134,7 @@ export function useExtensionHost({ panel, definition, surface, settings, getSett
     const contextPanels = [...(board?.boardInfo?.dashboard?.panels ?? []).filter((item: any) => item.id !== panel.id), panel].map((item: any) => hostPanelInfo(item));
     const standalone = useMemo(() => new DashboardHostRuntime({
         id: String(board?.boardInfo.id ?? 'standalone'), panels: contextPanels, timeRange: timeRange ?? board?.timeRange ?? null,
-        distanceRange: distanceRange ?? { start: '', end: '' }, active: board?.active ?? true,
+        distanceRange: distanceRange ?? { start: '', end: '' }, active: board?.active ?? true, editing: board?.editing ?? false,
     }), [board?.runtime, panel.id, surface]);
     const runtime = surface === 'dashboard' && board ? board.runtime : standalone;
     const latest = useRef({ board, settings, getSettings, onReplaceSettings });
@@ -137,8 +144,8 @@ export function useExtensionHost({ panel, definition, surface, settings, getSett
         if (runtime !== standalone) return;
         runtime.updateBoard({ id: String(board?.boardInfo.id ?? 'standalone'), panels: contextPanels,
             timeRange: timeRange ?? board?.timeRange ?? null, distanceRange: distanceRange ?? { start: '', end: '' },
-            active: board?.active ?? true, refresh: board?.refresh });
-    }, [runtime, standalone, panel, timeRange, distanceRange, board?.boardInfo, board?.active, board?.refresh]);
+            active: board?.active ?? true, editing: board?.editing ?? false, refresh: board?.refresh });
+    }, [runtime, standalone, panel, timeRange, distanceRange, board?.boardInfo, board?.active, board?.editing, board?.refresh]);
     const adapters = useMemo<HostAdapters>(() => ({
         selectFile: (request, signal) => {
             if (!latest.current.board) return Promise.reject(new Error('File selection is unavailable.'));
@@ -187,16 +194,16 @@ export function useExtensionHost({ panel, definition, surface, settings, getSett
         return () => created.dispose();
     }, [runtime, panel.id, panel.extension.packageId, panel.extension.typeId, surface, definition, availableAdapters]);
     useSyncExternalStore(runtime.subscribe, runtime.getSnapshot);
-    return { host: session?.definition === definition && session.runtime === runtime ? session.value.host : undefined, context: runtime.getContext(panel.id, surface, availableAdapters), rootRef };
+    return { host: session?.definition === definition && session.runtime === runtime ? session.value.host : undefined, context: runtime.getContext(panel.id, surface), rootRef };
 }
 
-export function HostBoardProvider({ boardInfo, timeRange, active, refresh = EMPTY_REFRESH, children }: {
-    boardInfo: any; timeRange: HostTimeRange | null; active: boolean; refresh?: HostRefresh; children: ReactNode;
+export function HostBoardProvider({ boardInfo, timeRange, active, editing = false, refresh = EMPTY_REFRESH, children }: {
+    boardInfo: any; timeRange: HostTimeRange | null; active: boolean; editing?: boolean; refresh?: HostRefresh; children: ReactNode;
 }) {
     const [boards, setBoards] = useRecoilState(gBoardList);
     const setSelectedTab = useSetRecoilState(gSelectedTab);
     const [executionRevisions, setExecutionRevisions] = useState<Record<string, number>>({});
-    const input = boardInput(boardInfo, timeRange, active, refresh, executionRevisions);
+    const input = boardInput(boardInfo, timeRange, active, refresh, executionRevisions, editing);
     const runtime = useMemo(() => new DashboardHostRuntime(input), [boardInfo.id]);
     const activeRuntime = useRef(runtime);
     activeRuntime.current = runtime;
@@ -206,7 +213,7 @@ export function HostBoardProvider({ boardInfo, timeRange, active, refresh = EMPT
     const pendingSettings = useRef(new Map<string, { base: Settings; next: Settings }>());
     const selectionRef = useRef<{ request: HostFileSelection; resolve(value: string | null): void }>();
     const [selection, setSelection] = useState<typeof selectionRef.current>();
-    useLayoutEffect(() => { runtime.updateBoard(input); }, [runtime, boardInfo, timeRange, active, refresh, executionRevisions]);
+    useLayoutEffect(() => { runtime.updateBoard(input); }, [runtime, boardInfo, timeRange, active, editing, refresh, executionRevisions]);
     useEffect(() => {
         mounted.current = true;
         return () => {
@@ -217,7 +224,7 @@ export function HostBoardProvider({ boardInfo, timeRange, active, refresh = EMPT
         };
     }, [runtime]);
     const value: HostBoardContextValue = {
-        runtime, boardInfo, timeRange, active, refresh, executionRevisions,
+        runtime, boardInfo, timeRange, active, editing, refresh, executionRevisions,
         invalidatePanel: (id) => setExecutionRevisions((all) => ({ ...all, [id]: (all[id] ?? 0) + 1 })),
         readSettings: (id) => {
             const base = current.current.boardInfo?.dashboard?.panels?.find((panel: any) => panel.id === id)?.extension?.settings ?? {};

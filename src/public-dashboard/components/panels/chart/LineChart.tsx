@@ -360,7 +360,7 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
     };
     const fetchTableTimeMinMax = async (): Promise<{ min: number; max: number }> => {
         const sTargetPanel = pPanelInfo;
-        // TQL/Video panels can carry an empty blockList (same guard as the main LineChart).
+        // Non-block panels can carry an empty blockList (same guard as the main LineChart).
         if (!sTargetPanel.blockList?.length) return defaultMinMax();
         const sTargetTag = sTargetPanel.blockList[0];
         const sCustomTag = sTargetTag.filter?.filter((aFilter: any) => {

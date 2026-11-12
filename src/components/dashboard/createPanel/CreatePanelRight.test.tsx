@@ -1,5 +1,4 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { getFiles } from '@/api/repository/fileTree';
 import CreatePanelRight from './CreatePanelRight';
 import { PanelExtensionProvider } from '../extensions/ExtensionPanels';
 import { listPanelExtensions } from '../extensions/registry';
@@ -52,11 +51,10 @@ test('selecting the current API extension type preserves the existing draft', as
     expect(setPanel).not.toHaveBeenCalled();
 });
 
-test.each(['Line', 'Bar', 'Scatter', 'Adv scatter', 'Gauge', 'Pie', 'Liquid fill', 'Text', 'Geomap', 'Tql chart', 'Video'])(
+test.each(['Line', 'Bar', 'Scatter', 'Adv scatter', 'Gauge', 'Pie', 'Liquid fill', 'Text', 'Geomap', 'Tql chart'])(
     'switching a saved extension to %s creates fresh built-in settings and keeps its layout',
     async (type) => {
         if (!globalThis.structuredClone) globalThis.structuredClone = (value: any) => JSON.parse(JSON.stringify(value));
-        jest.mocked(getFiles).mockResolvedValue({ data: { children: [{ name: 'neo-pkg-blackbox', isDir: true }] } } as any);
         const previous = {
             id: 'saved-panel', title: 'Extension title', theme: 'light', type: 'Extension',
             x: 3, y: 5, w: 8, h: 6,

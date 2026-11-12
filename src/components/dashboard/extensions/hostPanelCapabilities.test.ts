@@ -16,7 +16,7 @@ function runtimeFor(panel: any) {
 
 it('excludes overlay from a native Polar Bar while retaining its range, refresh and saved settings', () => {
     const original = JSON.stringify(polarPanel);
-    expect(hostPanelInfo(polarPanel).capabilities).toEqual(['refresh', 'range:time']);
+    expect(hostPanelInfo(polarPanel).capabilities).toEqual(['border', 'refresh', 'range:time']);
     expect(JSON.stringify(polarPanel)).toBe(original);
 });
 
@@ -49,7 +49,7 @@ it.each(['Line', 'Bar', 'Scatter'])('keeps overlay, refresh and time range suppo
     const original = JSON.stringify(panel);
     const { runtime, session } = runtimeFor(panel);
     try {
-        expect(hostPanelInfo(panel).capabilities).toEqual(['refresh', 'range:time', 'overlay']);
+        expect(hostPanelInfo(panel).capabilities).toEqual(['border', 'refresh', 'range:time', 'overlay']);
         const result = session.host.panels.setOverlay(panel.id, { id: 'position', kind: 'line', axis: 'x', value: 5 });
         expect(result.ok).toBe(true);
         expect(runtime.getPanelState(panel.id).overlays).toHaveLength(1);

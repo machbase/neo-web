@@ -1,9 +1,10 @@
+import { ChartTypeList } from '@/utils/constants';
 import { ExtensionErrorBoundary, ExtensionFields, useExtensionEntries, type ExtensionFieldInput } from '../extensions/ExtensionPanels';
 import { supportsPanelContract } from '../extensions/contracts';
 import { extensionKey, isExtensionPanel, type ExtensionDefinition } from '../extensions/types';
-import { ChangeEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, useMemo } from 'react';
 import { ChartCommonOptions } from './option/ChartCommonOptions';
-import { CheckCustomChartType, CheckPlgChart, DefaultChartOption, DefaultCommonOption, chartTypeConverter, getAvailableChartTypeKeys, getDefaultSeriesOption } from '@/utils/eChartHelper';
+import { CheckCustomChartType, CheckPlgChart, DefaultChartOption, DefaultCommonOption, chartTypeConverter, getDefaultSeriesOption } from '@/utils/eChartHelper';
 import { validateAndRepairDashboardPanel } from '@/utils/panelValidator';
 import { PieOptions } from './option/PieOptions';
 import { LineOptions } from './option/LineOptions';
@@ -16,7 +17,6 @@ import { GaugeOptions } from './option/GaugeOptions';
 import { ChartType, E_CHART_TYPE } from '@/type/eChart';
 import { LiquidfillOptions } from './option/LiquidfillOptions';
 import { TqlOptions } from './option/TqlOptions';
-import { VideoOptions } from './option/VideoOptions';
 import { TextOptions } from './option/TextOptions';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { GeomapOptions } from './option/GeomapOptions';
@@ -25,7 +25,6 @@ import { CalcBlockTotal, CalcBlockTotalType } from '@/utils/helpers/Dashboard/Bl
 import { TrxParsedBlockType } from '@/utils/Chart/TransformDataParser';
 import { ConfirmableSelect } from '@/components/inputs/ConfirmableSelect';
 import { Page } from '@/design-system/components';
-import { getFiles } from '@/api/repository/fileTree';
 import { TableTypeOrderList } from '@/components/side/DBExplorer/utils';
 
 interface CreatePanelRightProps {
@@ -41,17 +40,15 @@ interface CreatePanelRightProps {
 }
 
 const CreatePanelRight = (props: CreatePanelRightProps) => {
-    const { pPanelOption, pSetPanelOption, pType, pBoardInfo } = props;
+    const { pPanelOption, pSetPanelOption, pType } = props;
     const entries = useExtensionEntries();
     const isExtension = isExtensionPanel(pPanelOption);
     const selected = isExtension ? (pPanelOption.extension ? extensionKey(pPanelOption.extension) : 'Extension') : pPanelOption.type;
     const options = props.pExtensionDefinition?.commonOptions;
-    const [sInstalledPkgs, setInstalledPkgs] = useState<Set<string>>(new Set());
     const sPieLegendValue = { legendTop: 'top', legendLeft: 'right', legendOrient: 'vertical' };
     const sChartType = isExtension ? undefined : chartTypeConverter(pPanelOption.type);
     const sIsTql = sChartType === E_CHART_TYPE.TQL;
-    const sIsVideo = sChartType === E_CHART_TYPE.VIDEO;
-    const sUseCommOpt = !(sIsTql || sIsVideo);
+    const sUseCommOpt = !sIsTql;
 
     const changeTypeOfSeriesOption = (aEvent: ChangeEvent<HTMLInputElement>) => {
         if (props.pExtensionSaving || aEvent.target.value === selected) return;
@@ -181,24 +178,7 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
         else return false;
     }, [pPanelOption?.transformBlockList]);
 
-    useEffect(() => {
-        let isCancelled = false;
-        (async () => {
-            try {
-                const sRes: any = await getFiles('/public/');
-                const sChildren: any[] = sRes?.data?.children ?? sRes?.children ?? [];
-                if (isCancelled) return;
-                setInstalledPkgs(new Set(sChildren.filter((aChild: any) => aChild.isDir).map((aChild: any) => aChild.name)));
-            } catch {
-                if (!isCancelled) setInstalledPkgs(new Set());
-            }
-        })();
-        return () => {
-            isCancelled = true;
-        };
-    }, []);
-
-    const sChartTypeOptions = useMemo(() => getAvailableChartTypeKeys(sInstalledPkgs), [sInstalledPkgs]);
+    const sChartTypeOptions = ChartTypeList.map(({ key }) => key);
     const extensionOptions = entries.filter((entry) => supportsPanelContract(entry.contractVersion)).map((entry) => ({ label: entry.label, value: extensionKey(entry) }));
     if (isExtension && !extensionOptions.some((option) => option.value === selected)) {
         extensionOptions.push({ label: 'Unavailable extension', value: selected });
@@ -244,9 +224,6 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                         {sChartType === E_CHART_TYPE.TQL ? <TqlOptions /> : null}
                         {sChartType === E_CHART_TYPE.ADV_SCATTER ? (
                             <AdvancedScatterOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
-                        ) : null}
-                        {sChartType === E_CHART_TYPE.VIDEO ? (
-                            <VideoOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} pBoardInfo={pBoardInfo} />
                         ) : null}
                     </>
                 ) : (

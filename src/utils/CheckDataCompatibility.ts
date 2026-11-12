@@ -1,3 +1,4 @@
+import { assertDashboardPanelObjects, isBuiltInDashboardPanel } from './dashboardPanelSupport';
 import { isExtensionPanel } from '@/components/dashboard/extensions/types';
 import { SqlResDataType } from './DashboardQueryParser';
 import { CheckObjectKey, SEPARATE_DIFF, geomapAggregatorList, logAggregatorList, nameValueAggregatorList, nameValueVirtualAggList, tagAggregatorList } from './dashboardUtil';
@@ -14,6 +15,7 @@ export const VARIABLE_RM_REGEX = /^{+|}+$/g;
 
 const DashboardCompatibility = (aData: any) => {
     const sDashboardInfo = JSON.parse(aData);
+    assertDashboardPanelObjects(sDashboardInfo?.dashboard?.panels);
 
     // Check variables
     if (!sDashboardInfo?.dashboard?.variables) {
@@ -35,7 +37,7 @@ const DashboardCompatibility = (aData: any) => {
         // Phase 1: Validate and repair all panels (structural integrity)
         sDashboardInfo.dashboard.panels = sDashboardInfo.dashboard.panels
             .map((aPanel: any) => {
-                if (isExtensionPanel(aPanel)) return aPanel;
+                if (isExtensionPanel(aPanel) || !isBuiltInDashboardPanel(aPanel)) return aPanel;
                 const result = validateAndRepairDashboardPanel(aPanel);
                 if (result.repaired) {
                 }
@@ -44,13 +46,13 @@ const DashboardCompatibility = (aData: any) => {
                 }
                 return result.panel;
             })
-            .filter((p: any) => isExtensionPanel(p) || !p._validationError);
+            .filter((p: any) => isExtensionPanel(p) || !isBuiltInDashboardPanel(p) || !p._validationError);
 
         // Phase 2: Semantic compatibility patches (type-aware)
         const sPanelList = sDashboardInfo.dashboard.panels;
 
         const sVaildPanelList = sPanelList.map((aPanel: any) => {
-            if (isExtensionPanel(aPanel)) return aPanel;
+            if (isExtensionPanel(aPanel) || !isBuiltInDashboardPanel(aPanel)) return aPanel;
 
             // Version stamp (all types)
             aPanel.version = getVersionByKey(aPanel);
