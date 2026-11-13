@@ -60,6 +60,8 @@ export const ChartCommonOptions = (props: ChartCommonOptionsProps) => {
                         value={pPanelOption.title}
                         onChange={(aEvent: any) => handleTitle(aEvent)}
                     />}
+                    {/* Extension title/theme retain the original video option spacing. */}
+                    {pExtensionOptions?.includes('title') && pExtensionOptions.includes('theme') && <Page.Space />}
                     {(!pExtensionOptions || pExtensionOptions.includes('theme')) && <Dropdown.Root
                         label="Theme"
                         options={ChartThemeList.map((option) => ({ label: option, value: option }))}

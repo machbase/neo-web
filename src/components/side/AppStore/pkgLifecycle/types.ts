@@ -53,6 +53,8 @@ export interface PkgManifest {
         uninstall?: unknown;
         start?: unknown;
         stop?: unknown;
+        /** Incoming package hook; receives the installed package path before files are replaced. */
+        'update-stop'?: unknown;
     };
     packageService?: {
         managed: boolean;
