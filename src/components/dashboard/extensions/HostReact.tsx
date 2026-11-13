@@ -22,6 +22,7 @@ interface HostBoardContextValue {
     timeRange: HostTimeRange | null;
     active: boolean;
     editing: boolean;
+    allowFileSelection?: boolean;
     refresh: HostRefresh;
     executionRevisions: Record<string, number>;
     invalidatePanel(panelId: string): void;
@@ -174,9 +175,10 @@ export function useExtensionHost({ panel, definition, surface, settings, getSett
         },
     }), []);
     const availableAdapters = useMemo(() => ({ ...adapters,
-        ...(board ? {} : { selectFile: undefined, open: undefined }),
+        ...(board ? {} : { open: undefined }),
+        ...(!board || board.allowFileSelection === false ? { selectFile: undefined } : {}),
         ...(['editor', 'options'].includes(surface) ? { enterFullscreen: undefined, exitFullscreen: undefined } : {}),
-    }), [adapters, !!board, surface]);
+    }), [adapters, !!board, board?.allowFileSelection, surface]);
 
     useEffect(() => {
         const created = runtime.createHost({
@@ -197,8 +199,8 @@ export function useExtensionHost({ panel, definition, surface, settings, getSett
     return { host: session?.definition === definition && session.runtime === runtime ? session.value.host : undefined, context: runtime.getContext(panel.id, surface), rootRef };
 }
 
-export function HostBoardProvider({ boardInfo, timeRange, active, editing = false, refresh = EMPTY_REFRESH, children }: {
-    boardInfo: any; timeRange: HostTimeRange | null; active: boolean; editing?: boolean; refresh?: HostRefresh; children: ReactNode;
+export function HostBoardProvider({ boardInfo, timeRange, active, editing = false, refresh = EMPTY_REFRESH, publicView = false, onChange, children }: {
+    boardInfo: any; timeRange: HostTimeRange | null; active: boolean; editing?: boolean; refresh?: HostRefresh; publicView?: boolean; onChange?(update: (board: any) => any): void; children: ReactNode;
 }) {
     const [boards, setBoards] = useRecoilState(gBoardList);
     const setSelectedTab = useSetRecoilState(gSelectedTab);
@@ -224,7 +226,7 @@ export function HostBoardProvider({ boardInfo, timeRange, active, editing = fals
         };
     }, [runtime]);
     const value: HostBoardContextValue = {
-        runtime, boardInfo, timeRange, active, editing, refresh, executionRevisions,
+        runtime, boardInfo, timeRange, active, editing, allowFileSelection: !publicView, refresh, executionRevisions,
         invalidatePanel: (id) => setExecutionRevisions((all) => ({ ...all, [id]: (all[id] ?? 0) + 1 })),
         readSettings: (id) => {
             const base = current.current.boardInfo?.dashboard?.panels?.find((panel: any) => panel.id === id)?.extension?.settings ?? {};
@@ -234,6 +236,12 @@ export function HostBoardProvider({ boardInfo, timeRange, active, editing = fals
         applySettings: (id, settings) => {
             const base = current.current.boardInfo?.dashboard?.panels?.find((panel: any) => panel.id === id)?.extension?.settings ?? {};
             pendingSettings.current.set(id, { base, next: settings });
+            const replaceSettings = (board: any) => ({
+                ...board, dashboard: { ...board.dashboard, panels: board.dashboard.panels.map((panel: any) => panel.id !== id || panel.type !== 'Extension' ? panel : {
+                    ...panel, extension: { ...panel.extension, settings },
+                }) },
+            });
+            if (publicView) { onChange?.(replaceSettings); return; }
             setBoards((all) => all.map((board) => board.id !== current.current.boardInfo.id ? board : {
                 ...board, dashboard: { ...board.dashboard, panels: board.dashboard.panels.map((panel: any) => panel.id !== id || panel.type !== 'Extension' ? panel : {
                     ...panel, extension: { ...panel.extension, settings },
@@ -261,7 +269,7 @@ export function HostBoardProvider({ boardInfo, timeRange, active, editing = fals
             const extension = name.split('.').at(-1)?.toLowerCase() ?? '';
             const directory = '/' + segments.slice(0, -1).join('/') + (segments.length > 1 ? '/' : '');
             if (request.kind === 'dashboard' && extension !== 'dsh') throw new Error('Select a dashboard file.');
-            if (request.target === 'window') {
+            if (publicView || request.target === 'window') {
                 if (request.kind !== 'dashboard') throw new Error('Only dashboards support a new window.');
                 const path = segments.join('/').replace(/\.dsh$/i, '').split('/').map(encodeURIComponent).join('/');
                 if (!window.open(`${window.location.origin}/web/ui/board/${path}`, '_blank')) throw new Error('The browser blocked the new window.');

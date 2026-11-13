@@ -532,4 +532,58 @@ describe('dashboard panel deployment', () => {
         expect(deployment('pending', 'bad').phase).toBe('applying');
         expect(JSON.parse(before.toString()).version).toBe('current');
     });
+    test('publishes only finished modules and removes public registration on uninstall', () => {
+        const panels = [{ typeId: 'video', label: 'Video', module: './assets/note.js' }];
+        stage('public-first', panels);
+        deployment('prepare', 'public-first'); deployment('copy', 'public-first');
+        bodyInstalled('public-first');
+        expect(fs.existsSync(work + '/public/.dashboard-panels/registry.json')).toBe(false);
+        fs.mkdirSync(work + '/.extension/dashboard-panels/broken');
+        fs.writeFileSync(work + '/.extension/dashboard-panels/broken/registry.json', 'invalid json');
+        deployment('finish', 'public-first');
+        const published = JSON.parse(fs.readFileSync(work + '/public/.dashboard-panels/registry.json', 'utf8'));
+        expect(published).toEqual([{ packageId: 'example/sample', typeId: 'video', label: 'Video', contractVersion: 1,
+            revision: 'public-first', moduleId: 0, moduleUrl: '/public/.dashboard-panels/sample/public-first/0.js' }]);
+        expect(fs.readFileSync(work + published[0].moduleUrl, 'utf8')).toBe('export function activate() {}');
+        expect(JSON.stringify(published)).not.toMatch(/pending|staging|settings|work/);
+        expect(fs.readdirSync(work + '/public/.dashboard-panels/sample/public-first')).toEqual(['0.js']);
+        fs.rmSync(work + '/public/sample', { recursive: true });
+        deployment('remove', 'public-first');
+        expect(JSON.parse(fs.readFileSync(work + '/public/.dashboard-panels/registry.json', 'utf8'))).toEqual([]);
+        expect(fs.existsSync(work + '/public/.dashboard-panels/sample')).toBe(false);
+    });
+    test('keeps a failed public publication retryable without replacing unrelated data', () => {
+        stage('public-retry', [{ typeId: 'video', label: 'Video', module: './assets/note.js' }]);
+        deployment('prepare', 'public-retry'); deployment('copy', 'public-retry'); bodyInstalled('public-retry');
+        fs.writeFileSync(work + '/public/sample/user.json', '{"keep":7}');
+        expect(() => deployment('finish', 'public-retry', 'update', {
+            beforeWrite: file => { if (file.endsWith('/.dashboard-panels/registry.tmp')) throw new Error('publication denied'); }
+        })).toThrow('publication denied');
+        expect(deployment('pending', 'public-retry').phase).toBe('body-ready');
+        deployment('finish', 'public-retry');
+        expect(fs.readFileSync(work + '/public/sample/user.json', 'utf8')).toBe('{"keep":7}');
+        expect(fs.existsSync(work + '/public/.dashboard-panels/registry.json')).toBe(true);
+    });
+
+    test('keeps the published revision usable when a new public module cannot finish writing', () => {
+        stage('public-old', [{ typeId: 'video', label: 'Video', module: './assets/note.js' }]);
+        deployment('prepare', 'public-old'); deployment('copy', 'public-old'); bodyInstalled('public-old'); deployment('finish', 'public-old');
+        const publicRegistry = work + '/public/.dashboard-panels/registry.json';
+        const oldRegistry = fs.readFileSync(publicRegistry, 'utf8');
+        const oldModule = work + '/public/.dashboard-panels/sample/public-old/0.js';
+        const oldSource = fs.readFileSync(oldModule, 'utf8');
+        stage('public-new', [{ typeId: 'video', label: 'Video', module: './assets/note.js' }]);
+        fs.writeFileSync(work + '/.extension/dashboard-panels/.staging/public-new/body/assets/note.js', 'export function activate() { /* next */ }');
+        deployment('prepare', 'public-new'); deployment('copy', 'public-new'); bodyInstalled('public-new');
+        expect(() => deployment('finish', 'public-new', 'update', { beforeWrite: file => {
+            if (file.endsWith('/public-new/0.js.tmp')) throw new Error('module publication denied');
+        } })).toThrow('module publication denied');
+        expect(fs.readFileSync(publicRegistry, 'utf8')).toBe(oldRegistry);
+        expect(fs.readFileSync(oldModule, 'utf8')).toBe(oldSource);
+        deployment('finish', 'public-new');
+        expect(JSON.parse(fs.readFileSync(publicRegistry, 'utf8'))[0].revision).toBe('public-new');
+        expect(fs.readFileSync(work + '/public/.dashboard-panels/sample/public-new/0.js', 'utf8')).toContain('/* next */');
+        expect(fs.readFileSync(oldModule, 'utf8')).toBe(oldSource);
+    });
+
 });

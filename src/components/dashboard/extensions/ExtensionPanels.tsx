@@ -25,7 +25,7 @@ export type ExtensionFieldInput = Pick<ExtensionEditorProps, 'settings' | 'setti
 };
 
 type ModuleLoad = { promise: Promise<Map<string, ExtensionDefinition>>; failed: boolean };
-type Registry = { entries: ExtensionEntry[]; loads: Map<string, ModuleLoad>; error?: string };
+type Registry = { publicView?: boolean; entries: ExtensionEntry[]; loads: Map<string, ModuleLoad>; error?: string };
 const RegistryContext = createContext<Registry | undefined>(undefined);
 const emptyEntries: ExtensionEntry[] = [];
 const moduleKey = ({ packageId, revision, moduleId }: ExtensionEntry) => JSON.stringify([packageId, revision, moduleId]);
@@ -44,7 +44,7 @@ function refreshEntries(previous: Registry | undefined, entries: ExtensionEntry[
     return { entries: next, loads: new Map([...previous.loads].filter(([key, load]) => validModules.has(key) && !load.failed)) };
 }
 
-export function PanelExtensionProvider({ enabled, children }: { enabled: boolean; children: ReactNode }) {
+export function PanelExtensionProvider({ enabled, publicView = false, children }: { enabled: boolean; publicView?: boolean; children: ReactNode }) {
     const [registry, setRegistry] = useState<Registry>();
     useEffect(() => {
         if (!enabled) return;
@@ -52,10 +52,13 @@ export function PanelExtensionProvider({ enabled, children }: { enabled: boolean
         const refresh = async () => {
             const request = ++generation;
             try {
-                const entries = await listPanelExtensions();
-                if (request === generation) setRegistry((previous) => refreshEntries(previous, entries));
+                const entries = publicView ? await listPanelExtensions(true) : await listPanelExtensions();
+                if (request === generation) setRegistry((previous) => {
+                    const next = refreshEntries(previous?.publicView === publicView ? previous : undefined, entries);
+                    return next === previous ? previous : { ...next, publicView };
+                });
             } catch {
-                if (request === generation) setRegistry({ entries: [], loads: new Map(), error: 'Could not read dashboard extensions.' });
+                if (request === generation) setRegistry({ publicView, entries: [], loads: new Map(), error: 'Could not read dashboard extensions.' });
             }
         };
         void refresh();
@@ -64,8 +67,8 @@ export function PanelExtensionProvider({ enabled, children }: { enabled: boolean
             generation++;
             window.removeEventListener(PANEL_EXTENSIONS_CHANGED, refresh);
         };
-    }, [enabled]);
-    return <RegistryContext.Provider value={registry}>{children}</RegistryContext.Provider>;
+    }, [enabled, publicView]);
+    return <RegistryContext.Provider value={registry?.publicView === publicView ? registry : undefined}>{children}</RegistryContext.Provider>;
 }
 
 export function useExtensionEntries() {
@@ -81,7 +84,7 @@ export function usePanelExtension(packageId?: string, typeId?: string): { defini
         const key = moduleKey(entry);
         let load = registry.loads.get(key);
         if (!load || load.failed) {
-            const pending: ModuleLoad = { promise: loadPanelExtension(entry, registry.entries), failed: false };
+            const pending: ModuleLoad = { promise: registry.publicView ? loadPanelExtension(entry, registry.entries, true) : loadPanelExtension(entry, registry.entries), failed: false };
             // Keep failures retryable without invalidating a newer request or causing a retry loop.
             void pending.promise.catch(() => { pending.failed = true; });
             registry.loads.set(key, pending);

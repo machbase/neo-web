@@ -3,6 +3,8 @@ import { CheckDataCompatibility } from '../../utils/CheckDataCompatibility';
 import { DefaultChartOption } from '@/utils/eChartHelper';
 import Panel from './Panel';
 
+jest.mock('@/components/dashboard/extensions/ExtensionPanels', () => ({ ExtensionView: ({ data }: any) => <div data-testid="extension-view">{JSON.stringify(data.settings)}</div> }));
+
 jest.mock('./chart/LineChart', () => ({ __esModule: true, default: () => <div data-testid="native-chart" /> }));
 
 function board(type: string, refresh = '3 seconds', useAutoRefresh = false) {
@@ -21,7 +23,7 @@ function board(type: string, refresh = '3 seconds', useAutoRefresh = false) {
     return { panel, source, parsed };
 }
 
-test.each(['Unavailable panel', 'Extension'])('hides public refresh controls for %s while preserving stored settings and the neighboring chart', (type) => {
+test.each(['Unavailable panel', 'Removed extension'])('hides public refresh controls for %s while preserving stored settings and the neighboring chart', (type) => {
     const input = board(type);
     const before = JSON.stringify(input.parsed);
     const onChange = jest.fn();
@@ -65,11 +67,23 @@ test('keeps the Geomap refresh control hidden when its own auto refresh is disab
 
 test('removes a native refresh control when the same public panel becomes unsupported', () => {
     const native = board('Line').parsed.dashboard.panels[0];
-    const unsupported = board('Extension').parsed.dashboard.panels[0];
+    const unsupported = board('Removed extension').parsed.dashboard.panels[0];
     const { rerender } = render(<Panel pPanelInfo={native} pIsHeader={false} />);
     expect(screen.getByRole('button', { name: 'Auto refresh' })).toBeVisible();
     rerender(<Panel pPanelInfo={unsupported} pIsHeader={false} />);
     expect(screen.getByText('This panel type is not supported.')).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Auto refresh' })).toBeNull();
     expect(unsupported.timeRange.refresh).toBe('3 seconds');
+});
+
+
+test('renders a saved extension in the public viewer without editing or changing its settings', () => {
+    const input = board('Extension');
+    const before = JSON.stringify(input.parsed);
+    render(<Panel pPanelInfo={input.parsed.dashboard.panels[0]} pBoardInfo={input.parsed} pIsHeader={false} />);
+    expect(screen.getByTestId('extension-view')).toHaveTextContent('"keep":true');
+    expect(screen.queryByText('This panel type is not supported.')).toBeNull();
+    expect(screen.queryByTestId('native-chart')).toBeNull();
+    expect(screen.queryByText('Setting')).toBeNull();
+    expect(JSON.stringify(input.parsed)).toBe(before);
 });

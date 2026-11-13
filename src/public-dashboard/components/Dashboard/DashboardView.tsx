@@ -1,5 +1,8 @@
 import Panel from '../panels/Panel';
-import { useEffect, useRef, useState } from 'react';
+import { HostBoardProvider } from '@/components/dashboard/extensions/HostReact';
+import { PanelExtensionProvider } from '@/components/dashboard/extensions/ExtensionPanels';
+import { useHostRefresh } from '@/components/dashboard/extensions/useHostRefresh';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import GridLayout from 'react-grid-layout';
 import { useParams } from 'react-router-dom';
 import moment from 'moment';
@@ -31,12 +34,15 @@ import ShareModal from '../../components/modal/ShareModal';
 
 const DashboardView = () => {
     const sParams = useParams();
+    const [hostRefresh, requestHostRefresh] = useHostRefresh();
     const sBodyRef = useRef<HTMLDivElement>(null);
     const [sBoardInformation, setBoardInformation] = useState<{ dashboard: any; name: string; id: string; panelHeader: boolean }>();
     const [sNotfound, setNotFound] = useState<boolean>(false);
     const [sIsTimeRangeModal, setIsTimeRangeModal] = useState<boolean>(false);
     const sIsMobile = isMobile();
     const [sBoardTimeMinMax, setBoardTimeMinMax] = useState<any>(undefined);
+    const sHostTimeRange = useMemo(() => Number.isFinite(sBoardTimeMinMax?.min) && Number.isFinite(sBoardTimeMinMax?.max)
+        ? { start: sBoardTimeMinMax.min, end: sBoardTimeMinMax.max } : null, [sBoardTimeMinMax?.min, sBoardTimeMinMax?.max]);
     const sBoardRef = useRef<any>(undefined);
     // Bumped on every refresh tick so the countdown ring restarts with the fetch rather than free-running.
     const [sRingCycleId, setRingCycleId] = useState<number>(0);
@@ -192,6 +198,7 @@ const DashboardView = () => {
         handleDashboardTimeRange(sStartTime, sEndTime);
     };
     const handleRefresh = async () => {
+        requestHostRefresh('manual');
         const sTimeRange = sBoardInformation?.dashboard.timeRange;
         const sSvrRes: { min: number; max: number } = await fetchTableTimeMinMax(sBoardInformation);
         // Without the fallback, a mixed time range makes timeMinMaxConverter return undefined and the
@@ -221,6 +228,7 @@ const DashboardView = () => {
             // Restart the header's countdown ring on the tick itself. The animation otherwise runs
             // from whenever the control mounted, which has nothing to do with when this interval
             // was armed, so the ring empties at a moment the data does not arrive.
+            requestHostRefresh('auto');
             setRingCycleId((aId) => aId + 1);
             handleDashboardTimeRange(aTimeRange.start, aTimeRange.end, undefined, true);
         }, setIntervalTime(aTimeRange));
@@ -330,7 +338,8 @@ const DashboardView = () => {
             <span>404 not found file name</span>
         </div>
     ) : (
-        <>
+        <PanelExtensionProvider enabled publicView>
+            <HostBoardProvider boardInfo={sBoardInformation ?? { id: 'public-loading' }} timeRange={sHostTimeRange} active refresh={hostRefresh} publicView onChange={setBoardInformation}>
             <Page style={{ width: '100vw', height: '100vh' }}>
                 <Page.Header>
                     <Button.Group>
@@ -438,7 +447,8 @@ const DashboardView = () => {
             {sIsDistanceModal && <DistanceRangeModal pBoardInfo={sBoardInformation} pOnApply={applyDistanceRange} pOnClose={() => setIsDistanceModal(false)} />}
 
             {sIsShareModal && <ShareModal isOpen={sIsShareModal} onClose={() => setIsShareModal(false)} />}
-        </>
+            </HostBoardProvider>
+        </PanelExtensionProvider>
     );
 };
 

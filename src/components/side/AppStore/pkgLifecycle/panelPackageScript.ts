@@ -1,3 +1,4 @@
+import { PUBLIC_PANEL_SCRIPT } from './publicPanelScript';
 import { COPY_PACKAGE_FILE } from './archiveScript';
 import { PANEL_CONTRACT_VERSIONS } from '@/components/dashboard/extensions/contracts';
 import { SCRIPT_ERROR_SENTINEL } from './types';
@@ -21,6 +22,7 @@ var fail = function (error) { $.yield("${SCRIPT_ERROR_SENTINEL} " + error.messag
 
 export const PANEL_PACKAGE_SCRIPT = String.raw`${PANEL_PACKAGE_FS}
 ${COPY_PACKAGE_FILE}
+${PUBLIC_PANEL_SCRIPT}
 ${UPDATE_STOP_VALIDATION_SOURCE}
 var action = $.params.action;
 var appName = $.params.name;
@@ -131,6 +133,7 @@ function applyAction() {
         if (fs.existsSync(publicPath)) throw new Error("The package directory still exists.");
         if (pending && safeName(pending.job)) remove(root + "/.staging/" + pending.job);
         remove(installed);
+        publishPublicPanels();
         return null;
     }
     if (!safeName(job)) throw new Error("Invalid package staging ID.");
@@ -257,6 +260,7 @@ function applyAction() {
         } else {
             remove(installed + "/registry.json");
         }
+        publishPublicPanels();
         fs.unlinkSync(pendingPath);
         try { remove(stage); } catch (_) { /* The deployment is already committed. */ }
         return null;

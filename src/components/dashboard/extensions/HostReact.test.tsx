@@ -415,3 +415,31 @@ it('reuses an existing image tab without another read or changes to its stored b
         expect(screen.getByTestId('selected-tab').textContent).toBe(firstSelected);
     } finally { restore(); }
 });
+
+
+it('keeps public viewer patches local, denies file selection, and opens only shared dashboards', async () => {
+    hosts.clear();
+    function PublicBound({ panel: p }: any) {
+        const bound = useExtensionHost({ panel: p, definition, surface: 'dashboard', settings: p.extension.settings });
+        if (bound.host) hosts.set('public', bound.host);
+        return null;
+    }
+    function PublicOwner() {
+        const [local, setLocal] = useState(board);
+        return <HostBoardProvider boardInfo={local} timeRange={{ start: 100, end: 200 }} active publicView onChange={setLocal}><PublicBound panel={local.dashboard.panels[0]} /><pre data-testid="public-local">{JSON.stringify(local)}</pre><Inspector /></HostBoardProvider>;
+    }
+    const original = JSON.stringify(board);
+    const open = jest.spyOn(window, 'open').mockReturnValue({} as Window);
+    render(<RecoilRoot initializeState={({set}) => set(gBoardList, [JSON.parse(original)])}><PublicOwner /></RecoilRoot>);
+    const api = await host('public');
+    act(() => { expect(api.settings.patch({ keep: 9 }).ok).toBe(true); });
+    expect(JSON.parse(screen.getByTestId('public-local').textContent!).dashboard.panels[0].extension.settings.keep).toBe(9);
+    expect(JSON.parse(screen.getByTestId('boards').textContent!)).toEqual([JSON.parse(original)]);
+    expect((await api.files.select()).ok).toBe(false);
+    expect((await api.navigation.open({ kind: 'file', path: 'private.sql' })).ok).toBe(false);
+    expect((await api.navigation.open({ kind: 'dashboard', path: 'folder/child.DSH' })).ok).toBe(true);
+    expect(open).toHaveBeenCalledWith(window.location.origin + '/web/ui/board/folder/child', '_blank');
+    expect(getFileList).not.toHaveBeenCalled(); expect(getFiles).not.toHaveBeenCalled();
+    expect(JSON.stringify(board)).toBe(original);
+    open.mockRestore();
+});

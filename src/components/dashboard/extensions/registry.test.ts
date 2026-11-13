@@ -81,3 +81,33 @@ it('propagates a registry read failure without creating a module', async () => {
     await expect(listPanelExtensions()).rejects.toThrow('Registry unavailable');
     expect(URL.createObjectURL).not.toHaveBeenCalled();
 });
+
+
+describe('anonymous public dashboard extensions', () => {
+    const publicEntry = { ...entry, moduleUrl: '/public/.dashboard-panels/sample/installed-1/3.js' };
+    beforeEach(() => {
+        global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => [publicEntry], text: async () => 'public display module' });
+    });
+    it('reads only the published display registry without JWT or administrative scripts', async () => {
+        expect(await listPanelExtensions(true)).toEqual([publicEntry]);
+        expect(fetch).toHaveBeenCalledWith('/public/.dashboard-panels/registry.json', { credentials: 'omit', cache: 'no-store' });
+        expect(runScript).not.toHaveBeenCalled();
+    });
+    it('uses the same React activation and settings checks for the public display module', async () => {
+        mockActivate.mockImplementation(api => api.registerPanelType(definition));
+        expect((await loadPanelExtension(entry, [entry], true)).get('video')?.View).toBe(View);
+        expect(fetch).toHaveBeenLastCalledWith(publicEntry.moduleUrl, { credentials: 'omit', cache: 'no-store' });
+        expect(runScript).not.toHaveBeenCalled();
+    });
+    it.each(['https://elsewhere/module.js', '/web/api/tql', '/public/.dashboard-panels/sample/../private.js', '/public/.dashboard-panels/sample/installed-1/cgi-bin/3.js'])('rejects an unpublished module URL: %s', async moduleUrl => {
+        jest.mocked(fetch).mockResolvedValue({ ok: true, json: async () => [{ ...publicEntry, moduleUrl }] } as Response);
+        await expect(loadPanelExtension(entry, [entry], true)).rejects.toThrow('Invalid public dashboard extension URL');
+        expect(fetch).toHaveBeenCalledTimes(1);
+        expect(mockActivate).not.toHaveBeenCalled();
+    });
+    it('does not fall back to administrator APIs when publication is missing', async () => {
+        jest.mocked(fetch).mockResolvedValue({ ok: false } as Response);
+        await expect(listPanelExtensions(true)).rejects.toThrow('Could not read public');
+        expect(runScript).not.toHaveBeenCalled();
+    });
+});

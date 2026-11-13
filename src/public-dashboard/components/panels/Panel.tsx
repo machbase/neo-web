@@ -1,6 +1,9 @@
 import { isBuiltInDashboardPanel } from '@/utils/dashboardPanelSupport';
 import { UnsupportedPanel } from '@/components/dashboard/panels/UnsupportedPanel';
 import './Panel.scss';
+import { ExtensionView } from '@/components/dashboard/extensions/ExtensionPanels';
+import { isExtensionPanel } from '@/components/dashboard/extensions/types';
+import { useHostBoard, useHostBorder } from '@/components/dashboard/extensions/HostReact';
 import { useState, useEffect } from 'react';
 import LineChart from './chart/LineChart';
 import PanelHeader from './PanelHeader';
@@ -9,6 +12,9 @@ import { ChartTheme } from '../../type/eChart';
 import AutoRefreshControl from '@/components/dashboard/AutoRefreshControl';
 
 const Panel = ({ pLoopMode, pChartVariableId, pBoardInfo, pPanelInfo, pParentWidth, pIsHeader, pBoardTimeMinMax, pIsActiveTab, pOnChangePanelRefresh }: any) => {
+    const hostBoard = useHostBoard();
+    const borderColor = useHostBorder(pPanelInfo?.id);
+    const extension = isExtensionPanel(pPanelInfo);
     const sIsBuiltIn = isBuiltInDashboardPanel(pPanelInfo);
     // Match panel chrome to the theme the chart actually renders (issue #1435). TQL charts own their
     // theme in the .tql, so seed the chrome as undetermined (never the hardcoded 'dark' default) and
@@ -22,7 +28,7 @@ const Panel = ({ pLoopMode, pChartVariableId, pBoardInfo, pPanelInfo, pParentWid
         if (!sIsTql) setResolvedTheme(pPanelInfo.theme);
     }, [pPanelInfo.theme, sIsTql]);
     return (
-        <div className="panel-wrap" style={{ backgroundColor: sResolvedTheme ? ChartThemeBackgroundColor[sResolvedTheme as ChartTheme] : 'transparent' }}>
+        <div className="panel-wrap" style={{ backgroundColor: sResolvedTheme ? ChartThemeBackgroundColor[sResolvedTheme as ChartTheme] : 'transparent', borderColor }}>
             {/* The panel's own refresh interval, in the same countdown ring the board header uses, and
                 only on panels that are actually refreshing. It sits in an overlay rather than in
                 PanelHeader because this view renders panels with the header off (`pIsHeader={false}`),
@@ -40,10 +46,16 @@ const Panel = ({ pLoopMode, pChartVariableId, pBoardInfo, pPanelInfo, pParentWid
                     />
                 </div>
             )}
-            <PanelHeader pPanelInfo={pPanelInfo} pIsHeader={pIsHeader} pResolvedTheme={sResolvedTheme} />
+            <PanelHeader pPanelInfo={pPanelInfo} pIsHeader={pIsHeader} pShowActions={extension} pResolvedTheme={sResolvedTheme} />
             {pPanelInfo ? (
-                !sIsBuiltIn ? <UnsupportedPanel /> : (
+                extension ? <ExtensionView
+                    data={pPanelInfo.extension} panel={pPanelInfo} mode="dashboard"
+                    title={pPanelInfo.title ?? ''} theme={pPanelInfo.theme}
+                    timeRange={Number.isFinite(pBoardTimeMinMax?.min) && Number.isFinite(pBoardTimeMinMax?.max) ? { start: pBoardTimeMinMax.min, end: pBoardTimeMinMax.max } : null}
+                    distanceRange={{ start: pBoardInfo?.dashboard?.distanceRange?.start ?? '', end: pBoardInfo?.dashboard?.distanceRange?.end ?? '' }}
+                /> : !sIsBuiltIn ? <UnsupportedPanel /> : (
                     <LineChart
+                        pHostRuntime={hostBoard?.runtime}
                         pLoopMode={pLoopMode}
                         pBoardInfo={pBoardInfo}
                         pPanelInfo={pPanelInfo}
