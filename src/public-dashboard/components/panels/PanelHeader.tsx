@@ -1,4 +1,5 @@
 import { useHostActions } from '@/components/dashboard/extensions/HostReact';
+import { mergePanelMenuItems } from '@/components/dashboard/extensions/headerMenu';
 import { Button, Menu, Page, Toast } from '@/design-system/components';
 import { GoGrabber } from '@/assets/icons/Icon';
 import { VscRecord } from '../../assets/icons/Icon';
@@ -12,10 +13,10 @@ const PanelHeader = ({ pPanelInfo, pIsHeader, pResolvedTheme, pShowActions = fal
     const actionMenu = <Menu.Root>
                     <Menu.Trigger><Button variant="ghost" size="side" aria-label="Panel actions" icon={<GoGrabber size={20} />} /></Menu.Trigger>
                     <Menu.Content>
-                        {actions.map(action => <Menu.Item key={action.ownerId + ':' + action.id} icon={action.icon} disabled={action.disabled}
+                        {mergePanelMenuItems([], actions.map(action => ({ position: action.position, item: <Menu.Item key={action.ownerId + ':' + action.id} icon={action.icon} disabled={action.disabled}
                             rightIcon={action.checked === undefined ? undefined : <Page.Switch pState={action.checked} pCallback={() => {}} />}
                             onClick={() => { try { Promise.resolve(action.onSelect()).catch(() => Toast.error('The extension action failed.')); }
-                                catch { Toast.error('The extension action failed.'); } }}>{action.label}</Menu.Item>)}
+                                catch { Toast.error('The extension action failed.'); } }}>{action.label}</Menu.Item> })))}
                     </Menu.Content>
                 </Menu.Root>;
     return (

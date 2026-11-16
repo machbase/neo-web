@@ -66,10 +66,22 @@ export interface HostOverlay {
 }
 export interface RegisteredHostOverlay extends HostOverlay { ownerId: string; }
 export interface HostBorder { color: string; }
+export const HOST_HEADER_MENU_IDS = ['setting', 'zoom', 'duplicate', 'taganalyzer', 'download-data', 'delete', 'save-tql'] as const;
+export type HostHeaderMenuId = typeof HOST_HEADER_MENU_IDS[number];
+export type HostHeaderPosition = ({ before: HostHeaderMenuId; after?: never } | { after: HostHeaderMenuId; before?: never }) & {
+    /** Lower safe integers appear first in the same position group; default 0. Negative values are allowed; ties retain registration order. */
+    priority?: number;
+};
 export interface HostHeaderAction {
     id: string;
     label: string;
     icon?: ReactNode;
+    /**
+     * Place beside one built-in menu ID using exactly one of before/after, with priority inside this object.
+     * Missing or hidden anchors append by priority, without exposing editing items.
+     * Omit to retain the legacy group before built-ins. No start/end positions exist.
+     */
+    position?: HostHeaderPosition;
     checked?: boolean;
     disabled?: boolean;
     onSelect(): void | Promise<void>;

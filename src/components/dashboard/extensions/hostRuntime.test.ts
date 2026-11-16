@@ -52,6 +52,62 @@ it('keeps dense header actions with React icons, callbacks and boolean states va
     runtime.dispose();
 });
 
+it.each([1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1, '1', null])('rejects invalid header priority %p without replacing actions or saved data', (priority) => {
+    const input = board(), saved = JSON.stringify(input), runtime = new DashboardHostRuntime(input);
+    const host = runtime.createHost(owner()).host;
+    value(host.header.registerActions([{ id: 'existing', label: 'Existing', onSelect: jest.fn() }]));
+    const before = runtime.getSnapshot(), changed = jest.fn(), unsubscribe = runtime.subscribe(changed);
+    expect(host.header.registerActions([{ id: 'invalid', label: 'Invalid', position: { after: 'setting', priority }, onSelect: jest.fn() } as unknown as HostHeaderAction])).toMatchObject({ ok: false, error: { code: 'INVALID_INPUT' } });
+    expect(runtime.getSnapshot()).toBe(before);
+    expect(changed).not.toHaveBeenCalled();
+    expect(runtime.getPanelState('a').actions.map(action => action.id)).toEqual(['existing']);
+    expect(JSON.stringify(input)).toBe(saved);
+    unsubscribe(); runtime.dispose();
+});
+
+it.each([
+    null, 'start', 'end', {}, [], { before: 'setting', after: 'delete' },
+    { before: 'missing' }, { after: '' }, { before: 'Setting' },
+    { after: 'setting', extra: true }, { at: 'start' },
+])('rejects invalid header position %p atomically', (position) => {
+    const runtime = new DashboardHostRuntime(board()), host = runtime.createHost(owner()).host;
+    value(host.header.registerActions([{ id: 'keep', label: 'Keep', onSelect: jest.fn() }]));
+    const before = runtime.getSnapshot();
+    expect(host.header.registerActions([{ id: 'bad', label: 'Bad', position, onSelect: jest.fn() } as unknown as HostHeaderAction])).toMatchObject({ ok: false, error: { code: 'INVALID_INPUT' } });
+    expect(runtime.getSnapshot()).toBe(before);
+    expect(runtime.getPanelState('a').actions.map(action => action.id)).toEqual(['keep']);
+    runtime.dispose();
+});
+it('rejects the replaced absolute index field instead of silently ignoring it', () => {
+    const runtime = new DashboardHostRuntime(board()), host = runtime.createHost(owner()).host;
+    expect(host.header.registerActions([{ id: 'old', label: 'Old', index: 0, onSelect: jest.fn() } as unknown as HostHeaderAction])).toMatchObject({ ok: false, error: { code: 'INVALID_INPUT' } });
+    expect(runtime.getPanelState('a').actions).toEqual([]); runtime.dispose();
+});
+it('rejects a top-level priority rather than silently using the old structure', () => {
+    const runtime = new DashboardHostRuntime(board()), host = runtime.createHost(owner()).host;
+    expect(host.header.registerActions([{ id: 'old', label: 'Old', position: { after: 'setting' }, priority: 10, onSelect: jest.fn() } as unknown as HostHeaderAction])).toMatchObject({ ok: false, error: { code: 'INVALID_INPUT' } });
+    expect(runtime.getPanelState('a').actions).toEqual([]); runtime.dispose();
+});
+it('retains signed priorities, positions, icons and callbacks without changing caller data', () => {
+    const runtime = new DashboardHostRuntime(board()), host = runtime.createHost(owner()).host;
+    const icon = createElement('span', {}, 'Icon'), onSelect = jest.fn();
+    const position = { after: 'setting', priority: Number.MAX_SAFE_INTEGER };
+    const actions = Object.freeze([
+        Object.freeze({ id: 'last', label: 'Last', icon, position, onSelect }),
+        Object.freeze({ id: 'first', label: 'First', icon, position: Object.freeze({ before: 'delete', priority: -10 }), onSelect }),
+        Object.freeze({ id: 'legacy', label: 'Legacy', onSelect }),
+    ]);
+    const handle = value(host.header.registerActions(actions as unknown as HostHeaderAction[]));
+    position.after = 'delete'; position.priority = -20;
+    const registered = runtime.getPanelState('a').actions;
+    expect(registered.map(action => (action as HostHeaderAction & { position?: { priority?: number } }).position?.priority)).toEqual([Number.MAX_SAFE_INTEGER, -10, undefined]);
+    expect((registered[0] as HostHeaderAction & { position?: unknown }).position).toEqual({ after: 'setting', priority: Number.MAX_SAFE_INTEGER });
+    expect(registered[0].icon).toBe(icon);
+    registered[0].onSelect(); expect(onSelect).toHaveBeenCalledTimes(1);
+    value(handle.dispose()); expect(runtime.getPanelState('a').actions).toEqual([]);
+    expect(actions[0].id).toBe('last'); runtime.dispose();
+});
+
 it('patches a latest copy, preserves unrelated fields and uses top-level replacement and explicit removal', () => {
     const runtime = new DashboardHostRuntime(board());
     let settings: Record<string, unknown> = { source: { camera: 'old', keep: true }, unknown: [1], remove: 'x' };

@@ -3,7 +3,9 @@ import { RecoilRoot, useRecoilValue } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import PanelHeader from './PanelHeader';
 
-jest.mock('../extensions/HostReact', () => ({ useHostActions: () => [] }));
+let mockActions: any[] = [];
+beforeEach(() => { mockActions = []; });
+jest.mock('../extensions/HostReact', () => ({ useHostActions: () => mockActions }));
 jest.mock('react-tooltip', () => ({ Tooltip: () => null }));
 jest.mock('@/components/dashboard/AutoRefreshControl', () => ({ __esModule: true, default: () => <button data-testid="refresh">Refresh</button> }));
 jest.mock('@/components/modal/SaveDashboardModal', () => ({ SaveDashboardModal: () => null }));
@@ -12,7 +14,7 @@ jest.mock('@/design-system/components', () => {
     const Block = ({ children }: any) => <div>{children}</div>;
     return {
         Button: ({ children, onClick }: any) => <button onClick={onClick}>{children}</button>,
-        Menu: { Root: Block, Trigger: Block, Content: Block, Item: ({ children, onClick, disabled }: any) => <button onClick={onClick} disabled={disabled}>{children}</button> },
+        Menu: { Root: Block, Trigger: Block, Content: Block, Item: ({ children, onClick, disabled, icon }: any) => <button onClick={onClick} disabled={disabled}>{icon}{children}</button> },
         Page: { Switch: () => null }, Toast: { error: jest.fn(), info: jest.fn(), success: jest.fn() },
     };
 });
@@ -76,4 +78,22 @@ test('retains extension settings and safe management actions without exposing na
     expect(screen.getByRole('button', { name: 'Duplicate' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Delete' })).toBeVisible();
     for (const label of ['Show Taganalyzer', 'Download data', 'Save to tql']) expect(screen.queryByRole('button', { name: label })).toBeNull();
+});
+
+test('places anchored extension actions among built-in items while retaining icons, callbacks and saved settings', () => {
+    const select = jest.fn();
+    mockActions = [
+        { ownerId: 'owner', id: 'full', label: 'Fullscreen', icon: <svg data-testid="full-icon" />, position: { after: 'setting', priority: 30 }, onSelect: select },
+        { ownerId: 'owner', id: 'sync', label: 'Synchronization', position: { after: 'setting', priority: 10 }, onSelect: select },
+        { ownerId: 'owner', id: 'child', label: 'Child board', position: { after: 'setting', priority: 20 }, onSelect: select },
+    ];
+    const extension = { id: 'extension', type: 'Extension', title: 'Video', extension: { packageId: 'example/video', typeId: 'video', settingsVersion: 1, settings: { keep: [1, null, 3] } } };
+    const saved = JSON.stringify(extension);
+    const { showEdit } = setup(extension);
+    const labels = ['Setting', 'Synchronization', 'Child board', 'Fullscreen', 'Duplicate', 'Delete'];
+    expect(screen.getAllByRole('button').map(button => button.textContent).filter(text => labels.includes(text!))).toEqual(labels);
+    expect(screen.getByRole('button', { name: 'Fullscreen' })).toContainElement(screen.getByTestId('full-icon'));
+    fireEvent.click(screen.getByRole('button', { name: 'Fullscreen' })); expect(select).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Setting' })); expect(showEdit).toHaveBeenCalledWith('edit', 'extension');
+    expect(JSON.stringify(extension)).toBe(saved);
 });

@@ -1,6 +1,7 @@
 import { isExtensionPanel } from '../extensions/types';
 import { isBuiltInDashboardPanel } from '@/utils/dashboardPanelSupport';
 import { useHostActions } from '../extensions/HostReact';
+import { mergePanelMenuItems } from '../extensions/headerMenu';
 import moment from 'moment';
 import { Delete, GearFill, VscRecord, GoGrabber, VscGraphScatter, Download, Duplicate, ZoomPan, Checkmark } from '@/assets/icons/Icon';
 import { gBoardList, GBoardListType, gSelectedTab, gRollupTableList } from '@/recoil/recoil';
@@ -398,41 +399,44 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                 />
                             </Menu.Trigger>
                             <Menu.Content>
-                                {hostActions.map((action) => <Menu.Item key={action.ownerId + ':' + action.id} icon={action.icon} disabled={action.disabled}
-                                    rightIcon={action.checked === undefined ? undefined : <Page.Switch pState={action.checked} pCallback={() => {}} />}
-                                    onClick={() => {
-                                        try { Promise.resolve(action.onSelect()).catch(() => Toast.error('The extension action failed.')); }
-                                        catch { Toast.error('The extension action failed.'); }
-                                    }}>{action.label}</Menu.Item>)}
-                                {sCanConfigure && <Menu.Item onClick={() => handleMoveEditOnMenu(pPanelInfo.id)} icon={<GearFill />}>
-                                    Setting
-                                </Menu.Item>}
-                                {pPanelInfo.type === 'Geomap' && (
-                                    <Menu.Item onClick={handleGeomapZoom} icon={<ZoomPan />} rightIcon={pPanelInfo.chartOptions.useZoomControl ? <Checkmark /> : undefined}>
-                                        Use zoom control
-                                    </Menu.Item>
-                                )}
-                                <Menu.Item onClick={() => handleCopyPanel(pPanelInfo)} icon={<Duplicate />}>
-                                    Duplicate
-                                </Menu.Item>
-                                {sCanExportChart && (
-                                    <Menu.Item onClick={handleMoveTagz} icon={<MuiTagAnalyzerGray className="mui-svg-hover" width={13} />}>
-                                        Show Taganalyzer
-                                    </Menu.Item>
-                                )}
-                                {sCanExportChart && (
-                                    <Menu.Item onClick={HandleDataDownload} icon={<Download />}>
-                                        Download data
-                                    </Menu.Item>
-                                )}
-                                <Menu.Item onClick={handleDelete} icon={<Delete />}>
-                                    Delete
-                                </Menu.Item>
-                                {sCanExportChart && (
-                                    <Menu.Item onClick={HandleDownload} icon={<VscGraphScatter />}>
-                                        Save to tql
-                                    </Menu.Item>
-                                )}
+                                {mergePanelMenuItems([
+                                    sCanConfigure && { id: 'setting', item: <Menu.Item key="setting" onClick={() => handleMoveEditOnMenu(pPanelInfo.id)} icon={<GearFill />}>
+                                        Setting
+                                    </Menu.Item> },
+                                    pPanelInfo.type === 'Geomap' && (
+                                        { id: 'zoom', item: <Menu.Item key="zoom" onClick={handleGeomapZoom} icon={<ZoomPan />} rightIcon={pPanelInfo.chartOptions.useZoomControl ? <Checkmark /> : undefined}>
+                                            Use zoom control
+                                        </Menu.Item> }
+                                    ),
+                                    { id: 'duplicate', item: <Menu.Item key="duplicate" onClick={() => handleCopyPanel(pPanelInfo)} icon={<Duplicate />}>
+                                        Duplicate
+                                    </Menu.Item> },
+                                    sCanExportChart && (
+                                        { id: 'taganalyzer', item: <Menu.Item key="taganalyzer" onClick={handleMoveTagz} icon={<MuiTagAnalyzerGray className="mui-svg-hover" width={13} />}>
+                                            Show Taganalyzer
+                                        </Menu.Item> }
+                                    ),
+                                    sCanExportChart && (
+                                        { id: 'download-data', item: <Menu.Item key="download-data" onClick={HandleDataDownload} icon={<Download />}>
+                                            Download data
+                                        </Menu.Item> }
+                                    ),
+                                    { id: 'delete', item: <Menu.Item key="delete" onClick={handleDelete} icon={<Delete />}>
+                                        Delete
+                                    </Menu.Item> },
+                                    sCanExportChart && (
+                                        { id: 'save-tql', item: <Menu.Item key="save-tql" onClick={HandleDownload} icon={<VscGraphScatter />}>
+                                            Save to tql
+                                        </Menu.Item> }
+                                    ),
+                                ], hostActions.map((action) => ({ position: action.position, item:
+                                    <Menu.Item key={action.ownerId + ':' + action.id} icon={action.icon} disabled={action.disabled}
+                                        rightIcon={action.checked === undefined ? undefined : <Page.Switch pState={action.checked} pCallback={() => {}} />}
+                                        onClick={() => {
+                                            try { Promise.resolve(action.onSelect()).catch(() => Toast.error('The extension action failed.')); }
+                                            catch { Toast.error('The extension action failed.'); }
+                                        }}>{action.label}</Menu.Item>
+                                })))}
                             </Menu.Content>
                         </Menu.Root>
                     </div>
