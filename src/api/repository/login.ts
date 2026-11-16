@@ -1,10 +1,12 @@
 import request from '../core';
+import type { AxiosRequestConfig } from 'axios';
 import { cancelAllPendingFileWrites } from './fileWriteQueue';
 
-export const getLogin = () => {
+export const getLogin = (options?: Pick<AxiosRequestConfig, 'signal' | 'canRetryFileRequest'>) => {
     return request({
         method: 'GET',
         url: '/api/check',
+        ...options,
     });
 };
 
