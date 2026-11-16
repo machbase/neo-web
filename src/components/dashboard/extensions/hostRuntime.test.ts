@@ -1,5 +1,6 @@
 import { DashboardHostRuntime } from './hostRuntime';
 import { createElement } from 'react';
+import { mergePanelMenuItems } from './headerMenu';
 import type { HostBoardInput, HostHeaderAction, HostOwner, HostResult } from './hostTypes';
 
 const board = (): HostBoardInput => ({ id: 'board-1', active: true, timeRange: { start: 100, end: 200 }, distanceRange: { start: 1, end: 9 }, panels: ['a', 'b', 'chart', 'untouched'].map((id) => ({ id, type: id === 'chart' ? 'Line' : 'Extension', capabilities: id === 'chart' ? ['range:time', 'range:distance', 'overlay', 'refresh'] : ['refresh'] })) });
@@ -49,6 +50,46 @@ it('keeps dense header actions with React icons, callbacks and boolean states va
     expect(host.header.registerActions([{ id: 'duplicate', label: 'One', onSelect: select }, { id: 'duplicate', label: 'Two', onSelect: select }]).ok).toBe(false);
     value(handle.dispose());
     expect(runtime.getPanelState('a').actions).toEqual([]);
+    runtime.dispose();
+});
+
+it.each([{}, { priority: undefined }, { priority: -0 }])('stores the default zero priority for %p without changing caller data', (optional) => {
+    const input = board(), saved = JSON.stringify(input), runtime = new DashboardHostRuntime(input);
+    const host = runtime.createHost(owner()).host, onSelect = jest.fn();
+    const position = Object.freeze({ after: 'setting' as const, ...optional });
+    const before = Object.getOwnPropertyDescriptors(position);
+    const action = Object.freeze({ id: 'play', label: 'Play', position, onSelect });
+    const handle = value(host.header.registerActions([action]));
+    const registered = runtime.getPanelState('a').actions[0];
+    expect(registered.position).toEqual({ after: 'setting', priority: 0 });
+    expect(Object.is(registered.position?.priority, -0)).toBe(false);
+    expect(Object.getOwnPropertyDescriptors(position)).toEqual(before);
+    registered.onSelect(); expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(JSON.stringify(input)).toBe(saved);
+    value(handle.dispose()); expect(runtime.getPanelState('a').actions).toEqual([]);
+    runtime.dispose();
+});
+
+it('keeps duplicate default priorities in registration order across owners and handles', () => {
+    const runtime = new DashboardHostRuntime(board());
+    const first = runtime.createHost(owner()).host, second = runtime.createHost(owner()).host;
+    const firstHandle = value(first.header.registerActions([{ id: 'one', label: 'One', position: { after: 'setting' }, onSelect() {} }]));
+    value(second.header.registerActions([{ id: 'two', label: 'Two', position: { after: 'setting', priority: undefined }, onSelect() {} }]));
+    value(first.header.registerActions([{ id: 'three', label: 'Three', position: { after: 'setting', priority: 0 }, onSelect() {} }]));
+    const menu = () => mergePanelMenuItems([{ id: 'setting', item: 'Setting' }, { id: 'delete', item: 'Delete' }], runtime.getPanelState('a').actions.map(action => ({ item: action.id, position: action.position })));
+    expect(menu()).toEqual(['Setting', 'one', 'two', 'three', 'Delete']);
+    value(firstHandle.dispose());
+    expect(menu()).toEqual(['Setting', 'two', 'three', 'Delete']);
+    runtime.dispose();
+});
+
+it('rejects accessor metadata without invoking getters or replacing registered actions', () => {
+    const runtime = new DashboardHostRuntime(board()), host = runtime.createHost(owner()).host;
+    value(host.header.registerActions([{ id: 'keep', label: 'Keep', onSelect() {} }]));
+    const getPriority = jest.fn(() => undefined), position = Object.defineProperty({ after: 'setting' }, 'priority', { enumerable: true, get: getPriority });
+    const before = runtime.getSnapshot();
+    expect(host.header.registerActions([{ id: 'bad', label: 'Bad', position, onSelect() {} }] as HostHeaderAction[])).toMatchObject({ ok: false, error: { code: 'INVALID_INPUT' } });
+    expect(getPriority).not.toHaveBeenCalled(); expect(runtime.getSnapshot()).toBe(before);
     runtime.dispose();
 });
 

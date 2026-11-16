@@ -69,7 +69,7 @@ export interface HostBorder { color: string; }
 export const HOST_HEADER_MENU_IDS = ['setting', 'zoom', 'duplicate', 'taganalyzer', 'download-data', 'delete', 'save-tql'] as const;
 export type HostHeaderMenuId = typeof HOST_HEADER_MENU_IDS[number];
 export type HostHeaderPosition = ({ before: HostHeaderMenuId; after?: never } | { after: HostHeaderMenuId; before?: never }) & {
-    /** Lower safe integers appear first in the same position group; default 0. Negative values are allowed; ties retain registration order. */
+    /** Lower safe integers appear first in the same position group; omitted/undefined values default to 0. Negative values are allowed; ties retain registration order. */
     priority?: number;
 };
 export interface HostHeaderAction {

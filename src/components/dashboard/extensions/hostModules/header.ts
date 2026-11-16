@@ -6,15 +6,31 @@ import type { HostHandle, HostHeaderAction, HostHeaderMenuId, HostHeaderPosition
 import { validateExtensionSettings } from '@/extensions/settings';
 
 const method = defineHostMethods<DashboardHostModuleContext>();
+const invalidActions = () => failure('INVALID_INPUT', 'Header actions need filled array slots, unique IDs, labels, boolean states, callbacks and an optional before/after position containing a safe integer priority; absolute index and top-level priority are unsupported.');
 
-function validPosition(position: unknown): position is HostHeaderPosition | undefined {
-    if (position === undefined) return true;
-    if (!position || typeof position !== 'object' || Array.isArray(position) || !validateExtensionSettings({ position }).settings) return false;
-    const keys = Object.keys(position);
-    const anchors = keys.filter(key => key === 'before' || key === 'after');
-    if (anchors.length !== 1 || keys.some(key => !['before', 'after', 'priority'].includes(key))) return false;
-    const record = position as Record<string, unknown>, anchor = record[anchors[0]];
-    return typeof anchor === 'string' && HOST_HEADER_MENU_IDS.includes(anchor as HostHeaderMenuId) && (record.priority === undefined || Number.isSafeInteger(record.priority));
+function normalizePosition(position: unknown): HostHeaderPosition | undefined | null {
+    if (position === undefined) return undefined;
+    try {
+        if (!position || typeof position !== 'object' || Array.isArray(position)) return null;
+        // Copy descriptors so normalization never mutates the caller or invokes metadata getters.
+        const descriptors = Object.getOwnPropertyDescriptors(position), priority = descriptors.priority;
+        if (priority && !('value' in priority)) return null;
+        const value = priority?.value;
+        descriptors.priority = {
+            ...(priority ?? { enumerable: true, configurable: true, writable: true }),
+            value: value === undefined || Object.is(value, -0) ? 0 : value,
+        };
+        const normalized = Object.create(Object.getPrototypeOf(position), descriptors);
+        // Default optional priority before the shared JSON validator checks the remaining metadata.
+        if (!validateExtensionSettings({ position: normalized }).settings) return null;
+        const keys = Object.keys(normalized), anchors = keys.filter(key => key === 'before' || key === 'after');
+        if (anchors.length !== 1 || keys.some(key => !['before', 'after', 'priority'].includes(key))) return null;
+        const anchor = normalized[anchors[0]];
+        if (typeof anchor !== 'string' || !HOST_HEADER_MENU_IDS.includes(anchor as HostHeaderMenuId) || !Number.isSafeInteger(normalized.priority)) return null;
+        return normalized as HostHeaderPosition;
+    } catch {
+        return null;
+    }
 }
 
 export const headerModule = {
@@ -23,10 +39,18 @@ export const headerModule = {
             const guard = context.checkActive();
             if (!guard.ok) return guard;
             if (context.owner.surface !== 'dashboard') return failure('UNSUPPORTED', 'Header actions are available only on dashboard panels.');
-            // Check every index, as the JSON setting validator does for arrays.
-            // Actions contain React nodes and callbacks; only their position uses the shared JSON validator.
-            if (!Array.isArray(actions) || Array.from(actions).some((action, index) => !Object.prototype.hasOwnProperty.call(actions, index) || !action || typeof action.id !== 'string' || !action.id || typeof action.label !== 'string' || typeof action.onSelect !== 'function' || Object.prototype.hasOwnProperty.call(action, 'index') || Object.prototype.hasOwnProperty.call(action, 'priority') || !validPosition(action.position) || (action.checked !== undefined && typeof action.checked !== 'boolean') || (action.disabled !== undefined && typeof action.disabled !== 'boolean')) || new Set(actions.map((action) => action.id)).size !== actions.length) return failure('INVALID_INPUT', 'Header actions need filled array slots, unique IDs, labels, boolean states, callbacks and an optional before/after position containing a safe integer priority; absolute index and top-level priority are unsupported.');
-            return success(context.register('actions', context.owner.panelId, actions.map((action) => ({ ...action, ...(action.position ? { position: { ...action.position } } : {}) }))));
+            if (!Array.isArray(actions)) return invalidActions();
+            const registered: HostHeaderAction[] = [], ids = new Set<string>();
+            // Validate the complete registration before publishing any item or notifying observers.
+            for (let index = 0; index < actions.length; index++) {
+                const action = actions[index];
+                if (!Object.prototype.hasOwnProperty.call(actions, index) || !action || typeof action.id !== 'string' || !action.id || ids.has(action.id) || typeof action.label !== 'string' || typeof action.onSelect !== 'function' || Object.prototype.hasOwnProperty.call(action, 'index') || Object.prototype.hasOwnProperty.call(action, 'priority') || (action.checked !== undefined && typeof action.checked !== 'boolean') || (action.disabled !== undefined && typeof action.disabled !== 'boolean')) return invalidActions();
+                const position = normalizePosition(action.position);
+                if (position === null) return invalidActions();
+                ids.add(action.id);
+                registered.push({ ...action, ...(position ? { position } : {}) });
+            }
+            return success(context.register('actions', context.owner.panelId, registered));
         },
     }),
 };
