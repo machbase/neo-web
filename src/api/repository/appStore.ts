@@ -1,4 +1,6 @@
 import request from '@/api/core';
+import { getLogin } from '@/api/repository/login';
+import { isExperimentOn, storeExperiment } from '@/hooks/useExperiment';
 import type { PkgVersionInfo } from '@/utils/version/utils';
 
 /** Get pkgs list */
@@ -19,26 +21,32 @@ export const getPkgsSync = () => {
     });
 };
 
-// THE CATALOG IS packages.json, AND ONLY packages.json.
+// THE HUB FILE FOLLOWS THE SERVER'S EXPERIMENT MODE (issue #1584).
 //
-// The hub also publishes packages-all.json, which adds packages still under
-// validation (tagged `experiment: true`). This client used to read that file and
-// hide the tagged entries unless the server ran in experiment mode. It no longer
-// does: what is not released is not in the catalog. packages.json is exactly that
-// list — the hub's sync writes an entry there only when it is not `experiment` —
-// so the rule is enforced by WHICH FILE is read, the same online and offline, with
-// no per-card flag to reconcile against the local sources.
+// The hub publishes two lists. packages.json holds the released packages only —
+// the hub's sync writes an entry there only when it is not `experiment`.
+// packages-all.json holds every package, the ones still under validation tagged
+// `experiment: true`; apart from that tag, the entries both files share are
+// identical. A server in experiment mode reads packages-all.json, any other server
+// packages.json, so unreleased packages show on experiment servers only.
+//
+// The rule is WHICH FILE is read, never a per-card flag: an archive placed on the
+// server is listed whatever its hub entry says (issue #1525), and the hub leg does
+// not decide what the local sources show. ONE file per fetch — the other one is not
+// a fallback when the chosen one fails.
 //
 // A package missing from the hub catalog can still be installed from an archive
 // placed on the server; that path never consults the hub.
-const PKG_HUB_URL = 'https://raw.githubusercontent.com/machbase/neo-pkg-hub/main/packages.json';
+const PKG_HUB_BASE_URL = 'https://raw.githubusercontent.com/machbase/neo-pkg-hub/main/';
+export const PKG_HUB_URL = `${PKG_HUB_BASE_URL}packages.json`;
+export const PKG_HUB_ALL_URL = `${PKG_HUB_BASE_URL}packages-all.json`;
 
 // issue #1452 — offline hardening of the hub leg.
 //
 // On an air-gapped server `fetch` to raw.githubusercontent does not fail fast: it
 // hangs until the browser's own connect timeout (tens of seconds on some proxy
 // setups), and there is no way to shorten that other than aborting it ourselves.
-/** Per-request abort deadline. Both hub urls get their own budget. */
+/** Per-request abort deadline. */
 export const HUB_FETCH_TIMEOUT_MS = 4000;
 /**
  * How long the hub leg stays "known down" after a complete failure.
@@ -168,7 +176,28 @@ const fetchHubEntries = async (url: string): Promise<PkgHubEntry[]> => {
 };
 
 /**
- * Fetch package list from neo-pkg-hub (packages.json — see the note at the top).
+ * Whether the server runs in experiment mode, asked now (issue #1584).
+ *
+ * The answer is stored through `storeExperiment`, the same write sign-in and the
+ * 30s login check make, so the theme and the rest of the app follow it at once.
+ * When the server does not answer, the last stored value decides.
+ */
+const readExperimentMode = async (): Promise<boolean> => {
+    const res: any = await getLogin().catch(() => undefined);
+    // `request` resolves a failed call with the error response (or the network
+    // error) instead of rejecting, so only a body that says success is an answer.
+    if (res?.success === true) storeExperiment(res.experimentMode === true);
+    return isExperimentOn();
+};
+
+/**
+ * Fetch package list from neo-pkg-hub — packages-all.json on an experiment-mode
+ * server, packages.json otherwise (see the note at the top).
+ *
+ * Every catalog build comes through here (panel open, search, Refresh, after an
+ * install/uninstall/start/stop), so the mode is asked once per build, and only
+ * here: the local sources in `buildCatalog` never wait for it. While the failure
+ * backoff is open neither the server nor the hub is asked.
  *
  * STILL REJECTS when the hub cannot be read — but rejection no longer means "the
  * catalog is empty". `buildCatalog` (components/side/AppStore/catalog.ts) treats this
@@ -177,9 +206,10 @@ const fetchHubEntries = async (url: string): Promise<PkgHubEntry[]> => {
  */
 export const fetchPkgHubList = async (): Promise<APP_INFO[]> => {
     if (isPkgHubBackedOff()) throw new Error(HUB_BACKOFF_MESSAGE);
+    const url = (await readExperimentMode()) ? PKG_HUB_ALL_URL : PKG_HUB_URL;
     let entries: PkgHubEntry[];
     try {
-        entries = await fetchHubEntries(PKG_HUB_URL);
+        entries = await fetchHubEntries(url);
     } catch (e) {
         // Assume the host is unreachable and stop hammering it until the window closes.
         hubBackoffUntil = Date.now() + HUB_FAILURE_BACKOFF_MS;
