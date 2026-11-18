@@ -18,17 +18,24 @@ const notifyIfChanged = (aBefore: boolean) => {
     if (isExperimentOn() !== aBefore) window.dispatchEvent(new Event(EXPERIMENT_CHANGE_EVENT));
 };
 
+/** Store the experiment flag (JSON, as useLocalStorage writes it) and say so when it turns on or off. Outside React too: the App Store's hub fetch stores what the server answers. */
+export const storeExperiment = <T>(value: T) => {
+    const sBefore = isExperimentOn();
+    try {
+        localStorage.setItem(LOCAL_STORAGE_EXPERIMENT_KEY, JSON.stringify(value));
+    } catch {
+        /* storage unavailable — nothing changed */
+    }
+    notifyIfChanged(sBefore);
+};
+
 export const useExperiment = () => {
-    const { getLocalItem, setLocalItem, removeLocalItem } = useLocalStorage();
+    const { getLocalItem, removeLocalItem } = useLocalStorage();
 
     const getExperiment = (): boolean => {
         return getLocalItem(LOCAL_STORAGE_EXPERIMENT_KEY, false) ?? false;
     };
-    const setExperiment = <T>(value: T) => {
-        const sBefore = isExperimentOn();
-        setLocalItem(LOCAL_STORAGE_EXPERIMENT_KEY, value);
-        notifyIfChanged(sBefore);
-    };
+    const setExperiment = <T>(value: T) => storeExperiment(value);
     const rmExperiment = () => {
         const sBefore = isExperimentOn();
         removeLocalItem(LOCAL_STORAGE_EXPERIMENT_KEY);
