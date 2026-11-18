@@ -124,7 +124,8 @@ export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
     // renders and the input is unreachable, leaving the package impossible to
     // install from the UI.
     //
-    // This is experiment mode's ONLY effect on the App Store.
+    // Besides this, experiment mode only picks which hub file the catalog reads
+    // (issue #1584, `fetchPkgHubList`).
     const { getExperiment } = useExperiment();
     const canPickCustomVersion = getExperiment();
     const isIncompatible = isInstalled && eligibility.isIncompatible;

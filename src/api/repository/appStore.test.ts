@@ -8,8 +8,20 @@ import {
     HUB_FETCH_TIMEOUT_MS,
     type PkgHubEntry,
 } from './appStore';
+import { getLogin } from '@/api/repository/login';
+import { EXPERIMENT_CHANGE_EVENT } from '@/hooks/useExperiment';
+
+// issue #1584: the hub file follows the server's experiment mode, asked through the
+// login check on every fetch.
+jest.mock('@/api/repository/login', () => ({ getLogin: jest.fn() }));
+const mockCheck = getLogin as jest.MockedFunction<any>;
 
 const HUB_URL = 'https://raw.githubusercontent.com/machbase/neo-pkg-hub/main/packages.json';
+const HUB_ALL_URL = 'https://raw.githubusercontent.com/machbase/neo-pkg-hub/main/packages-all.json';
+/** What `request` resolves /web/api/check with: the body on success… */
+const checkAnswer = (experimentMode: boolean) => ({ success: true, reason: 'success', experimentMode });
+/** …and the error response itself when the call failed (it does not reject). */
+const checkFailure = () => ({ status: 500, data: { success: false, reason: 'boom' } });
 
 // Minimal hub payload entry — mirrors the shape sync.sh publishes.
 const hubEntry = (name: string, over: Record<string, unknown> = {}) => ({
@@ -69,16 +81,102 @@ describe('fetchPkgHubList', () => {
         global.fetch = fetchMock as unknown as typeof fetch;
         // Module-level failure window — must not leak between tests.
         resetPkgHubBackoff();
+        mockCheck.mockReset();
+        mockCheck.mockResolvedValue(checkAnswer(false));
+        localStorage.clear();
     });
 
-    // packages.json is the released-only list, so reading it IS the rule "what is
-    // not released is not in the catalog". packages-all.json must never be read.
-    test('reads packages.json — one request, never packages-all.json', async () => {
-        fetchMock.mockResolvedValueOnce(okResponse([hubEntry('a')]));
-        await fetchPkgHubList();
-        expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock).toHaveBeenCalledWith(HUB_URL, withSignal);
-        expect(fetchMock.mock.calls.some(([url]) => String(url).includes('packages-all.json'))).toBe(false);
+    // issue #1584: which FILE is read is the rule. packages.json is the released-only
+    // list; packages-all.json adds the packages still under validation, for
+    // experiment-mode servers only. One request, to the chosen file.
+    describe('the hub file follows the experiment mode (issue #1584)', () => {
+        test('experiment mode ON → packages-all.json, one request', async () => {
+            mockCheck.mockResolvedValue(checkAnswer(true));
+            fetchMock.mockResolvedValueOnce(okResponse([hubEntry('a'), hubEntry('b', { experiment: true })]));
+            await expect(fetchPkgHubList()).resolves.toHaveLength(2);
+            expect(mockCheck).toHaveBeenCalledTimes(1);
+            expect(fetchMock).toHaveBeenCalledTimes(1);
+            expect(fetchMock).toHaveBeenCalledWith(HUB_ALL_URL, withSignal);
+        });
+
+        test('experiment mode OFF → packages.json, one request', async () => {
+            localStorage.setItem('experimentMode', 'true'); // the server's answer wins over what was stored
+            fetchMock.mockResolvedValueOnce(okResponse([hubEntry('a')]));
+            await fetchPkgHubList();
+            expect(mockCheck).toHaveBeenCalledTimes(1);
+            expect(fetchMock).toHaveBeenCalledTimes(1);
+            expect(fetchMock).toHaveBeenCalledWith(HUB_URL, withSignal);
+        });
+
+        test.each([
+            ['an error response', checkFailure()],
+            ['a network error', new Error('Network Error')],
+            ['no answer at all', undefined],
+        ])('the check failing (%s) → the last stored value picks the file, and stays', async (_label, answer) => {
+            mockCheck.mockResolvedValue(answer);
+            localStorage.setItem('experimentMode', 'true');
+            fetchMock.mockResolvedValueOnce(okResponse([hubEntry('a')]));
+            await fetchPkgHubList();
+            expect(fetchMock).toHaveBeenLastCalledWith(HUB_ALL_URL, withSignal);
+            expect(localStorage.getItem('experimentMode')).toBe('true');
+
+            localStorage.setItem('experimentMode', 'false');
+            fetchMock.mockResolvedValueOnce(okResponse([hubEntry('a')]));
+            await fetchPkgHubList();
+            expect(fetchMock).toHaveBeenLastCalledWith(HUB_URL, withSignal);
+            expect(localStorage.getItem('experimentMode')).toBe('false');
+        });
+
+        test('a check that rejects (cancelled) also falls back to the stored value', async () => {
+            mockCheck.mockRejectedValue(new Error('canceled'));
+            localStorage.setItem('experimentMode', 'true');
+            fetchMock.mockResolvedValueOnce(okResponse([hubEntry('a')]));
+            await fetchPkgHubList();
+            expect(fetchMock).toHaveBeenCalledWith(HUB_ALL_URL, withSignal);
+        });
+
+        test('the answer is stored the way the rest of the app stores it, and a change is announced', async () => {
+            const heard = jest.fn();
+            window.addEventListener(EXPERIMENT_CHANGE_EVENT, heard);
+            localStorage.setItem('experimentMode', 'false');
+            mockCheck.mockResolvedValue(checkAnswer(true));
+            fetchMock.mockResolvedValue(okResponse([hubEntry('a')]));
+            await fetchPkgHubList();
+            expect(localStorage.getItem('experimentMode')).toBe('true');
+            expect(heard).toHaveBeenCalledTimes(1);
+
+            await fetchPkgHubList(); // same answer: stored again, nothing announced
+            expect(heard).toHaveBeenCalledTimes(1);
+
+            mockCheck.mockResolvedValue(checkAnswer(false));
+            await fetchPkgHubList();
+            expect(localStorage.getItem('experimentMode')).toBe('false');
+            expect(heard).toHaveBeenCalledTimes(2);
+            window.removeEventListener(EXPERIMENT_CHANGE_EVENT, heard);
+        });
+
+        test('while backed off, neither the server nor the hub is asked', async () => {
+            fetchMock.mockResolvedValueOnce(notFound());
+            await expect(fetchPkgHubList()).rejects.toThrow();
+            mockCheck.mockClear();
+            fetchMock.mockClear();
+
+            await expect(fetchPkgHubList()).rejects.toThrow(HUB_BACKOFF_MESSAGE);
+            expect(mockCheck).not.toHaveBeenCalled();
+            expect(fetchMock).not.toHaveBeenCalled();
+        });
+
+        test.each([
+            [true, HUB_ALL_URL],
+            [false, HUB_URL],
+        ])('the chosen file failing (experiment %s) is not retried with the other file', async (on, url) => {
+            mockCheck.mockResolvedValue(checkAnswer(on));
+            fetchMock.mockResolvedValueOnce(notFound());
+            await expect(fetchPkgHubList()).rejects.toThrow('Failed to fetch pkg hub: 404');
+            expect(fetchMock).toHaveBeenCalledTimes(1);
+            expect(fetchMock).toHaveBeenCalledWith(url, withSignal);
+            expect(isPkgHubBackedOff()).toBe(true);
+        });
     });
 
     test('rejects a payload that is not an array, and backs off', async () => {

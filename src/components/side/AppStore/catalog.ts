@@ -11,6 +11,7 @@
 // The catalog is now the name-keyed union of three independent sources:
 //
 //   hub        raw.githubusercontent packages.json       — may be unreachable
+//              (packages-all.json in experiment mode, see appStore.ts)
 //   local      the archive zips, scanned server-side     — offline install source
 //   installed  /public/{name}/ + package.json            — ground truth on disk
 //
