@@ -20,6 +20,7 @@ export const EditTimer = () => {
     const [sCreateName, setCreateName] = useState<string>('');
     const [sCreatePayload, setCreatePayload] = useState<CreatePayloadType>({
         autoStart: false,
+        continueOnError: false,
         schedule: '', //@every 1h30m
         path: '', ///sql_select_log.tql
     });
@@ -154,6 +155,15 @@ export const EditTimer = () => {
                                 label={<Page.ContentDesc>{AUTO_START_DESC}</Page.ContentDesc>}
                                 checked={sCreatePayload.autoStart}
                                 onChange={(e: any) => handlePayload('autoStart', { target: { value: e.target.checked } } as any)}
+                            />
+                        </Page.ContentBlock>
+                        <Page.ContentBlock>
+                            <Page.ContentTitle>Continue on error</Page.ContentTitle>
+                            <Checkbox
+                                size="sm"
+                                label={<Page.ContentDesc>Continue running on the next schedule after a task error.</Page.ContentDesc>}
+                                checked={sCreatePayload.continueOnError}
+                                onChange={(e: any) => handlePayload('continueOnError', { target: { value: e.target.checked } } as any)}
                             />
                         </Page.ContentBlock>
 

@@ -86,7 +86,7 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
     const editItem = async () => {
         // `timer.update` REPLACES the definition — every editable field has to go in every time,
         // or the omitted one is reset on the server (omitting autoStart turns it off).
-        const sResult = await modTimer({ autoStart: sPayload.autoStart, schedule: sPayload.schedule, path: sPayload.task }, sPayload.id);
+        const sResult = await modTimer({ autoStart: sPayload.autoStart, continueOnError: sPayload.continueOnError, schedule: sPayload.schedule, path: sPayload.task }, sPayload.id);
 
         if (sResult.success) {
             const sTimerInfo = await getTimerItem(sPayload.id);
@@ -135,7 +135,7 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
         const sServer: TimerItemType = sTimerInfo.data;
         setResTimerList((aList) => aList && aList.map((aTimerInfo: any) => (aTimerInfo.id === sServer.id ? sServer : aTimerInfo)));
         const sBefore: any = sBoardList.find((aBoard: any) => aBoard.type === 'timer')?.savedCode;
-        const sMoved = !sBefore || (['schedule', 'task', 'state', 'autoStart'] as const).some((aKey) => sServer[aKey] !== sBefore[aKey]);
+        const sMoved = !sBefore || (['schedule', 'task', 'state', 'autoStart', 'continueOnError'] as const).some((aKey) => sServer[aKey] !== sBefore[aKey]);
         if (!sMoved) return;
         // the board update re-runs the pCode effect below, which would clear the message just set
         sKeepMessageRef.current = true;
@@ -195,6 +195,9 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                 task: pCode.task || '',
                 schedule: pCode.schedule || '',
                 autoStart: pCode?.autoStart || false,
+                continueOnError: pCode?.continueOnError || false,
+                lastError: pCode?.lastError,
+                lastErrorAt: pCode?.lastErrorAt,
             });
     }, [pCode]);
 
@@ -240,6 +243,21 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                                         onChange={(e: any) => handlePayload('autoStart', { target: { value: e.target.checked } } as any)}
                                     />
                                 </Page.ContentBlock>
+                                <Page.ContentBlock>
+                                    <Page.ContentTitle>Continue on error</Page.ContentTitle>
+                                    <Checkbox
+                                        size="sm"
+                                        label={<Page.ContentDesc>Continue running on the next schedule after a task error.</Page.ContentDesc>}
+                                        checked={sPayload.continueOnError}
+                                        onChange={(e: any) => handlePayload('continueOnError', { target: { value: e.target.checked } } as any)}
+                                    />
+                                </Page.ContentBlock>
+                                {sPayload.lastError && (
+                                    <Page.ContentBlock>
+                                        <Page.ContentTitle>Last error{sPayload.lastErrorAt ? ` (${sPayload.lastErrorAt})` : ''}</Page.ContentTitle>
+                                        <Alert variant="error" message={sPayload.lastError} />
+                                    </Page.ContentBlock>
+                                )}
                                 <Page.ContentBlock>
                                     {/* Schedule */}
                                     <Page.ContentTitle>schedule</Page.ContentTitle>

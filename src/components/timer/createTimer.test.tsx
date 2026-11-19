@@ -98,3 +98,13 @@ test('a rejected create keeps the form and its message', async () => {
     expect(screen.getByTestId('timer-create-submit')).toBeInTheDocument();
     expect(screen.getByText('invalid schedule')).toBeInTheDocument();
 });
+
+test('create sends the continue-on-error setting', async () => {
+    (genTimer as jest.Mock).mockResolvedValue({ success: false, reason: 'test' });
+    (getTimer as jest.Mock).mockResolvedValue({ success: true, data: [] });
+    renderCreate();
+    fill();
+    fireEvent.click(screen.getByRole('checkbox', { name: /continue running on the next schedule/i }));
+    await act(async () => fireEvent.click(screen.getByTestId('timer-create-submit')));
+    expect(genTimer).toHaveBeenCalledWith(expect.objectContaining({ continueOnError: true }), 'nightly');
+});
