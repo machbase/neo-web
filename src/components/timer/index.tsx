@@ -12,6 +12,7 @@ import { OpenFileBtn } from '../buttons/OpenFileBtn';
 import { ConfirmModal } from '../modal/ConfirmModal';
 import { isTimerRunningState, splitTimerState, useTimerStateAction } from './useTimerStateAction';
 import { resMessage } from '@/utils/resMessage';
+import { TimerLastError } from './lastError';
 
 export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
@@ -252,12 +253,6 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                                         onChange={(e: any) => handlePayload('continueOnError', { target: { value: e.target.checked } } as any)}
                                     />
                                 </Page.ContentBlock>
-                                {sPayload.lastError && (
-                                    <Page.ContentBlock>
-                                        <Page.ContentTitle>Last error{sPayload.lastErrorAt ? ` (${sPayload.lastErrorAt})` : ''}</Page.ContentTitle>
-                                        <Alert variant="error" message={sPayload.lastError} />
-                                    </Page.ContentBlock>
-                                )}
                                 <Page.ContentBlock>
                                     {/* Schedule */}
                                     <Page.ContentTitle>schedule</Page.ContentTitle>
@@ -275,6 +270,7 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                                         </Button.Group>
                                     </Page.DpRow>
                                 </Page.ContentBlock>
+                                <TimerLastError pState={sPayload.state} pLastError={sPayload.lastError} pLastErrorAt={sPayload.lastErrorAt} />
                                 <Page.ContentBlock pHoverNone>{sResOpenFile && <Alert variant="error" message={sResOpenFile} />}</Page.ContentBlock>
                                 <Page.ContentBlock>
                                     {/* BTN */}

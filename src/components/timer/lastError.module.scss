@@ -1,0 +1,45 @@
+@use '@/design-system/tokens' as t;
+
+// "when · what happened" above the failure text
+.meta {
+    display: flex;
+    align-items: center;
+    gap: t.$spacing-6;
+    margin-bottom: t.$spacing-8;
+    color: t.$text-tertiary;
+    font-size: t.$font-size-sm;
+}
+
+.outcome {
+    color: t.$text-muted;
+}
+
+// the failure text as the server wrote it: lines kept, long lines wrapped
+.message {
+    margin: 0;
+    padding: t.$spacing-8 t.$spacing-12;
+    border-radius: t.$border-radius-base;
+    background-color: t.$bg-primary;
+    border: 1px solid t.$border-color-default;
+    color: t.$text-secondary;
+    // the global `*` font-family reaches pre too, so the monospace is set here
+    font-family: 'D2Coding', 'Consolas', monospace;
+    font-size: t.$font-size-sm;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+// the failure stopped the timer: the error variant of Alert
+.stopped {
+    .meta,
+    .outcome {
+        color: t.$error-text;
+    }
+
+    .message {
+        background-color: color-mix(in srgb, var(--neo-error-main, rgb(255, 83, 83)) 15%, transparent);
+        border-color: color-mix(in srgb, var(--neo-error-main, rgb(255, 83, 83)) 40%, transparent);
+        color: t.$text-primary;
+    }
+}

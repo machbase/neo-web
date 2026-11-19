@@ -100,7 +100,7 @@ test('save sends continue-on-error and displays the last failure', async () => {
             <Host />
         </RecoilRoot>
     );
-    expect(screen.getByText('execution failed')).toBeInTheDocument();
+    expect(screen.getByTestId('timer-last-error')).toHaveTextContent('execution failed');
     expect(screen.getByRole('checkbox', { name: /continue running on the next schedule/i })).toBeChecked();
     await act(async () => fireEvent.click(screen.getByText('Save')));
     expect(modTimer).toHaveBeenCalledWith(expect.objectContaining({ continueOnError: true }), timer.id);
