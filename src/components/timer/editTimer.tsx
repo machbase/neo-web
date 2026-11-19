@@ -5,7 +5,7 @@ import { SashContent } from 'split-pane-react';
 import { CreatePayloadType, TimerItemType, genTimer, getTimer } from '@/api/repository/timer';
 import { gActiveTimer, gBoardList, gTimerList } from '@/recoil/recoil';
 import { LuFlipVertical } from 'react-icons/lu';
-import { AUTO_START_DESC, CRON_EXPRESSION, CRON_EXPRESSION_HINT, INTERVAL, INTERVAL_DESC, PREDEFINED_SCHEDULES, TIMER_SPEC } from './content';
+import { AUTO_START_DESC, CONTINUE_ON_ERROR_DESC, CRON_EXPRESSION, CRON_EXPRESSION_HINT, INTERVAL, INTERVAL_DESC, PREDEFINED_SCHEDULES, TIMER_SPEC } from './content';
 import { SelectFileBtn } from '../buttons/SelectFileBtn';
 import { OpenFileBtn } from '../buttons/OpenFileBtn';
 import { resMessage } from '@/utils/resMessage';
@@ -161,7 +161,7 @@ export const EditTimer = () => {
                             <Page.ContentTitle>Continue on error</Page.ContentTitle>
                             <Checkbox
                                 size="sm"
-                                label={<Page.ContentDesc>Continue running on the next schedule after a task error.</Page.ContentDesc>}
+                                label={<Page.ContentDesc>{CONTINUE_ON_ERROR_DESC}</Page.ContentDesc>}
                                 checked={sCreatePayload.continueOnError}
                                 onChange={(e: any) => handlePayload('continueOnError', { target: { value: e.target.checked } } as any)}
                             />

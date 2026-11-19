@@ -6,7 +6,7 @@ import { SashContent } from 'split-pane-react';
 import { EditTimer } from './editTimer';
 import { TimerItemType, delTimer, getTimer, getTimerItem, modTimer } from '@/api/repository/timer';
 import { useState, useEffect, useRef } from 'react';
-import { AUTO_START_DESC } from './content';
+import { AUTO_START_DESC, CONTINUE_ON_ERROR_DESC } from './content';
 import { SelectFileBtn } from '../buttons/SelectFileBtn';
 import { OpenFileBtn } from '../buttons/OpenFileBtn';
 import { ConfirmModal } from '../modal/ConfirmModal';
@@ -87,6 +87,7 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
     const editItem = async () => {
         // `timer.update` REPLACES the definition — every editable field has to go in every time,
         // or the omitted one is reset on the server (omitting autoStart turns it off).
+        // continueOnError is kept when omitted, but it goes in every time too so all fields follow one rule.
         const sResult = await modTimer({ autoStart: sPayload.autoStart, continueOnError: sPayload.continueOnError, schedule: sPayload.schedule, path: sPayload.task }, sPayload.id);
 
         if (sResult.success) {
@@ -248,7 +249,7 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                                     <Page.ContentTitle>Continue on error</Page.ContentTitle>
                                     <Checkbox
                                         size="sm"
-                                        label={<Page.ContentDesc>Continue running on the next schedule after a task error.</Page.ContentDesc>}
+                                        label={<Page.ContentDesc>{CONTINUE_ON_ERROR_DESC}</Page.ContentDesc>}
                                         checked={sPayload.continueOnError}
                                         onChange={(e: any) => handlePayload('continueOnError', { target: { value: e.target.checked } } as any)}
                                     />

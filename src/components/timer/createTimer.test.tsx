@@ -5,6 +5,7 @@
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { RecoilRoot, useRecoilValue } from 'recoil';
 import { Timer } from './index';
+import { CONTINUE_ON_ERROR_DESC } from './content';
 import { genTimer, getTimer } from '@/api/repository/timer';
 import { gActiveTimer, gBoardList, gTimerList } from '@/recoil/recoil';
 
@@ -105,9 +106,25 @@ test('create defaults to continue-on-error and can disable it', async () => {
     (getTimer as jest.Mock).mockResolvedValue({ success: true, data: [] });
     renderCreate();
     fill();
-    const option = screen.getByRole('checkbox', { name: /continue running on the next schedule/i });
+    const option = screen.getByRole('checkbox', { name: CONTINUE_ON_ERROR_DESC });
     expect(option).toBeChecked();
     fireEvent.click(option);
     await act(async () => fireEvent.click(screen.getByTestId('timer-create-submit')));
     expect(genTimer).toHaveBeenCalledWith(expect.objectContaining({ continueOnError: false }), 'nightly');
+});
+
+test('create and detail describe continue-on-error with the same text', async () => {
+    renderCreate();
+    expect(screen.getByRole('checkbox', { name: CONTINUE_ON_ERROR_DESC })).toBeInTheDocument();
+    const sTimer: any = { id: 7, name: 'nightly', type: 'TIMER', state: 'STOP', task: '/a.tql', schedule: '@every 1h', autoStart: false, continueOnError: true };
+    render(
+        <RecoilRoot initializeState={({ set }) => {
+            set(gActiveTimer, sTimer.id);
+            set(gTimerList, [sTimer]);
+            set(gBoardList, [{ id: 'board-2', type: 'timer', code: sTimer, savedCode: sTimer }] as any);
+        }}>
+            <Timer pCode={sTimer} />
+        </RecoilRoot>
+    );
+    expect(screen.getAllByRole('checkbox', { name: CONTINUE_ON_ERROR_DESC })).toHaveLength(2);
 });

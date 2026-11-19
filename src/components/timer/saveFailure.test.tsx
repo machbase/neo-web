@@ -6,6 +6,7 @@
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { RecoilRoot, useRecoilValue } from 'recoil';
 import { Timer } from './index';
+import { CONTINUE_ON_ERROR_DESC } from './content';
 import { getTimerItem, modTimer } from '@/api/repository/timer';
 import { gActiveTimer, gBoardList, gTimerList } from '@/recoil/recoil';
 
@@ -101,7 +102,7 @@ test('save sends continue-on-error and displays the last failure', async () => {
         </RecoilRoot>
     );
     expect(screen.getByTestId('timer-last-error')).toHaveTextContent('execution failed');
-    expect(screen.getByRole('checkbox', { name: /continue running on the next schedule/i })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: CONTINUE_ON_ERROR_DESC })).toBeChecked();
     await act(async () => fireEvent.click(screen.getByText('Save')));
     expect(modTimer).toHaveBeenCalledWith(expect.objectContaining({ continueOnError: true }), timer.id);
 });
