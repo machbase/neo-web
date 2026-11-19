@@ -68,6 +68,7 @@ test('a successful create opens the created timer', async () => {
 
     expect(screen.queryByTestId('timer-create-submit')).not.toBeInTheDocument();
     expect(screen.getByText('nightly')).toBeInTheDocument();
+    expect(genTimer).toHaveBeenCalledWith(expect.objectContaining({ continueOnError: true }), 'nightly');
 });
 
 test('clicking Create three times while the request is pending sends one request', async () => {
@@ -99,12 +100,14 @@ test('a rejected create keeps the form and its message', async () => {
     expect(screen.getByText('invalid schedule')).toBeInTheDocument();
 });
 
-test('create sends the continue-on-error setting', async () => {
+test('create defaults to continue-on-error and can disable it', async () => {
     (genTimer as jest.Mock).mockResolvedValue({ success: false, reason: 'test' });
     (getTimer as jest.Mock).mockResolvedValue({ success: true, data: [] });
     renderCreate();
     fill();
-    fireEvent.click(screen.getByRole('checkbox', { name: /continue running on the next schedule/i }));
+    const option = screen.getByRole('checkbox', { name: /continue running on the next schedule/i });
+    expect(option).toBeChecked();
+    fireEvent.click(option);
     await act(async () => fireEvent.click(screen.getByTestId('timer-create-submit')));
-    expect(genTimer).toHaveBeenCalledWith(expect.objectContaining({ continueOnError: true }), 'nightly');
+    expect(genTimer).toHaveBeenCalledWith(expect.objectContaining({ continueOnError: false }), 'nightly');
 });

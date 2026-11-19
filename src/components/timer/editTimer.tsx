@@ -20,7 +20,7 @@ export const EditTimer = () => {
     const [sCreateName, setCreateName] = useState<string>('');
     const [sCreatePayload, setCreatePayload] = useState<CreatePayloadType>({
         autoStart: false,
-        continueOnError: false,
+        continueOnError: true,
         schedule: '', //@every 1h30m
         path: '', ///sql_select_log.tql
     });
