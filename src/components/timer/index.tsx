@@ -10,7 +10,7 @@ import { AUTO_START_DESC } from './content';
 import { SelectFileBtn } from '../buttons/SelectFileBtn';
 import { OpenFileBtn } from '../buttons/OpenFileBtn';
 import { ConfirmModal } from '../modal/ConfirmModal';
-import { isTimerRunningState, useTimerStateAction } from './useTimerStateAction';
+import { isTimerRunningState, splitTimerState, useTimerStateAction } from './useTimerStateAction';
 import { resMessage } from '@/utils/resMessage';
 
 export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
@@ -218,7 +218,7 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                                                 <Page.Switch
                                                     pState={isTimerRunningState(sPayload.state)}
                                                     pCallback={handleCommand}
-                                                    pBadge={sPayload.state}
+                                                    pBadge={splitTimerState(sPayload.state).word}
                                                     pBadgeL={true}
                                                     pReadOnly={sIsCommandLoading}
                                                 />

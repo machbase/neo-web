@@ -18,6 +18,19 @@ export const isTimerRunningState = (state?: string) => {
     return normalizedState.includes('RUNNING') || normalizedState.includes('STARTING');
 };
 
+/**
+ * A timer that stops on a failed task comes back with the failure appended to its state
+ * (`STOP, MACHCLI-ERR-2025, Table … does not exist.`). Splits that structure — the state word
+ * before the first `, ` and the failure after it — without reading what the failure says.
+ * `error` is empty when nothing is attached, i.e. the timer did not stop on a failure.
+ */
+export const splitTimerState = (state?: string): { word: string; error: string } => {
+    const sState = state ?? '';
+    const sAt = sState.indexOf(', ');
+    if (sAt < 0) return { word: sState.trim(), error: '' };
+    return { word: sState.slice(0, sAt).trim(), error: sState.slice(sAt + 2).trim() };
+};
+
 export const useTimerStateAction = () => {
     const setTimerList = useSetRecoilState<TimerItemType[] | undefined>(gTimerList);
     const setBoardList = useSetRecoilState<any[]>(gBoardList);
