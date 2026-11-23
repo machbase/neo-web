@@ -3,7 +3,6 @@ import { COPY_PACKAGE_FILE } from './archiveScript';
 import { PANEL_CONTRACT_VERSIONS } from '@/components/dashboard/extensions/contracts';
 import { SCRIPT_ERROR_SENTINEL } from './types';
 import { INSTALL_EXTENSION_API_SOURCE, INSTALL_EXTENSION_RUNNER_SOURCE } from './installExtensionApi';
-import { UPDATE_STOP_VALIDATION_SOURCE, UPDATE_STOP_RUNNER_SOURCE } from './updateStop';
 
 export const PANEL_EXTENSIONS_CHANGED = 'neo:dashboard-panel-extensions-changed';
 export const PANEL_PACKAGE_ROOT = '/work/.extension/dashboard-panels';
@@ -23,7 +22,6 @@ var fail = function (error) { $.yield("${SCRIPT_ERROR_SENTINEL} " + error.messag
 export const PANEL_PACKAGE_SCRIPT = String.raw`${PANEL_PACKAGE_FS}
 ${COPY_PACKAGE_FILE}
 ${PUBLIC_PANEL_SCRIPT}
-${UPDATE_STOP_VALIDATION_SOURCE}
 var action = $.params.action;
 var appName = $.params.name;
 var job = $.params.job;
@@ -138,15 +136,6 @@ function applyAction() {
     }
     if (!safeName(job)) throw new Error("Invalid package staging ID.");
     var stage = root + "/.staging/" + job;
-    function prepareUpdateStop() {
-        var prepared = read(stage + "/body/package.json");
-        if (prepared.name !== appName) throw new Error("The staged update-stop package name changed.");
-        validateUpdateStop(stage + "/body", prepared);
-        // Invalidate the old result before SHELL can report success without running.
-        remove(stage + "/update-stop-success.json");
-        var stopRunner = { preparedPath: stage + "/body", installedPath: publicPath, success: stage + "/update-stop-success.json", job: job, name: appName };
-        fs.writeFileSync(stage + "/run-update-stop.js", ${JSON.stringify(UPDATE_STOP_RUNNER_SOURCE)}.replace("__NEO_UPDATE_STOP_CONTEXT__", JSON.stringify(stopRunner)), "utf8");
-    }
     if (action === "cleanup") {
         if (!pending || pending.job !== job) remove(stage);
         return null;
@@ -162,13 +151,11 @@ function applyAction() {
         if ($.params.mode === "install" && fs.existsSync(publicPath)) throw new Error("The package directory already exists.");
         var pkg = read(stage + "/body/package.json");
         if (pkg.name !== appName) throw new Error("The staged package name does not match the selected package.");
-        validateUpdateStop(stage + "/body", pkg);
         writeJson(stage + "/registry.json", null);
         var context = { registration: stage + "/registration.json", failure: stage + "/registration-error.json" };
         fs.writeFileSync(stage + "/neo-install-api.js", ${JSON.stringify(INSTALL_EXTENSION_API_SOURCE)}.replace("__NEO_INSTALL_CONTEXT__", JSON.stringify(context)), "utf8");
         var runner = { api: stage + "/neo-install-api.js", packagePath: publicPath, success: stage + "/install-success.json", job: job, name: appName };
         fs.writeFileSync(stage + "/run-install.js", ${JSON.stringify(INSTALL_EXTENSION_RUNNER_SOURCE)}.replace("__NEO_INSTALL_RUNNER_CONTEXT__", JSON.stringify(runner)), "utf8");
-        prepareUpdateStop();
         savePending({
             job: job, tag: $.params.tag || "", source: $.params.source, mode: $.params.mode,
             fullName: $.params.fullName || "", phase: "prepared", packageId: null
@@ -176,22 +163,11 @@ function applyAction() {
         return null;
     }
     if (!pending || pending.job !== job) throw new Error("The pending package deployment changed or another package deployment is incomplete.");
-    if (action === "update-stop-begin") {
-        prepareUpdateStop();
-        return null;
-    }
     function requireInstallSuccess() {
         var marker = stage + "/install-success.json";
         if (!fs.existsSync(marker)) throw new Error("The package install did not complete successfully.");
         var completed = read(marker);
         if (completed.job !== job || completed.name !== appName) throw new Error("The package install result does not match this deployment.");
-    }
-    if (action === "update-stop-result") {
-        var stopMarker = stage + "/update-stop-success.json";
-        if (!fs.existsSync(stopMarker)) throw new Error("The package update stop did not complete successfully.");
-        var stopped = read(stopMarker);
-        if (stopped.job !== job || stopped.name !== appName) throw new Error("The package update stop result does not match this deployment.");
-        return null;
     }
     if (action === "install-result") {
         requireInstallSuccess();
