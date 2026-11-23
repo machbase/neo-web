@@ -44,7 +44,7 @@ export const OpenFileBtn = ({
             setSelectedTab(sExistBoard.id as string);
         } else {
             const sFileExtension = extractionExtension(sFileName);
-            const sContentResult: any = await getFiles(`${sFilePath}/${sFileName}`);
+            const sContentResult: any = await getFiles(sFilePath + '/' + sFileName, { rawText: true });
             if (typeof sContentResult === 'string') {
                 let sTmpBoard: any = { id: sTmpId, name: sFileName, type: sFileExtension, path: sFilePath, savedCode: sContentResult, code: '' };
                 if (sFileExtension === 'dsh') {
@@ -71,7 +71,7 @@ export const OpenFileBtn = ({
                 } else {
                     sTmpBoard.code = sContentResult;
                 }
-                setBoardList([...sBoardList, sTmpBoard]);
+                setBoardList(boards => [...boards, sTmpBoard]);
                 setSelectedTab(sTmpId);
                 return;
             } else {

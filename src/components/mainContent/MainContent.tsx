@@ -128,36 +128,20 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                     return;
                 }
 
-                let sSaveData: any =
-                    sFileType === 'wrk'
-                        ? { data: sSaveWorkSheet }
-                        : sFileType === 'dsh'
-                          ? sFilterBoard
-                          : sFilterBoard?.code;
+                const savedBoard = sFilterBoard;
+                const payload = sFileType === 'wrk' ? { data: sSaveWorkSheet } : sFileType === 'dsh' ? savedBoard : savedBoard.code;
                 try {
-                    const sResult: any = await postFileList(
-                        sSaveData,
-                        sFilterBoard.path.replace('/', ''),
-                        sFilterBoard.name,
-                    );
-                    if (sResult.success) {
-                        const sIndex = sBoardList.findIndex((aBoard) => aBoard.id === sSelectedTab);
-                        const sTempBoardList = JSON.parse(JSON.stringify(sBoardList));
-                        if (sFileType === 'wrk') {
-                            sTempBoardList[sIndex].sheet = sSaveWorkSheet;
-                            sTempBoardList[sIndex].savedCode = JSON.stringify(sSaveWorkSheet);
-                        } else if (sFileType === 'json' && typeof sSaveData === 'object') {
-                            sTempBoardList[sIndex].code = JSON.stringify(sSaveData, null, 4);
-                            sTempBoardList[sIndex].savedCode = JSON.stringify(sSaveData, null, 4);
-                        } else if (sFileType === 'dsh') {
-                            sTempBoardList[sIndex].code = '';
-                            sTempBoardList[sIndex].savedCode = JSON.stringify(sSaveData.dashboard);
-                        } else {
-                            sTempBoardList[sIndex].code = sSaveData;
-                            sTempBoardList[sIndex].savedCode = sSaveData;
-                        }
-                        setBoardList(sTempBoardList);
+                    const result: any = await postFileList(payload, savedBoard.path, savedBoard.name);
+                    if (!result?.success) {
+                        Toast.error('Failed to save the file.');
+                        return;
                     }
+                    const savedCode = sFileType === 'wrk' ? JSON.stringify(sSaveWorkSheet) :
+                        sFileType === 'dsh' ? JSON.stringify(savedBoard.dashboard) :
+                        sFileType === 'json' && typeof payload === 'object' ? JSON.stringify(payload, null, 4) : payload;
+                    setBoardList(boards => boards.map(board => board.id === savedBoard.id && board.path === savedBoard.path && board.name === savedBoard.name
+                        ? { ...board, savedCode }
+                        : board));
                 } catch (aError) {
                     Toast.error('save file fail retry please');
                 }

@@ -1,5 +1,6 @@
 import { encodeHostPath } from '@/extensions/host/paths';
 import Panel from '../panels/Panel';
+import { isBlackboxVideoPanel } from '@/components/dashboard/extensions/types';
 import { HostBoardProvider } from '@/components/dashboard/extensions/HostReact';
 import { PanelExtensionProvider } from '@/components/dashboard/extensions/ExtensionPanels';
 import { createDashboardRangeRequests, useHostRefresh } from '@/components/dashboard/extensions/useHostRefresh';
@@ -57,7 +58,7 @@ const DashboardView = () => {
     const [sIsShareModal, setIsShareModal] = useState<boolean>(false);
     const [sIsDistanceModal, setIsDistanceModal] = useState<boolean>(false);
 
-    const getDshFile = async (boardPath: string, exact: boolean) => {
+    const getDshFile = async (boardPath: string, exact: boolean, videoId: string | null) => {
         try {
             const decodedSegments = boardPath.split('/').map((segment) => decodeURIComponent(segment));
             // Legacy links sometimes percent-encode the full relative path, including its separators.
@@ -80,6 +81,16 @@ const DashboardView = () => {
                 const sResult = await response.text();
                 const sParsedRes = CheckDataCompatibility(sResult, 'dsh');
                 await handleDashboardTimeRange(sParsedRes.dashboard.timeRange.start, sParsedRes.dashboard.timeRange.end, sParsedRes);
+
+                if (videoId) {
+                    const panels = sParsedRes.dashboard.panels;
+                    const videoPanel = panels.find((panel: any) => panel.id === videoId && isBlackboxVideoPanel(panel));
+                    if (videoPanel) {
+                        const linked = videoPanel.extension.settings?.dependent?.panels;
+                        const linkedIds = Array.isArray(linked) ? linked : [];
+                        sParsedRes.dashboard.panels = panels.filter((panel: any) => panel.id === videoId || linkedIds.includes(panel.id));
+                    }
+                }
 
                 setBoardInformation(sParsedRes);
                 setNotFound(false);
@@ -350,7 +361,7 @@ const DashboardView = () => {
         if (!sIsLogin) localStorage.setItem('view', JSON.stringify({ path: '/view/' + sParams['*'] }));
         const boardPath = pathname.slice('/board/'.length);
         const query = new URLSearchParams(search);
-        if (boardPath) void getDshFile(boardPath, query.get('exact') === '1');
+        if (boardPath) void getDshFile(boardPath, query.get('exact') === '1', query.get('video'));
         GenChartVariableId();
     }, []);
 

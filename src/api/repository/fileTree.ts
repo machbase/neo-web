@@ -3,7 +3,6 @@ import request from '../core';
 import { repositoryFileUrl } from '@/extensions/host/paths';
 import { AxiosResponse } from 'axios';
 
-const normalizePath = (path: string) => path.replace(/[\\/]+/g, '/');
 
 /**
  * `rawText` returns the body exactly as stored. Without it axios turns any body that looks like JSON
@@ -19,17 +18,31 @@ export const getFiles = (aPath: string, aOptions?: { rawText?: boolean }): Promi
     });
 };
 
-export const deleteFile = (aDir: string, aFileName: string) => {
+export const deleteFile = (aDir: string, aFileName: string, recursive = false) => {
     return request({
         method: 'DELETE',
-        url: normalizePath(`/api/files/${aDir}/${aFileName}`),
+        url: repositoryFileUrl(aDir + '/' + aFileName) + (recursive ? '?recursive=true' : ''),
     });
 };
 
 export const moveFile = (aPath: string, aDestinationPath: string) => {
     return request({
         method: 'PUT',
-        url: `/api/files${aPath}`,
+        url: repositoryFileUrl(aPath),
         data: { destination: `${aDestinationPath}` },
     });
 };
+
+export const copyFile = (source: string, destination: string) =>
+    request({
+        method: 'PUT',
+        url: repositoryFileUrl(source),
+        data: { copyTo: destination },
+    });
+
+// A successful move or delete may have finished before another request recreated its old name.
+export async function listRepositoryChildNames(path: string) {
+    const response = await getFiles(path);
+    const data = response?.data;
+    return data?.isDir ? new Set((data.children ?? []).map(child => child.name)) : undefined;
+}

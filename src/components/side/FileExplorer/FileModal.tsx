@@ -50,7 +50,7 @@ export const FileModal = (props: FileModalProps) => {
             return;
         }
 
-        const sResult: any = await postFileList(sPayload, sDir, sName);
+        const sResult: any = await postFileList(sPayload, sDir, sName, { create: true });
         if (sResult && sResult.success) {
             const sDrillRes = await TreeFetchDrilling(sFileTree, sFilePath, true);
             setFileTree(JSON.parse(JSON.stringify(sDrillRes.tree)));
