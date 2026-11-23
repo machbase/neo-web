@@ -1,6 +1,6 @@
 import { isBuiltInDashboardPanel } from '@/utils/dashboardPanelSupport';
 import { ExtensionErrorBoundary, ExtensionFields, usePanelExtension } from '../extensions/ExtensionPanels';
-import { extensionKey, isExtensionPanel } from '../extensions/types';
+import { extensionKey, isBlackboxVideoPanel, isExtensionPanel } from '../extensions/types';
 import { validateExtensionSettings, type SettingErrors, type Settings } from '../extensions/settings';
 import { IoArrowBackOutline } from '@/assets/icons/Icon';
 import { SplitPane, Pane, Page, Button } from '@/design-system/components';
@@ -102,9 +102,10 @@ const CreatePanel = ({
         setPanelOption((panel: any) => {
             if (panel.extension !== extension) return panel;
             const { extensionPending, ...rest } = panel;
-            return { ...rest, extension: { ...extension, settingsVersion: definition.settingsVersion, settings } };
+            const useDefaultWidth = pType === 'create' && definition.defaultWidth !== undefined;
+            return { ...rest, ...(useDefaultWidth ? { w: definition.defaultWidth } : {}), extension: { ...extension, settingsVersion: definition.settingsVersion, settings } };
         });
-    }, [definition, extension, sPanelOption.extensionPending]);
+    }, [definition, extension, pType, sPanelOption.extensionPending]);
 
     const extensionEditorProps = {
         panel: sPanelOption,
@@ -141,22 +142,29 @@ const CreatePanel = ({
             return { ...item, dashboard: { ...item.dashboard, panels } };
         };
 
-        savingExtension.current = true;
-        setExtensionSaving(true);
-        try {
-            const updated = updateBoard(board);
-            if (board.path) {
-                const result: any = await postFileList({ ...updated, savedCode: JSON.stringify(updated.dashboard) }, board.path, board.name);
-                if (!result?.success) throw new Error('Could not save dashboard.');
-            }
+        const updated = updateBoard(board);
+        const savedCode = JSON.stringify(updated.dashboard);
+        const applySavedPanel = () => {
             setBoardList((boards) => boards.map((item) => {
-                if (item.id !== board.id) return item;
+                if (item.id !== board.id || item.path !== board.path || item.name !== board.name) return item;
                 const latest = updateBoard(item);
-                return board.path ? { ...latest, savedCode: JSON.stringify(updated.dashboard) } : latest;
+                return board.path ? { ...latest, savedCode } : latest;
             }));
             if (pType === 'edit') hostBoard?.invalidatePanel(pPanelId);
             if (!pBoardTimeMinMax) pResolveBoardTimeRange(pBoardInfo.dashboard.timeRange.start, pBoardInfo.dashboard.timeRange.end);
             handleClose();
+        };
+
+        savingExtension.current = true;
+        setExtensionSaving(true);
+        const applyImmediately = isBlackboxVideoPanel(panel);
+        try {
+            if (applyImmediately) applySavedPanel();
+            if (board.path) {
+                const result: any = await postFileList({ ...updated, savedCode }, board.path, board.name);
+                if (!result?.success) throw new Error('Could not save dashboard.');
+            }
+            if (!applyImmediately) applySavedPanel();
         } catch {
             Toast.error('Could not save dashboard.');
         } finally {

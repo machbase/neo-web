@@ -39,6 +39,7 @@ export interface ExtensionDefinition {
     icon?: ReactNode;
     settingsVersion: number;
     defaults: Settings;
+    defaultWidth?: number;
     commonOptions?: ('title' | 'theme')[];
     validateSettings?: SettingValidators;
     View: ComponentType<ExtensionViewProps>;
@@ -47,4 +48,8 @@ export interface ExtensionDefinition {
 }
 
 export const isExtensionPanel = (panel: { type?: string } | null | undefined) => panel?.type === 'Extension';
+export const isBlackboxVideoExtension = (extension?: ExtensionId) =>
+    extension?.packageId === 'neo-pkg-blackbox' && extension.typeId === 'video';
+export const isBlackboxVideoPanel = (panel: { type?: string; extension?: ExtensionData } | null | undefined) =>
+    isExtensionPanel(panel) && isBlackboxVideoExtension(panel?.extension);
 export const extensionKey = ({ packageId, typeId }: ExtensionId) => JSON.stringify([packageId, typeId]);

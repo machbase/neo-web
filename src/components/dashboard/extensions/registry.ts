@@ -1,3 +1,4 @@
+import { GRID_LAYOUT_COLS } from '@/utils/constants';
 import * as React from 'react';
 import { supportsPanelContract } from './contracts';
 import { runScript } from '@/components/side/AppStore/pkgLifecycle/script';
@@ -65,6 +66,8 @@ export async function loadPanelExtension(entry: ExtensionEntry, entries: Extensi
                 if (!definition.View || !Number.isInteger(definition.settingsVersion) || definition.settingsVersion < 1) {
                     throw new Error('Invalid dashboard panel definition.');
                 }
+                const width = definition.defaultWidth;
+                if (width !== undefined && (!Number.isInteger(width) || width < 1 || width > GRID_LAYOUT_COLS)) throw new Error('Invalid dashboard panel width.');
                 const { settings } = validateExtensionSettings(definition.defaults);
                 if (!settings) throw new Error('Invalid dashboard panel defaults.');
                 definitions.set(definition.typeId, { ...definition, defaults: settings, contractVersion });

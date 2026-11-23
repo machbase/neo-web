@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { RecoilRoot } from 'recoil';
+import { RecoilRoot, useRecoilValue } from 'recoil';
 import { gBoardList } from '@/recoil/recoil';
 import CreatePanel from '@/components/dashboard/createPanel/CreatePanel';
 import { postFileList } from '@/api/repository/api';
@@ -28,24 +28,42 @@ jest.mock('@/design-system/components', () => {
     return { Page, Pane: Block, SplitPane: Block, Button: Block, Toast: { error: jest.fn() } };
 });
 
-it('uses only host settings APIs in Editor and Options and preserves other saved panels', async () => {
+it.each([
+    ['test/pkg', 'note', false],
+    ['neo-pkg-blackbox', 'video', true],
+])('saves settings for %s using the existing panel save timing', async (packageId, typeId, immediate) => {
+    jest.mocked(postFileList).mockClear();
+    let finishSave!: (value: any) => void;
+    jest.mocked(postFileList).mockReturnValueOnce(new Promise(resolve => { finishSave = resolve; }));
+    const close = jest.fn();
     const panel = { id: 'existing-panel', type: 'Extension', title: 'Keep title', x: 1, y: 2, w: 6, h: 4,
-        extension: { packageId: 'test/pkg', typeId: 'note', settingsVersion: 1, settings: { keep: 7 } } };
+        extension: { packageId, typeId, settingsVersion: 1, settings: { keep: 7 } } };
     const preserved = { id: 'unavailable-panel', type: 'Extension', x: 9, y: 3, w: 4, h: 5, extension: { packageId: 'missing/pkg', typeId: 'legacy', settingsVersion: 99, settings: { untouched: ['keep', { unknown: true }] } } };
     const originalPanel = JSON.stringify(panel);
+    function SavedPanel() {
+        const [board] = useRecoilValue(gBoardList);
+        return <output data-testid="saved-panel">{JSON.stringify(board.dashboard.panels[0].extension.settings)}</output>;
+    }
     const board: any = { id: 'existing-board', path: '/', name: 'existing.dsh', dashboard: { panels: [panel, preserved], timeRange: { start: 1000, end: 2000 }, distanceRange: { start: '', end: '' } } };
     render(<RecoilRoot initializeState={({ set }) => set(gBoardList, [board])}><CreatePanel
-        pLoopMode={false} pPanelId={panel.id} pSetCreateModal={jest.fn()} pType="edit" pBoardInfo={board}
+        pLoopMode={false} pPanelId={panel.id} pSetCreateModal={close} pType="edit" pBoardInfo={board}
         pSetType={jest.fn()} pModifyState={{ id: '', state: false }} pSetModifyState={jest.fn()}
         pMoveTimeRange={jest.fn()} pMoveDistanceRange={jest.fn()} pSetTimeRangeModal={jest.fn()}
         pSetIsSaveModal={jest.fn()} pBoardTimeMinMax={{ min: 1000, max: 2000 }} pChartVariableId="preview"
         pResolveBoardTimeRange={jest.fn()} pSetBoardTimeMinMax={jest.fn()}
-    /></RecoilRoot>);
+    /><SavedPanel /></RecoilRoot>);
     await waitFor(() => expect(screen.getByTestId('options-draft').textContent).toContain('"b":2'));
     fireEvent.click(screen.getByText('Apply'));
     await act(async () => { fireEvent.click(screen.getByText('Save')); });
-    expect(postFileList).toHaveBeenCalled();
-    const saved: any = jest.mocked(postFileList).mock.calls.at(-1)![0];
+    expect(postFileList).toHaveBeenCalledTimes(1);
+    expect(close).toHaveBeenCalledTimes(immediate ? 1 : 0);
+    expect(screen.getByTestId('saved-panel').textContent).toBe(JSON.stringify(immediate ? { keep: 7, a: 1, b: 2 } : { keep: 7 }));
+    await act(async () => { finishSave({ success: true }); });
+    expect(close).toHaveBeenCalledTimes(1);
+
+    const [saved, ...destination] = jest.mocked(postFileList).mock.calls.at(-1)!;
+    expect(destination).toEqual(['/', 'existing.dsh']);
+    expect(screen.getByTestId('saved-panel').textContent).toBe(JSON.stringify({ keep: 7, a: 1, b: 2 }));
     const savedPanels = JSON.parse(saved.savedCode).panels;
     expect(savedPanels[0].extension.settings).toEqual({ keep: 7, a: 1, b: 2 });
     expect(savedPanels[0].id).toBe(panel.id);

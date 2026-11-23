@@ -1,7 +1,7 @@
 import { ChartTypeList } from '@/utils/constants';
 import { ExtensionErrorBoundary, ExtensionFields, useExtensionEntries, type ExtensionFieldInput } from '../extensions/ExtensionPanels';
 import { supportsPanelContract } from '../extensions/contracts';
-import { extensionKey, isExtensionPanel, type ExtensionDefinition } from '../extensions/types';
+import { extensionKey, isBlackboxVideoPanel, isExtensionPanel, type ExtensionDefinition } from '../extensions/types';
 import { ChangeEvent, useMemo } from 'react';
 import { ChartCommonOptions } from './option/ChartCommonOptions';
 import { CheckCustomChartType, CheckPlgChart, DefaultChartOption, DefaultCommonOption, chartTypeConverter, getDefaultSeriesOption } from '@/utils/eChartHelper';
@@ -75,6 +75,7 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                 source = {
                     ...structuredClone(DefaultChartOption),
                     id: aPrev.id,
+                    ...(isBlackboxVideoPanel(aPrev) ? { title: aPrev.title, theme: aPrev.theme } : {}),
                     x: aPrev.x,
                     y: aPrev.y,
                     w: aPrev.w,

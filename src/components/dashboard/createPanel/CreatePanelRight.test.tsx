@@ -51,14 +51,17 @@ test('selecting the current API extension type preserves the existing draft', as
     expect(setPanel).not.toHaveBeenCalled();
 });
 
-test.each(['Line', 'Bar', 'Scatter', 'Adv scatter', 'Gauge', 'Pie', 'Liquid fill', 'Text', 'Geomap', 'Tql chart'])(
-    'switching a saved extension to %s creates fresh built-in settings and keeps its layout',
-    async (type) => {
+test.each([
+    ...['Line', 'Bar', 'Scatter', 'Adv scatter', 'Gauge', 'Pie', 'Liquid fill', 'Text', 'Geomap', 'Tql chart'].map(type => [type, false] as const),
+    ['Line', true] as const,
+])(
+    'switching a saved extension to %s keeps its layout (Blackbox: %s)',
+    async (type, blackbox) => {
         if (!globalThis.structuredClone) globalThis.structuredClone = (value: any) => JSON.parse(JSON.stringify(value));
         const previous = {
             id: 'saved-panel', title: 'Extension title', theme: 'light', type: 'Extension',
             x: 3, y: 5, w: 8, h: 6,
-            extension: { packageId: 'example/note', typeId: 'note', settings: { text: 'saved' } },
+            extension: blackbox ? { packageId: 'neo-pkg-blackbox', typeId: 'video', settings: {} } : { packageId: 'example/note', typeId: 'note', settings: { text: 'saved' } },
             timeRange: { start: 'old-start', end: 'old-end', refresh: '1s' },
             chartOptions: { oldExtensionState: true },
         };
@@ -79,7 +82,7 @@ test.each(['Line', 'Bar', 'Scatter', 'Adv scatter', 'Gauge', 'Pie', 'Liquid fill
             fireEvent.click(await screen.findByRole('button', { name: 'Unavailable extension' }));
             fireEvent.click(await screen.findByRole('option', { name: type }));
             expect(errors).toEqual([]);
-            expect(next).toMatchObject({ id: previous.id, type, x: 3, y: 5, w: 8, h: 6, title: 'New chart', theme: 'dark' });
+            expect(next).toMatchObject({ id: previous.id, type, x: 3, y: 5, w: 8, h: 6, title: blackbox ? previous.title : 'New chart', theme: blackbox ? previous.theme : 'dark' });
             expect(Array.isArray(next.blockList)).toBe(true);
             expect(next.timeRange).toEqual({ start: '', end: '', refresh: 'Off' });
             expect(next.chartOptions.oldExtensionState).toBeUndefined();
