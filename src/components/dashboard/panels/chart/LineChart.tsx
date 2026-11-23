@@ -65,8 +65,9 @@ const LineChart = ({
     const hostRevision = useSyncExternalStore(subscribeHost, readHost, readHost);
     const hostState = useMemo(() => hostRuntime?.getPanelState(pPanelInfo.id), [hostRuntime, hostRevision, pPanelInfo.id]);
     const numericBase = isNumericBaseTimeBlock(pPanelInfo.blockList?.[0]);
-    const hostPolicy = chartRangePolicy(hostState, numericBase);
-    const hostRange = numericBase ? hostState?.rangeOverrides.distance : hostState?.rangeOverrides.time;
+    const useDistanceRange = numericBase && !hostState?.rangePolicies.time;
+    const hostPolicy = chartRangePolicy(hostState, useDistanceRange);
+    const hostRange = useDistanceRange ? hostState?.rangeOverrides.distance : hostState?.rangeOverrides.time;
     // Board-source overrides follow current render props, not a previous runtime snapshot.
     const hostTimeRange = hostState?.rangePolicies.time?.source === 'board'
         ? (pBoardTimeMinMax ? { start: pBoardTimeMinMax.min, end: pBoardTimeMinMax.max } : undefined)
@@ -149,7 +150,7 @@ const LineChart = ({
      */
     const executeTqlChart = async (aWidth?: number, aForceRefresh?: boolean, aSelfRefresh?: boolean) => {
         if (!pIsActiveTab && pType !== 'create' && pType !== 'edit') return;
-        if (hostPolicy && !numericBase && !hostTimeRange) return;
+        if (hostPolicy && !useDistanceRange && !hostTimeRange) return;
         setIsLoading(true);
         if (ChartRef.current && ChartRef.current.clientWidth !== 0 && !aWidth) {
             sRefClientWidth = ChartRef.current.clientWidth;
@@ -164,10 +165,10 @@ const LineChart = ({
         let sStartTime = undefined;
         let sEndTime = undefined;
 
-        if (!numericBase && hostTimeRange) {
+        if (hostTimeRange) {
             sStartTime = hostTimeRange.start;
             sEndTime = hostTimeRange.end;
-        } else if (isNumericBaseTimeBlock(pPanelInfo.blockList?.[0])) {
+        } else if (numericBase) {
             // Distance (numeric base) panel — resolve from the kind-separated distanceRange: the
             // panel's own window when it has one, otherwise the board's. Numeric start/end are used
             // as-is; '' means the full [first, last] data extent.
@@ -502,7 +503,7 @@ const LineChart = ({
         // → 모든 차트 재조회
         if (hostPolicy) {
             prevBoardTimeMinMaxRef.current = pBoardTimeMinMax;
-            if (hostPolicy.followBoardRefresh) executeTqlChart(undefined, chartVariableIdChanged);
+            if (hostPolicy.followBoardRefresh || (hostPolicy.followManualRefresh && chartVariableIdChanged)) executeTqlChart(undefined, chartVariableIdChanged);
             return;
         }
         if (chartVariableIdChanged) {
@@ -582,7 +583,7 @@ const LineChart = ({
         if (!pIsActiveTab && pType !== 'create' && pType !== 'edit') return;
         const needsInitialQuery = becameActive && sIsMounted && ChartRef.current?.dataset && !ChartRef.current.dataset.processed;
         if (!pendingHostQuery.current && !needsInitialQuery) return;
-        if (hostPolicy && !numericBase && !hostTimeRange) return;
+        if (hostPolicy && !useDistanceRange && !hostTimeRange) return;
         // Keep requests pending while hidden, including when later board refreshes
         // replace their reasons. On return, query only the latest effective range.
         pendingHostQuery.current = false;

@@ -2,7 +2,7 @@ import { encodeHostPath } from '@/extensions/host/paths';
 import Panel from '../panels/Panel';
 import { HostBoardProvider } from '@/components/dashboard/extensions/HostReact';
 import { PanelExtensionProvider } from '@/components/dashboard/extensions/ExtensionPanels';
-import { useHostRefresh } from '@/components/dashboard/extensions/useHostRefresh';
+import { createDashboardRangeRequests, useHostRefresh } from '@/components/dashboard/extensions/useHostRefresh';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import GridLayout from 'react-grid-layout';
 import { useLocation, useParams } from 'react-router-dom';
@@ -37,6 +37,7 @@ const DashboardView = () => {
     const sParams = useParams();
     const { pathname, search } = useLocation();
     const [hostRefresh, requestHostRefresh] = useHostRefresh();
+    const [updateRange] = useState(createDashboardRangeRequests);
     const sBodyRef = useRef<HTMLDivElement>(null);
     const [sBoardInformation, setBoardInformation] = useState<{ dashboard: any; name: string; id: string; panelHeader: boolean }>();
     const [sNotfound, setNotFound] = useState<boolean>(false);
@@ -101,14 +102,17 @@ const DashboardView = () => {
         setVariableCollapse(false);
     };
     const handleDashboardTimeRange = async (sStart: any, sEnd: any, aBoardInfo?: any, aIsAutoRefresh?: boolean) => {
-        const sBoard: any = aBoardInfo ?? sBoardInformation;
-        const sSvrRes: { min: number; max: number } = await fetchTableTimeMinMax(sBoard);
-        // timeMinMaxConverter returns undefined for a mixed time range (only one side is now/last).
-        // Without the same fallback the main dashboard has, every consumer downstream throws.
-        const sTimeMinMax = timeMinMaxConverter(sStart, sEnd, sSvrRes) ?? { min: setUnitTime(sStart), max: setUnitTime(sEnd) };
-        // Tell panels this is an auto-refresh tick: markdown/text/csv sink TQL panels ignore it.
-        setBoardTimeMinMax(() => (aIsAutoRefresh ? { ...sTimeMinMax, autoRefresh: true } : sTimeMinMax));
-        return;
+        const sBoard = aBoardInfo ?? sBoardInformation;
+        await updateRange(!!aIsAutoRefresh, () => fetchTableTimeMinMax(sBoard), sSvrRes => {
+            // timeMinMaxConverter returns undefined for a mixed time range (only one side is now/last).
+            // Without the same fallback the main dashboard has, every consumer downstream throws.
+            const sTimeMinMax = timeMinMaxConverter(sStart, sEnd, sSvrRes) ?? { min: setUnitTime(sStart), max: setUnitTime(sEnd) };
+            // Tell panels this is an auto-refresh tick: markdown/text/csv sink TQL panels ignore it.
+            setBoardTimeMinMax(() => (aIsAutoRefresh ? { ...sTimeMinMax, autoRefresh: true } : sTimeMinMax));
+            if (aBoardInfo) return;
+            if (aIsAutoRefresh) requestHostRefresh('auto');
+            else requestHostRefresh('range-change', 'time-range-change');
+        });
     };
     const defaultMinMax = () => {
         const sNowTime = moment().unix() * 1000;
@@ -214,20 +218,20 @@ const DashboardView = () => {
         handleDashboardTimeRange(sStartTime, sEndTime);
     };
     const handleRefresh = async () => {
-        requestHostRefresh('manual');
         const sTimeRange = sBoardInformation?.dashboard.timeRange;
-        const sSvrRes: { min: number; max: number } = await fetchTableTimeMinMax(sBoardInformation);
-        // Without the fallback, a mixed time range makes timeMinMaxConverter return undefined and the
-        // .min below throws, so GenChartVariableId() never runs and the Refresh button goes silently dead.
-        const sTimeMinMax = timeMinMaxConverter(sTimeRange.start, sTimeRange.end, sSvrRes) ?? {
-            min: setUnitTime(sTimeRange.start),
-            max: setUnitTime(sTimeRange.end),
-        };
-        setBoardTimeMinMax(() => {
-            return { min: sTimeMinMax.min, max: sTimeMinMax.max, refresh: true };
+        await updateRange(false, () => fetchTableTimeMinMax(sBoardInformation), sSvrRes => {
+            // Without the fallback, a mixed time range makes timeMinMaxConverter return undefined and the
+            // .min below throws, so GenChartVariableId() never runs and the Refresh button goes silently dead.
+            const sTimeMinMax = timeMinMaxConverter(sTimeRange.start, sTimeRange.end, sSvrRes) ?? {
+                min: setUnitTime(sTimeRange.start),
+                max: setUnitTime(sTimeRange.end),
+            };
+            setBoardTimeMinMax(() => {
+                return { min: sTimeMinMax.min, max: sTimeMinMax.max, refresh: true };
+            });
+            requestHostRefresh('manual');
+            GenChartVariableId();
         });
-        GenChartVariableId();
-        return;
     };
     // Board-wide auto refresh — updating timeRange.refresh re-runs the interval effect below ([sBoardInformation]).
     const changeAutoRefresh = (aRefresh: string) => {
@@ -244,7 +248,6 @@ const DashboardView = () => {
             // Restart the header's countdown ring on the tick itself. The animation otherwise runs
             // from whenever the control mounted, which has nothing to do with when this interval
             // was armed, so the ring empties at a moment the data does not arrive.
-            requestHostRefresh('auto');
             setRingCycleId((aId) => aId + 1);
             handleDashboardTimeRange(aTimeRange.start, aTimeRange.end, undefined, true);
         }, setIntervalTime(aTimeRange));

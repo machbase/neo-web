@@ -1,6 +1,10 @@
 import { getFiles } from '@/api/repository/fileTree';
 import Panel from '@/components/dashboard/panels/Panel';
-import { useEffect, useRef, useState } from 'react';
+import { PanelExtensionProvider } from '@/components/dashboard/extensions/ExtensionPanels';
+import { HostBoardProvider } from '@/components/dashboard/extensions/HostReact';
+import { useHostRefresh } from '@/components/dashboard/extensions/useHostRefresh';
+import { isExtensionPanel } from '@/components/dashboard/extensions/types';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import GridLayout from 'react-grid-layout';
 import { useParams } from 'react-router-dom';
 import moment from 'moment';
@@ -23,12 +27,15 @@ import { Button, Page, Drawer } from '@/design-system/components';
 
 const DashboardView = () => {
     const sParams = useParams();
+    const [hostRefresh, signalHostRefresh] = useHostRefresh();
     const sBodyRef = useRef<HTMLDivElement>(null);
     const [sBoardInformation, setBoardInformation] = useState<{ dashboard: any; name: string; id: string; panelHeader: boolean }>();
     const [sNotfound, setNotFound] = useState<boolean>(false);
     const [sIsTimeRangeModal, setIsTimeRangeModal] = useState<boolean>(false);
     const sIsMobile = isMobile();
     const [sBoardTimeMinMax, setBoardTimeMinMax] = useState<any>(undefined);
+    const hostTimeRange = useMemo(() => Number.isFinite(sBoardTimeMinMax?.min) && Number.isFinite(sBoardTimeMinMax?.max)
+        ? { start: sBoardTimeMinMax.min, end: sBoardTimeMinMax.max } : null, [sBoardTimeMinMax?.min, sBoardTimeMinMax?.max]);
     const sBoardRef = useRef<any>(undefined);
     // Bumped on every refresh tick so the countdown ring restarts with the fetch rather than free-running.
     const [sRingCycleId, setRingCycleId] = useState<number>(0);
@@ -67,6 +74,7 @@ const DashboardView = () => {
         const sTimeMinMax = timeMinMaxConverter(sStart, sEnd, sSvrRes) ?? { min: setUnitTime(sStart), max: setUnitTime(sEnd) };
         // Tell panels this is an auto-refresh tick: markdown/text/csv sink TQL panels ignore it.
         setBoardTimeMinMax(() => (aIsAutoRefresh ? { ...sTimeMinMax, autoRefresh: true } : sTimeMinMax));
+        if (!aBoardInfo) signalHostRefresh(aIsAutoRefresh ? 'auto' : 'time-range-change');
         return;
     };
     const defaultMinMax = () => {
@@ -145,6 +153,7 @@ const DashboardView = () => {
         setBoardTimeMinMax(() => {
             return { min: sTimeMinMax.min, max: sTimeMinMax.max, refresh: true };
         });
+        signalHostRefresh('manual');
         GenChartVariableId();
         return;
     };
@@ -222,7 +231,9 @@ const DashboardView = () => {
             <span>404 not found file name</span>
         </div>
     ) : (
-        <>
+        <PanelExtensionProvider enabled={Boolean(sBoardInformation?.dashboard?.panels?.some(isExtensionPanel))}>
+        <HostBoardProvider boardInfo={sBoardInformation ?? { id: 'standalone-loading' }} timeRange={hostTimeRange}
+            active readOnly refresh={hostRefresh} onChange={setBoardInformation}>
             <Page style={{ width: '100vw', height: '100vh' }}>
                 <Page.Header>
                     <Button.Group>
@@ -332,7 +343,8 @@ const DashboardView = () => {
                     pSaveCallback={handleDashboardTimeRange}
                 />
             )}
-        </>
+        </HostBoardProvider>
+        </PanelExtensionProvider>
     );
 };
 

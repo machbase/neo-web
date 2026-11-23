@@ -415,7 +415,7 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
         // Dashboard auto-refresh ticks are not applied to markdown/text/csv sink TQL panels. The
         // Refresh button arrives as refresh=true without the autoRefresh flag, so it still re-queries.
         if (hostPolicy) {
-            if (hostPolicy.followBoardRefresh && (sIsMounted || sIsError)) executeTqlChart();
+            if ((hostPolicy.followBoardRefresh || (hostPolicy.followManualRefresh && sBoardWindowChanged && pBoardTimeMinMax?.refresh)) && (sIsMounted || sIsError)) executeTqlChart();
             return;
         }
         if (sBoardWindowChanged && pBoardTimeMinMax?.autoRefresh) {

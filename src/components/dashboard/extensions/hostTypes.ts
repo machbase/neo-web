@@ -8,7 +8,7 @@ export type { HostErrorCode, HostResult, HostHandle, HostFileSelection, HostOpen
 export type HostSurface = 'dashboard' | 'preview' | 'editor' | 'options';
 export interface HostTimeRange { start: number; end: number; }
 export interface HostDistanceRange { start: string | number; end: string | number; }
-export type HostRefreshReason = 'manual' | 'auto' | 'range-change' | 'panel-request';
+export type HostRefreshReason = 'manual' | 'auto' | 'range-change' | 'time-range-change' | 'panel-request';
 export interface HostRefresh { revision: number; reasons: HostRefreshReason[]; }
 export interface HostPanelInfo {
     id: string;
@@ -22,6 +22,7 @@ export interface HostPanelInfo {
     capabilities: string[];
 }
 export interface HostBoardInput {
+    publicView?: boolean;
     id: string;
     panels: HostPanelInfo[];
     timeRange: HostTimeRange | null;
@@ -31,7 +32,7 @@ export interface HostBoardInput {
     refresh?: HostRefresh;
 }
 export interface ExtensionContext {
-    board: { id: string; editing: boolean };
+    board: { id: string; editing: boolean; publicView?: boolean };
     panel: HostPanelInfo;
     panels: HostPanelInfo[];
     ranges: {
@@ -52,8 +53,10 @@ export type HostRangeRequest = {
     range?: HostTimeRange | HostDistanceRange;
     followBoardRefresh?: boolean;
     followPanelRefresh?: boolean;
+    followManualRefresh?: boolean;
+    blackboxVideoOrder?: { registered: number; updated: number };
 };
-export interface HostRangePolicy { source: 'fixed' | 'board'; followBoardRefresh: boolean; followPanelRefresh: boolean; }
+export interface HostRangePolicy { source: 'fixed' | 'board'; followBoardRefresh: boolean; followPanelRefresh: boolean; followManualRefresh?: boolean; }
 export interface HostOverlay {
     id: string;
     kind: 'line' | 'band';

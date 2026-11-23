@@ -15,7 +15,7 @@ export const panelsModule = {
             if (!guard.ok) return guard;
             const checked = validateExtensionSettings({ request });
             if (!checked.settings) return failure('INVALID_INPUT', 'The range request must contain JSON values.');
-            if (request.followBoardRefresh !== undefined && typeof request.followBoardRefresh !== 'boolean' || request.followPanelRefresh !== undefined && typeof request.followPanelRefresh !== 'boolean') return failure('INVALID_INPUT', 'Refresh policies must be boolean.');
+            if ([request.followBoardRefresh, request.followPanelRefresh, request.followManualRefresh].some(value => value !== undefined && typeof value !== 'boolean')) return failure('INVALID_INPUT', 'Refresh policies must be boolean.');
             if (request.source === 'fixed') {
                 const range = request.range;
                 if (!range || (request.kind === 'time' && (typeof range.start !== 'number' || typeof range.end !== 'number' || !Number.isFinite(range.start) || !Number.isFinite(range.end) || range.start > range.end)) || (request.kind === 'distance' && (![range.start, range.end].every((value) => typeof value === 'string' || typeof value === 'number')))) return failure('INVALID_INPUT', 'A valid fixed range is required.');

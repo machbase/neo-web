@@ -245,6 +245,23 @@ it('restores previous range owners and keeps automatic board updates out of expl
     value(first.host.panels.clearRangeOverride(a));
     expect(runtime.getPanelState('chart').rangeOverrides.time).toBeUndefined();
 });
+it('uses board time when the first linked Blackbox video is live, including distance charts', () => {
+    const input = board();
+    input.panels.find(panel => panel.id === 'chart')!.capabilities = ['range:distance', 'overlay'];
+    const runtime = new DashboardHostRuntime(input);
+    const video = { packageId: 'neo-pkg-blackbox', typeId: 'video' };
+    const first = runtime.createHost(owner('a', video));
+    const second = runtime.createHost(owner('b', video));
+    const live = { kind: 'time', source: 'board' } as const;
+    expect(runtime.createHost(owner('a')).host.panels.setRangeOverride('chart', live).ok).toBe(false);
+    const firstRange = value(first.host.panels.setRangeOverride('chart', live));
+    value(second.host.panels.setRangeOverride('chart', { kind: 'time', source: 'fixed', range: { start: 300, end: 400 } }));
+    expect(runtime.getPanelState('chart').rangeOverrides.time).toEqual(input.timeRange);
+
+    value(first.host.panels.clearRangeOverride(firstRange));
+    value(first.host.panels.setRangeOverride('chart', live));
+    expect(runtime.getPanelState('chart').rangeOverrides.time).toEqual({ start: 300, end: 400 });
+});
 it('isolates identical overlay IDs across owners and rejects foreign handles and stale hosts', () => {
     const runtime = new DashboardHostRuntime(board());
     const first = runtime.createHost(owner('a'));
@@ -483,4 +500,385 @@ it.each(['time', 'distance'] as const)('restores the active %s policy when overl
     value(first.host.panels.setRangeOverride('b', { kind, source: 'board' }));
     first.dispose();
     expect(runtime.getContext('b').ranges).toEqual(original);
+});
+
+it('keeps Blackbox registration order and recorded range update order independent', () => {
+    const input = board();
+    input.panels.push({ id: 'c', type: 'Extension', capabilities: ['refresh'] });
+    const runtime = new DashboardHostRuntime(input);
+    const video = { packageId: 'neo-pkg-blackbox', typeId: 'video' };
+    const a = runtime.createHost(owner('a', video)).host;
+    const b = runtime.createHost(owner('b', video)).host;
+    const c = runtime.createHost(owner('c', video)).host;
+    const chosen = { start: 500, end: 600 };
+    const recorded = { kind: 'time', source: 'fixed' } as const;
+    const { rangeRevision: before } = runtime.getPanelState('chart');
+    value(a.panels.setRangeOverride('chart', { ...recorded, range: chosen, blackboxVideoOrder: { registered: 1, updated: 7 } }));
+    value(b.panels.setRangeOverride('chart', { ...recorded, range: { start: 300, end: 400 }, blackboxVideoOrder: { registered: 2, updated: 3 } }));
+    value(c.panels.setRangeOverride('chart', { kind: 'time', source: 'board', blackboxVideoOrder: { registered: 4, updated: 0 } }));
+    value(b.panels.setRangeOverride('chart', { ...recorded, range: { start: 300, end: 400 }, blackboxVideoOrder: { registered: 8, updated: 3 } }));
+    expect(runtime.getPanelState('chart')).toMatchObject({ rangeRevision: before + 1, rangeOverrides: { time: chosen } });
+
+    value(a.panels.setRangeOverride('chart', { ...recorded, range: chosen, blackboxVideoOrder: { registered: 9, updated: 7 } }));
+    expect(runtime.getPanelState('chart')).toMatchObject({ rangeRevision: before + 2, rangeOverrides: { time: input.timeRange } });
+});
+
+it.each([
+    { action: 'unlink a video with a non-selected range', removed: ['b'], unlink: true, live: false, changed: false },
+    { action: 'remove a video with a non-selected range', removed: ['b'], unlink: false, live: false, changed: false },
+    { action: 'remove both older recorded videos together', removed: ['a', 'b'], unlink: false, live: false, changed: false },
+    { action: 'remove the live video', removed: ['a'], unlink: false, live: true, changed: true },
+    { action: 'remove the live video and older recorded video together', removed: ['a', 'b'], unlink: false, live: true, changed: true },
+])('publishes only the effective Blackbox range when it must $action', ({ removed, unlink, live, changed }) => {
+    const input = board();
+    input.panels.push({ id: 'c', type: 'Extension', capabilities: ['refresh'] });
+    const runtime = new DashboardHostRuntime(input);
+    const video = { packageId: 'neo-pkg-blackbox', typeId: 'video' };
+    const a = runtime.createHost(owner('a', video)).host;
+    const b = runtime.createHost(owner('b', video)).host;
+    const c = runtime.createHost(owner('c', video)).host;
+    const recorded = { kind: 'time', source: 'fixed' } as const;
+    const survivingRange = { start: 500, end: 600 };
+    value(a.panels.setRangeOverride('chart', live
+        ? { kind: 'time', source: 'board', blackboxVideoOrder: { registered: 1, updated: 0 } }
+        : { ...recorded, range: { start: 250, end: 280 }, blackboxVideoOrder: { registered: 1, updated: 2 } }));
+    const bRange = value(b.panels.setRangeOverride('chart', { ...recorded, range: { start: 300, end: 400 },
+        blackboxVideoOrder: { registered: 3, updated: 4 } }));
+    value(c.panels.setRangeOverride('chart', { ...recorded, range: survivingRange, blackboxVideoOrder: { registered: 5, updated: 6 } }));
+    const before = runtime.getPanelState('chart').rangeRevision;
+    const reported = jest.fn(() => runtime.getPanelState('chart').rangeOverrides.time);
+    const unsubscribe = runtime.subscribe(reported);
+    if (unlink) {
+        value(b.panels.clearRangeOverride(bRange));
+    } else {
+        runtime.updateBoard({ ...input, panels: input.panels.filter(panel => !removed.includes(panel.id)) });
+    }
+    expect(reported).toHaveBeenCalledTimes(1);
+    expect(reported).toHaveReturnedWith(survivingRange);
+    expect(runtime.getPanelState('chart').rangeRevision).toBe(before + Number(changed));
+
+    const beforeRefresh = runtime.getPanelState('chart').refresh.revision;
+    value(c.panels.refresh('chart'));
+    expect(runtime.getPanelState('chart').refresh).toEqual({ revision: beforeRefresh + 1, reasons: ['panel-request'] });
+    unsubscribe();
+});
+
+it('preserves refresh policy changes when the effective Blackbox endpoints stay the same', () => {
+    const input = board();
+    const runtime = new DashboardHostRuntime(input);
+    const video = { packageId: 'neo-pkg-blackbox', typeId: 'video' };
+    const ownerA = runtime.createHost(owner('a', video)).host;
+    value(ownerA.panels.setRangeOverride('chart', { kind: 'time', source: 'fixed', range: input.timeRange!,
+        followBoardRefresh: false, followPanelRefresh: true, followManualRefresh: true }));
+    const before = runtime.getPanelState('chart').rangeRevision;
+    value(ownerA.panels.setRangeOverride('chart', { kind: 'time', source: 'board', followBoardRefresh: true }));
+    expect(runtime.getPanelState('chart')).toMatchObject({
+        rangeRevision: before + 1,
+        rangeOverrides: { time: input.timeRange },
+        rangePolicies: { time: { source: 'board', followBoardRefresh: true } },
+    });
+});
+
+it('does not let a Blackbox registration-order update replace another extension range', () => {
+    const input = board();
+    const runtime = new DashboardHostRuntime(input);
+    const video = runtime.createHost(owner('a', { packageId: 'neo-pkg-blackbox', typeId: 'video' })).host;
+    const control = runtime.createHost(owner('b')).host;
+    const request = { kind: 'time', source: 'fixed', range: { start: 300, end: 400 },
+        blackboxVideoOrder: { registered: 1, updated: 2 } } as const;
+    const controlRange = { start: 500, end: 600 };
+    const handle = value(video.panels.setRangeOverride('chart', request));
+    value(control.panels.setRangeOverride('chart', { kind: 'time', source: 'fixed', range: controlRange }));
+    const before = runtime.getPanelState('chart').rangeRevision;
+
+    const reordered = { ...request, blackboxVideoOrder: { registered: 3, updated: 2 } };
+    expect(value(video.panels.setRangeOverride('chart', reordered))).toBe(handle);
+    expect(runtime.getPanelState('chart')).toMatchObject({ rangeRevision: before, rangeOverrides: { time: controlRange } });
+
+    const chosen = { start: 700, end: 800 };
+    expect(value(video.panels.setRangeOverride('chart', {
+        ...reordered, range: chosen, blackboxVideoOrder: { registered: 3, updated: 4 },
+    }))).toBe(handle);
+    expect(runtime.getPanelState('chart')).toMatchObject({ rangeRevision: before + 1, rangeOverrides: { time: chosen } });
+});
+
+it.each(['normal extension', 'legacy Blackbox', 'ranked Blackbox'])('keeps the priority of a repeated explicit override from the same %s', (kind) => {
+    const runtime = new DashboardHostRuntime(board());
+    const identity = kind === 'normal extension' ? {} : { packageId: 'neo-pkg-blackbox', typeId: 'video' };
+    const first = runtime.createHost(owner('a', identity)).host;
+    const second = runtime.createHost(owner('b')).host;
+    const firstRange = { start: 300, end: 400 };
+    const request = {
+        kind: 'time', source: 'fixed', range: firstRange,
+        ...(kind === 'ranked Blackbox' ? { blackboxVideoOrder: { registered: 1, updated: 2 } } : {}),
+    } as const;
+    const initial = value(first.panels.setRangeOverride('chart', request));
+    value(second.panels.setRangeOverride('chart', { kind: 'time', source: 'fixed', range: { start: 500, end: 600 } }));
+    expect(value(first.panels.setRangeOverride('chart', request))).toBe(initial);
+    expect(runtime.getPanelState('chart').rangeOverrides.time).toEqual(firstRange);
+});
+
+it.each(['a', 'b'])('keeps another extension range after swapping equivalent live videos and removing %s', removed => {
+    const runtime = new DashboardHostRuntime(board());
+    const video = { packageId: 'neo-pkg-blackbox', typeId: 'video' };
+    const a = runtime.createHost(owner('a', video)).host;
+    const b = runtime.createHost(owner('b', video)).host;
+    const other = runtime.createHost(owner('untouched')).host;
+    const firstLive = { kind: 'time', source: 'board', blackboxVideoOrder: { registered: 1, updated: 0 } } as const;
+    const secondLive = { ...firstLive, blackboxVideoOrder: { registered: 2, updated: 0 } };
+    const delayedFirst = { ...firstLive, blackboxVideoOrder: { registered: 3, updated: 0 } };
+    const external = { kind: 'time', source: 'fixed', range: { start: 500, end: 600 } } as const;
+    const original = value(a.panels.setRangeOverride('chart', firstLive));
+    value(other.panels.setRangeOverride('chart', external));
+    value(b.panels.setRangeOverride('chart', secondLive));
+    const before = runtime.getPanelState('chart').rangeRevision;
+
+    expect(value(a.panels.setRangeOverride('chart', delayedFirst))).toBe(original);
+    expect(runtime.getPanelState('chart')).toMatchObject({ rangeRevision: before, rangeOverrides: { time: external.range } });
+    runtime.updateBoard({ ...board(), panels: board().panels.filter(panel => panel.id !== removed) });
+    expect(runtime.getPanelState('chart')).toMatchObject({ rangeRevision: before, rangeOverrides: { time: external.range } });
+
+    const newer = { ...external, range: { start: 700, end: 800 } };
+    value(other.panels.setRangeOverride('chart', newer));
+    expect(runtime.getPanelState('chart').rangeOverrides.time).toEqual(newer.range);
+    // This is an explicit request with unchanged registration metadata, so it takes priority.
+    if (removed === 'a') value(b.panels.setRangeOverride('chart', secondLive));
+    else value(a.panels.setRangeOverride('chart', delayedFirst));
+    expect(runtime.getPanelState('chart').rangeOverrides.time).toEqual(board().timeRange);
+    value(other.panels.setRangeOverride('chart', newer));
+    expect(runtime.getPanelState('chart').rangeOverrides.time).toEqual(newer.range);
+});
+
+it('does not carry an equivalent video range priority into a replacement board execution', () => {
+    const runtime = new DashboardHostRuntime(board());
+    const video = { packageId: 'neo-pkg-blackbox', typeId: 'video' };
+    const a = runtime.createHost(owner('a', video)).host;
+    const b = runtime.createHost(owner('b', video)).host;
+    const other = runtime.createHost(owner('untouched')).host;
+    const firstLive = { kind: 'time', source: 'board', blackboxVideoOrder: { registered: 1, updated: 0 } } as const;
+    const external = { kind: 'time', source: 'fixed', range: { start: 500, end: 600 } } as const;
+    value(a.panels.setRangeOverride('chart', firstLive));
+    value(other.panels.setRangeOverride('chart', external));
+    value(b.panels.setRangeOverride('chart', { ...firstLive, blackboxVideoOrder: { registered: 2, updated: 0 } }));
+    value(a.panels.setRangeOverride('chart', { ...firstLive, blackboxVideoOrder: { registered: 3, updated: 0 } }));
+    expect(runtime.getPanelState('chart').rangeOverrides.time).toEqual(external.range);
+    const replacement = { ...board(), id: 'another-board', timeRange: { start: 900, end: 1000 } };
+    const { rangeRevision } = runtime.getPanelState('chart');
+    runtime.updateBoard(replacement);
+    expect(runtime.getPanelState('chart')).toMatchObject({ rangeRevision: rangeRevision + 1, rangeOverrides: { time: replacement.timeRange } });
+    runtime.dispose();
+    expect(runtime.getPanelState('chart').rangeOverrides.time).toBeUndefined();
+});
+
+it('keeps legacy live-registration ordering when an unranked Blackbox range is removed', () => {
+    const runtime = new DashboardHostRuntime(board());
+    const video = { packageId: 'neo-pkg-blackbox', typeId: 'video' };
+    const a = runtime.createHost(owner('a', video)).host;
+    const b = runtime.createHost(owner('b', video)).host;
+    const other = runtime.createHost(owner('untouched')).host;
+    const live = { kind: 'time', source: 'board' } as const;
+    const external = { start: 500, end: 600 };
+    const handle = value(a.panels.setRangeOverride('chart', live));
+    value(other.panels.setRangeOverride('chart', { kind: 'time', source: 'fixed', range: external }));
+    value(b.panels.setRangeOverride('chart', live));
+    expect(runtime.getPanelState('chart').rangeOverrides.time).toEqual(external);
+    value(a.panels.clearRangeOverride(handle));
+    expect(runtime.getPanelState('chart').rangeOverrides.time).toEqual(board().timeRange);
+});
+
+it('honors a new live request that advertises the earlier registration rank', () => {
+    const runtime = new DashboardHostRuntime(board());
+    const video = { packageId: 'neo-pkg-blackbox', typeId: 'video' };
+    const a = runtime.createHost(owner('a', video)).host;
+    const b = runtime.createHost(owner('b', video)).host;
+    const other = runtime.createHost(owner('untouched')).host;
+    const aLive = { kind: 'time', source: 'board', blackboxVideoOrder: { registered: 2, updated: 0 } } as const;
+    const external = { start: 500, end: 600 };
+    value(a.panels.setRangeOverride('chart', aLive));
+    value(other.panels.setRangeOverride('chart', { kind: 'time', source: 'fixed', range: external }));
+    expect(runtime.getPanelState('chart').rangeOverrides.time).toEqual(external);
+    value(b.panels.setRangeOverride('chart', { ...aLive, blackboxVideoOrder: { registered: 1, updated: 0 } }));
+    expect(runtime.getPanelState('chart').rangeOverrides.time).toEqual(board().timeRange);
+});
+
+it.each(['delete', 'unlink'])('returns another extension range when the explicit Blackbox owner leaves by %s', action => {
+    const input = board();
+    const runtime = new DashboardHostRuntime(input);
+    const video = { packageId: 'neo-pkg-blackbox', typeId: 'video' };
+    const a = runtime.createHost(owner('a', video)).host;
+    const b = runtime.createHost(owner('b', video)).host;
+    const other = runtime.createHost(owner('untouched')).host;
+    const fixed = { kind: 'time', source: 'fixed' } as const;
+    const videoRange = { start: 3300, end: 4300 };
+    const otherRange = { start: 5100, end: 6100 };
+    const aHandle = value(a.panels.setRangeOverride('chart', { ...fixed, range: { start: 2100, end: 3100 },
+        blackboxVideoOrder: { registered: 1, updated: 2 } }));
+    value(b.panels.setRangeOverride('chart', { ...fixed, range: videoRange, blackboxVideoOrder: { registered: 3, updated: 4 } }));
+    value(other.panels.setRangeOverride('chart', { ...fixed, range: otherRange }));
+    const aExplicitRequest = { ...fixed, range: videoRange, blackboxVideoOrder: { registered: 1, updated: 5 } };
+    expect(value(a.panels.setRangeOverride('chart', aExplicitRequest))).toBe(aHandle);
+    expect(runtime.getPanelState('chart').rangeOverrides.time).toEqual(videoRange);
+
+    const { rangeRevision: before } = runtime.getPanelState('chart');
+    const observed = jest.fn(() => runtime.getPanelState('chart').rangeOverrides.time);
+    const unsubscribe = runtime.subscribe(observed);
+    if (action === 'delete') runtime.updateBoard({ ...input, panels: input.panels.filter(panel => panel.id !== 'a') });
+    else value(a.panels.clearRangeOverride(aHandle));
+    expect(runtime.getPanelState('chart')).toMatchObject({ rangeRevision: before + 1, rangeOverrides: { time: otherRange } });
+    expect(observed).toHaveBeenCalledTimes(1);
+    expect(observed).toHaveReturnedWith(otherRange);
+    value(other.panels.refresh('chart'));
+    expect(runtime.getPanelState('chart')).toMatchObject({ rangeRevision: before + 1, rangeOverrides: { time: otherRange },
+        refresh: { reasons: ['panel-request'] } });
+    unsubscribe();
+});
+
+it('keeps a lost priority capped as successive equivalent recordings are removed', () => {
+    const input = board();
+    input.panels.push({ id: 'c', type: 'Extension', capabilities: ['refresh'] });
+    const runtime = new DashboardHostRuntime(input);
+    const video = { packageId: 'neo-pkg-blackbox', typeId: 'video' };
+    const a = runtime.createHost(owner('a', video));
+    const b = runtime.createHost(owner('b', video));
+    const c = runtime.createHost(owner('c', video));
+    const other = runtime.createHost(owner('untouched'));
+    const videoRequest = { kind: 'time', source: 'fixed', range: { start: 3300, end: 4300 } } as const;
+    const otherRequest = { kind: 'time', source: 'fixed', range: { start: 5100, end: 6100 } } as const;
+    const cRequest = { ...videoRequest, blackboxVideoOrder: { registered: 1, updated: 2 } };
+    value(b.host.panels.setRangeOverride('chart', { ...videoRequest, blackboxVideoOrder: { registered: 3, updated: 4 } }));
+    const external = value(other.host.panels.setRangeOverride('chart', otherRequest));
+    const cHandle = value(c.host.panels.setRangeOverride('chart', cRequest));
+    value(a.host.panels.setRangeOverride('chart', { ...videoRequest, blackboxVideoOrder: { registered: 5, updated: 6 } }));
+    expect(runtime.getPanelState('chart').rangeOverrides.time).toEqual(videoRequest.range);
+
+    a.dispose();
+    expect(runtime.getPanelState('chart').rangeOverrides.time).toEqual(otherRequest.range);
+    const { rangeRevision } = runtime.getPanelState('chart');
+    b.dispose();
+    expect(runtime.getPanelState('chart')).toMatchObject({ rangeRevision, rangeOverrides: { time: otherRequest.range } });
+
+    // An external registration can leave and return without promoting the surviving video request.
+    external.dispose();
+    expect(runtime.getPanelState('chart').rangeOverrides.time).toEqual(videoRequest.range);
+    value(other.host.panels.setRangeOverride('chart', otherRequest));
+    expect(runtime.getPanelState('chart').rangeOverrides.time).toEqual(otherRequest.range);
+    expect(value(c.host.panels.setRangeOverride('chart', cRequest))).toBe(cHandle);
+    expect(runtime.getPanelState('chart').rangeOverrides.time).toEqual(videoRequest.range);
+});
+
+it('preserves a selected live range priority when its origin changes or leaves before the next handoff', () => {
+    const input = board();
+    input.panels.push({ id: 'c', type: 'Extension', capabilities: ['refresh'] });
+    const runtime = new DashboardHostRuntime(input);
+    const video = { packageId: 'neo-pkg-blackbox', typeId: 'video' };
+    const a = runtime.createHost(owner('a', video));
+    const b = runtime.createHost(owner('b', video));
+    const c = runtime.createHost(owner('c', video));
+    const other = runtime.createHost(owner('untouched'));
+    const live = { kind: 'time', source: 'board' } as const;
+    const first = { ...live, blackboxVideoOrder: { registered: 1, updated: 0 } };
+    const moved = { ...live, blackboxVideoOrder: { registered: 4, updated: 0 } };
+    const otherRange = { start: 5100, end: 6100 };
+    value(a.host.panels.setRangeOverride('chart', first));
+    value(other.host.panels.setRangeOverride('chart', { kind: 'time', source: 'fixed', range: otherRange }));
+    value(b.host.panels.setRangeOverride('chart', { ...live, blackboxVideoOrder: { registered: 2, updated: 0 } }));
+    value(c.host.panels.setRangeOverride('chart', { ...live, blackboxVideoOrder: { registered: 3, updated: 0 } }));
+    const { rangeRevision } = runtime.getPanelState('chart');
+    const recorder = jest.fn();
+    const unsubscribe = runtime.subscribe(() => recorder(runtime.getPanelState('chart').rangeOverrides.time));
+
+    value(a.host.panels.setRangeOverride('chart', moved));
+    // The old priority origin now has a new physical order but is still not the selected video.
+    value(a.host.panels.setRangeOverride('chart', moved));
+    runtime.updateBoard({ ...input, panels: input.panels.filter(panel => panel.id !== 'a' && panel.id !== 'b') });
+    expect(recorder.mock.calls).toEqual([[otherRange], [otherRange], [otherRange]]);
+    expect(runtime.getPanelState('chart')).toMatchObject({ rangeRevision, rangeOverrides: { time: otherRange } });
+    unsubscribe();
+});
+
+it('rechecks the same priority origin when it replaces its request and a different live video stays selected', () => {
+    const runtime = new DashboardHostRuntime(board());
+    const video = { packageId: 'neo-pkg-blackbox', typeId: 'video' };
+    const a = runtime.createHost(owner('a', video)).host;
+    const b = runtime.createHost(owner('b', video)).host;
+    const other = runtime.createHost(owner('untouched')).host;
+    const live = { kind: 'time', source: 'board' } as const;
+    const external = { start: 5100, end: 6100 };
+    value(b.panels.setRangeOverride('chart', { ...live, blackboxVideoOrder: { registered: 2, updated: 0 } }));
+    value(other.panels.setRangeOverride('chart', { kind: 'time', source: 'fixed', range: external }));
+    const aHandle = value(a.panels.setRangeOverride('chart', { ...live, blackboxVideoOrder: { registered: 1, updated: 0 } }));
+    value(a.panels.setRangeOverride('chart', { ...live, blackboxVideoOrder: { registered: 3, updated: 0 } }));
+    expect(runtime.getPanelState('chart').rangeOverrides.time).toEqual(board().timeRange);
+
+    const { rangeRevision } = runtime.getPanelState('chart');
+    const observed = jest.fn(() => runtime.getPanelState('chart').rangeOverrides.time);
+    const unsubscribe = runtime.subscribe(observed);
+    expect(value(a.panels.setRangeOverride('chart', {
+        kind: 'time', source: 'fixed', range: { start: 8000, end: 9000 },
+        blackboxVideoOrder: { registered: 4, updated: 5 },
+    }))).toBe(aHandle);
+    expect(runtime.getPanelState('chart')).toMatchObject({ rangeRevision: rangeRevision + 1, rangeOverrides: { time: external } });
+    expect(observed).toHaveBeenCalledTimes(1);
+    expect(observed).toHaveReturnedWith(external);
+    unsubscribe();
+});
+
+it('clears a priority cap on board replacement even when the same representative and chart remain', () => {
+    const input = board();
+    input.panels.push({ id: 'c', type: 'Extension', capabilities: ['refresh'] });
+    const runtime = new DashboardHostRuntime(input);
+    const video = { packageId: 'neo-pkg-blackbox', typeId: 'video' };
+    const a = runtime.createHost(owner('a', video));
+    const b = runtime.createHost(owner('b', video));
+    const c = runtime.createHost(owner('c', video));
+    const other = runtime.createHost(owner('untouched'));
+    const live = { kind: 'time', source: 'board' } as const;
+    const external = { start: 5100, end: 6100 };
+    value(a.host.panels.setRangeOverride('chart', { ...live, blackboxVideoOrder: { registered: 1, updated: 0 } }));
+    value(other.host.panels.setRangeOverride('chart', { kind: 'time', source: 'fixed', range: external }));
+    value(b.host.panels.setRangeOverride('chart', { ...live, blackboxVideoOrder: { registered: 2, updated: 0 } }));
+    value(c.host.panels.setRangeOverride('chart', { ...live, blackboxVideoOrder: { registered: 3, updated: 0 } }));
+    value(a.host.panels.setRangeOverride('chart', { ...live, blackboxVideoOrder: { registered: 4, updated: 0 } }));
+    a.dispose();
+    expect(runtime.getPanelState('chart').rangeOverrides.time).toEqual(external);
+
+    const replacement = { ...input, id: 'another-board', timeRange: { start: 9000, end: 9100 },
+        panels: input.panels.filter(panel => panel.id !== 'a' && panel.id !== 'c') };
+    runtime.updateBoard(replacement);
+    expect(runtime.getPanelState('chart').rangeOverrides.time).toEqual(replacement.timeRange);
+});
+
+it('keeps the surviving live request as the priority source once a passive handoff reaches its own order', () => {
+    const input = board();
+    input.panels.push({ id: 'c', type: 'Extension', capabilities: ['refresh'] });
+    const runtime = new DashboardHostRuntime(input);
+    const video = { packageId: 'neo-pkg-blackbox', typeId: 'video' };
+    const a = runtime.createHost(owner('a', video)).host;
+    const b = runtime.createHost(owner('b', video)).host;
+    const c = runtime.createHost(owner('c', video)).host;
+    const other = runtime.createHost(owner('untouched')).host;
+    const live = (registered: number) => ({ kind: 'time', source: 'board', blackboxVideoOrder: { registered, updated: 0 } } as const);
+    const external = { start: 5100, end: 6100 };
+
+    // The videos are mounted in A, B, C order and are linked to the chart in C, B, A order.
+    const cRange = value(c.panels.setRangeOverride('chart', live(3)));
+    value(other.panels.setRangeOverride('chart', { kind: 'time', source: 'fixed', range: external }));
+    const bRange = value(b.panels.setRangeOverride('chart', live(2)));
+    const aRange = value(a.panels.setRangeOverride('chart', live(1)));
+    const { rangeRevision } = runtime.getPanelState('chart');
+    const seen: unknown[] = [];
+    const unsubscribe = runtime.subscribe(() => seen.push(runtime.getPanelState('chart').rangeOverrides.time));
+
+    value(a.panels.clearRangeOverride(aRange));
+    expect(runtime.getPanelState('chart')).toMatchObject({ rangeRevision, rangeOverrides: { time: input.timeRange } });
+    expect(value(b.panels.setRangeOverride('chart', live(4)))).toBe(bRange);
+    expect(runtime.getPanelState('chart')).toMatchObject({ rangeRevision, rangeOverrides: { time: input.timeRange } });
+
+    // Removing the request that now supplies priority restores the other extension.
+    value(b.panels.clearRangeOverride(bRange));
+    expect(runtime.getPanelState('chart')).toMatchObject({ rangeRevision: rangeRevision + 1, rangeOverrides: { time: external } });
+    expect(value(c.panels.setRangeOverride('chart', live(3)))).toBe(cRange);
+    expect(runtime.getPanelState('chart')).toMatchObject({ rangeRevision: rangeRevision + 2, rangeOverrides: { time: input.timeRange } });
+    expect(seen).toEqual([input.timeRange, input.timeRange, external, input.timeRange]);
+    unsubscribe();
 });

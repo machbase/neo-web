@@ -1,7 +1,7 @@
 import { isBuiltInDashboardPanel } from '@/utils/dashboardPanelSupport';
 import { PanelExtensionProvider } from './extensions/ExtensionPanels';
 import { HostBoardProvider, useHostBoard } from './extensions/HostReact';
-import { useHostRefresh } from './extensions/useHostRefresh';
+import { createDashboardRangeRequests, useHostRefresh } from './extensions/useHostRefresh';
 import { isExtensionPanel } from './extensions/types';
 import GridLayout from 'react-grid-layout';
 import { useState, useEffect, useRef } from 'react';
@@ -52,7 +52,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
             signalHostRefresh('range-change');
         }
     }, [distanceKey, signalHostRefresh]);
-    const rangeRequest = useRef(0);
+    const [updateRange] = useState(createDashboardRangeRequests);
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
     const [sInitialRangeTab, setInitialRangeTab] = useState<'time' | 'distance'>('time');
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
@@ -210,26 +210,25 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
     };
     const HandleRefresh = async (aTimeRange: any) => {
         if (pInfo.dashboard.panels.length < 1) return;
-        const request = ++rangeRequest.current;
-        const sSvrRes: { min: number; max: number } = await fetchTableTimeMinMax();
-        if (request !== rangeRequest.current) return;
-        const sTimeMinMax = timeMinMaxConverter(aTimeRange.start, aTimeRange.end, sSvrRes) ?? { min: setUnitTime(aTimeRange.start), max: setUnitTime(aTimeRange.end) };
-        sTimeMinMax.refresh = true;
-        setBoardTimeMinMax(() => sTimeMinMax);
-        signalHostRefresh('manual');
-        GenChartVariableId();
+        await updateRange(false, fetchTableTimeMinMax, sSvrRes => {
+            const sTimeMinMax = timeMinMaxConverter(aTimeRange.start, aTimeRange.end, sSvrRes) ?? { min: setUnitTime(aTimeRange.start), max: setUnitTime(aTimeRange.end) };
+            sTimeMinMax.refresh = true;
+            setBoardTimeMinMax(() => sTimeMinMax);
+            signalHostRefresh('manual');
+            GenChartVariableId();
+        });
     };
     const handleDashboardTimeRange = async (sStart: any, sEnd: any, aIsAutoRefresh?: boolean) => {
         // if (pInfo.dashboard.panels.length < 1) return;
-        const request = ++rangeRequest.current;
-        const sSvrRes: { min: number; max: number } = await fetchTableTimeMinMax();
-        if (request !== rangeRequest.current) return;
-        const sTimeMinMax = timeMinMaxConverter(sStart, sEnd, sSvrRes) ?? { min: setUnitTime(sStart), max: setUnitTime(sEnd) };
-        // Tell panels this is an auto-refresh tick: markdown/text/csv sink TQL panels ignore it. The
-        // Refresh button is unaffected (it bumps chartVariableId), and time-arrows / TimeRangeModal
-        // Save carry no flag at all.
-        setBoardTimeMinMax(() => (aIsAutoRefresh ? { ...sTimeMinMax, autoRefresh: true } : sTimeMinMax));
-        signalHostRefresh(aIsAutoRefresh ? 'auto' : 'range-change');
+        await updateRange(!!aIsAutoRefresh, fetchTableTimeMinMax, sSvrRes => {
+            const sTimeMinMax = timeMinMaxConverter(sStart, sEnd, sSvrRes) ?? { min: setUnitTime(sStart), max: setUnitTime(sEnd) };
+            // Tell panels this is an auto-refresh tick: markdown/text/csv sink TQL panels ignore it. The
+            // Refresh button is unaffected (it bumps chartVariableId), and time-arrows / TimeRangeModal
+            // Save carry no flag at all.
+            setBoardTimeMinMax(() => (aIsAutoRefresh ? { ...sTimeMinMax, autoRefresh: true } : sTimeMinMax));
+            if (aIsAutoRefresh) signalHostRefresh('auto');
+            else signalHostRefresh('range-change', 'time-range-change');
+        });
     };
     const handleSaveTimeRange = (sStart: any, sEnd: any) => {
         const sChartpanelList = pInfo.dashboard.panels.filter((aPanel: any) => isBuiltInDashboardPanel(aPanel) && aPanel.type !== 'Tql chart');

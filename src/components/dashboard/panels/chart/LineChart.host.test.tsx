@@ -118,6 +118,20 @@ it('uses a fixed host range before the saved panel range and restores it when cl
     await waitFor(() => expect(mockGetTqlScripts).toHaveBeenLastCalledWith({ start: 5000, end: 6000 }));
 });
 
+it('refreshes the fixed video window on manual refresh while ignoring automatic board ticks', async () => {
+    const runtime = makeRuntime();
+    runtime.change({ rangeOverrides: { time: { start: 3000, end: 4000 } }, rangeRevision: 1,
+        rangePolicies: { time: { source: 'fixed', followBoardRefresh: false, followPanelRefresh: true, followManualRefresh: true } } });
+    const { rerender } = render(chart('id-1', { min: 1000, max: 2000 }, runtime));
+    await waitFor(() => expect(mockGetTqlScripts).toHaveBeenLastCalledWith({ start: 3000, end: 4000 }));
+    const before = mockGetTqlScripts.mock.calls.length;
+    rerender(chart('id-1', { min: 5000, max: 6000, autoRefresh: true }, runtime));
+    expect(mockGetTqlScripts).toHaveBeenCalledTimes(before);
+    rerender(chart('id-2', { min: 5000, max: 6000, refresh: true }, runtime));
+    await waitFor(() => expect(mockGetTqlScripts).toHaveBeenCalledTimes(before + 1));
+    expect(mockGetTqlScripts).toHaveBeenLastCalledWith({ start: 3000, end: 4000 });
+});
+
 it('re-queries on a target host refresh even when the range is unchanged', async () => {
     const runtime = makeRuntime();
     render(chart('id-1', { min: 1000, max: 2000 }, runtime));
@@ -155,6 +169,27 @@ it('applies a numeric-axis override using the existing distance range calculatio
         rangePolicies: { distance: { source: 'fixed', followBoardRefresh: true, followPanelRefresh: true } } });
     const panel = { ...PANEL, blockList: [{ timeBaseTime: true, timeType: 10, time: 'ODOMETER' }] };
     render(chart('id-1', { min: 1000, max: 2000 }, runtime, panel));
+    await waitFor(() => expect(mockGetTqlScripts).toHaveBeenLastCalledWith({ start: 20, end: 80 }));
+});
+
+it('uses the linked Blackbox time range for a distance chart and restores its distance range when cleared', async () => {
+    const runtime = new DashboardHostRuntime({ id: 'board-1', timeRange: { start: 1000, end: 2000 }, distanceRange: { start: 20, end: 80 }, panels: [
+        { id: 'video', type: 'Extension', capabilities: ['refresh'] },
+        { id: 'panel-1', type: 'Tql chart', capabilities: ['range:distance'] },
+    ] });
+    const { host } = runtime.createHost({ panelId: 'video', packageId: 'neo-pkg-blackbox', typeId: 'video',
+        surface: 'dashboard', getSettings: () => ({}), applySettings: () => {} });
+    const panel = { ...PANEL, blockList: [{ timeBaseTime: true, timeType: 10, time: 'ODOMETER' }] };
+    host.panels.setRangeOverride('panel-1', { kind: 'distance', source: 'fixed', range: { start: 20, end: 80 } });
+    render(chart('id-1', { min: 1000, max: 2000 }, runtime, panel));
+    await waitFor(() => expect(mockGetTqlScripts).toHaveBeenLastCalledWith({ start: 20, end: 80 }));
+    let dispose: (() => void) | undefined;
+    act(() => {
+        const result = host.panels.setRangeOverride('panel-1', { kind: 'time', source: 'fixed', range: { start: 3000, end: 4000 } });
+        if (result.ok) dispose = result.value.dispose;
+    });
+    await waitFor(() => expect(mockGetTqlScripts).toHaveBeenLastCalledWith({ start: 3000, end: 4000 }));
+    act(() => { dispose?.(); });
     await waitFor(() => expect(mockGetTqlScripts).toHaveBeenLastCalledWith({ start: 20, end: 80 }));
 });
 

@@ -157,8 +157,8 @@ export function useExtensionHost({ panel, definition, surface, settings, getSett
     return { host: session?.definition === definition && session.runtime === runtime ? session.value.host : undefined, context: runtime.getContext(panel.id, surface), rootRef };
 }
 
-export function HostBoardProvider({ boardInfo, timeRange, active, editing = false, refresh = EMPTY_REFRESH, publicView = false, onChange, children }: {
-    boardInfo: any; timeRange: HostTimeRange | null; active: boolean; editing?: boolean; refresh?: HostRefresh; publicView?: boolean; onChange?(update: (board: any) => any): void; children: ReactNode;
+export function HostBoardProvider({ boardInfo, timeRange, active, editing = false, refresh = EMPTY_REFRESH, publicView = false, readOnly = publicView, onChange, children }: {
+    boardInfo: any; timeRange: HostTimeRange | null; active: boolean; editing?: boolean; refresh?: HostRefresh; publicView?: boolean; readOnly?: boolean; onChange?(update: (board: any) => any): void; children: ReactNode;
 }) {
     const [boards, setBoards] = useRecoilState(gBoardList);
     const setSelectedTab = useSetRecoilState(gSelectedTab);
@@ -169,7 +169,7 @@ export function HostBoardProvider({ boardInfo, timeRange, active, editing = fals
         set(gSelectedTab, existing?.id ?? opened.id);
     }, []);
     const [executionRevisions, setExecutionRevisions] = useState<Record<string, number>>({});
-    const input = boardInput(boardInfo, timeRange, active, refresh, executionRevisions, editing);
+    const input = { ...boardInput(boardInfo, timeRange, active, refresh, executionRevisions, editing), publicView };
     const runtime = useMemo(() => new DashboardHostRuntime(input), [boardInfo.id]);
     const activeRuntime = useRef(runtime);
     activeRuntime.current = runtime;
@@ -179,7 +179,7 @@ export function HostBoardProvider({ boardInfo, timeRange, active, editing = fals
     const pendingSettings = useRef(new Map<string, { base: Settings; next: Settings }>());
     const selectionRef = useRef<{ request: HostFileSelection; resolve(value: string | null): void }>();
     const [selection, setSelection] = useState<typeof selectionRef.current>();
-    useLayoutEffect(() => { runtime.updateBoard(input); }, [runtime, boardInfo, timeRange, active, editing, refresh, executionRevisions]);
+    useLayoutEffect(() => { runtime.updateBoard(input); }, [runtime, boardInfo, timeRange, active, editing, refresh, executionRevisions, publicView]);
     useEffect(() => {
         mounted.current = true;
         return () => {
@@ -190,7 +190,7 @@ export function HostBoardProvider({ boardInfo, timeRange, active, editing = fals
         };
     }, [runtime]);
     const value: HostBoardContextValue = {
-        runtime, boardInfo, timeRange, active, editing, allowFileSelection: !publicView, refresh, executionRevisions,
+        runtime, boardInfo, timeRange, active, editing, allowFileSelection: !readOnly, refresh, executionRevisions,
         invalidatePanel: (id) => setExecutionRevisions((all) => ({ ...all, [id]: (all[id] ?? 0) + 1 })),
         readSettings: (id) => {
             const base = current.current.boardInfo?.dashboard?.panels?.find((panel: any) => panel.id === id)?.extension?.settings ?? {};
@@ -205,7 +205,7 @@ export function HostBoardProvider({ boardInfo, timeRange, active, editing = fals
                     ...panel, extension: { ...panel.extension, settings },
                 }) },
             });
-            if (publicView) { onChange?.(replaceSettings); return; }
+            if (readOnly) { onChange?.(replaceSettings); return; }
             setBoards((all) => all.map((board) => board.id !== current.current.boardInfo.id ? board : {
                 ...board, dashboard: { ...board.dashboard, panels: board.dashboard.panels.map((panel: any) => panel.id !== id || panel.type !== 'Extension' ? panel : {
                     ...panel, extension: { ...panel.extension, settings },
