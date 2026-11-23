@@ -2,10 +2,11 @@
 // `STOP, <failure>`: the state badge shows the word only, and the failure is shown once, in the
 // Last Error block.
 
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { RecoilRoot } from 'recoil';
 import { Timer } from './index';
 import { gActiveTimer, gBoardList, gTimerList } from '@/recoil/recoil';
+import { getTimerItem, sendTimerCommand } from '@/api/repository/timer';
 
 jest.mock('@/api/repository/timer', () => ({
     ...jest.requireActual('@/api/repository/timer'),
@@ -14,6 +15,7 @@ jest.mock('@/api/repository/timer', () => ({
     getTimerItem: jest.fn(),
     modTimer: jest.fn(),
     delTimer: jest.fn(),
+    sendTimerCommand: jest.fn(),
 }));
 jest.mock('@/api/repository/api', () => ({ getFileList: jest.fn(async () => ({ success: true, data: { children: [] } })) }));
 jest.mock('@/api/repository/fileTree', () => ({ getFiles: jest.fn(async () => ({ data: { children: [] } })) }));
@@ -102,5 +104,47 @@ describe('Last Error', () => {
         const sDelete = screen.getByTestId('timer-delete');
         expect(sTask.compareDocumentPosition(sBlock) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
         expect(sBlock.compareDocumentPosition(sDelete) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+});
+
+describe('start/stop', () => {
+    const clickSwitch = async () => {
+        await act(async () => fireEvent.click(screen.getByTestId('timer-detail').querySelector('label[for^="switch-"]') as HTMLElement));
+    };
+
+    test('a start that fails at once shows the new failure, not the one the screen opened with', async () => {
+        const OLD_FAILURE = 'old failure';
+        const NEW_FAILURE = 'MACHCLI-ERR-2025, Table OTHER does not exist.';
+        const sOpened = { ...BASE, continueOnError: false, state: 'STOP', lastError: OLD_FAILURE, lastErrorAt: '2026-11-19T17:13:21+09:00' };
+        (sendTimerCommand as jest.Mock).mockResolvedValue({ success: true });
+        (getTimerItem as jest.Mock).mockResolvedValue({ success: true, data: { ...sOpened, state: `STOP, ${NEW_FAILURE}`, lastError: NEW_FAILURE, lastErrorAt: '2026-11-23T09:00:00+09:00' } });
+        renderTimer(sOpened);
+        expect(screen.getByTestId('timer-last-error')).toHaveTextContent(OLD_FAILURE);
+        await clickSwitch();
+        const sBlock = screen.getByTestId('timer-last-error');
+        expect(sBlock).toHaveTextContent(NEW_FAILURE);
+        expect(sBlock).not.toHaveTextContent(OLD_FAILURE);
+        expect(sBlock).toHaveAttribute('data-stopped', 'true');
+    });
+
+    test('a failure that happened while the screen was open appears after start/stop', async () => {
+        const sOpened = { ...BASE, continueOnError: false, state: 'RUNNING' };
+        (sendTimerCommand as jest.Mock).mockResolvedValue({ success: true });
+        (getTimerItem as jest.Mock).mockResolvedValue({ success: true, data: { ...sOpened, state: `STOP, ${FAILURE}`, lastError: FAILURE, lastErrorAt: '2026-11-23T09:00:00+09:00' } });
+        renderTimer(sOpened);
+        expect(screen.queryByTestId('timer-last-error')).not.toBeInTheDocument();
+        await clickSwitch();
+        expect(screen.getByTestId('timer-last-error')).toHaveTextContent(FAILURE);
+    });
+
+    test('edits typed into the form survive start/stop', async () => {
+        const sOpened = { ...BASE, state: 'STOP' };
+        (sendTimerCommand as jest.Mock).mockResolvedValue({ success: true });
+        (getTimerItem as jest.Mock).mockResolvedValue({ success: true, data: { ...sOpened, state: 'RUNNING' } });
+        renderTimer(sOpened);
+        fireEvent.change(screen.getByTestId('timer-detail-schedule'), { target: { value: '@every 5m' } });
+        await clickSwitch();
+        expect(screen.getByText('RUNNING')).toBeInTheDocument();
+        expect(screen.getByTestId('timer-detail-schedule')).toHaveValue('@every 5m');
     });
 });

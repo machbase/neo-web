@@ -10,7 +10,7 @@ import { AUTO_START_DESC, CONTINUE_ON_ERROR_DESC } from './content';
 import { SelectFileBtn } from '../buttons/SelectFileBtn';
 import { OpenFileBtn } from '../buttons/OpenFileBtn';
 import { ConfirmModal } from '../modal/ConfirmModal';
-import { isTimerRunningState, splitTimerState, useTimerStateAction } from './useTimerStateAction';
+import { isTimerRunningState, splitTimerState, useTimerStateAction, withServerStatus } from './useTimerStateAction';
 import { resMessage } from '@/utils/resMessage';
 import { TimerLastError } from './lastError';
 
@@ -155,9 +155,8 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
         // success needs no toast — the switch and its state badge already say it
         if (sResCommand.success) {
             if (sResCommand.updatedTimer) {
-                setPayload((currentPayload: any) =>
-                    currentPayload ? { ...currentPayload, state: sResCommand.updatedTimer?.state } : sResCommand.updatedTimer
-                );
+                const sUpdated = sResCommand.updatedTimer;
+                setPayload((currentPayload: any) => (currentPayload ? withServerStatus(currentPayload, sUpdated) : sUpdated));
             }
         } else {
             // same toast the side panel's toggle raises, so the two entry points behave alike
