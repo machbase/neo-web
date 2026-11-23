@@ -1,6 +1,5 @@
 import { getId } from '@/utils';
 import { atom, selector } from 'recoil';
-import { type CameraItem } from '@/components/dashboard/panels/video/utils/api';
 
 export interface GBoardListType {
     id: string,
@@ -94,11 +93,6 @@ export const gExtensionList = atom<any>({
             type: 'APPSTORE',
             label: 'APPSTORE',
         },
-        // {
-        //     id: 'CAMERA',
-        //     type: 'CAMERA',
-        //     label: 'BLACKBOX',
-        // },
         {
             id: 'REFERENCE',
             type: 'REFERENCE',
@@ -181,19 +175,6 @@ export const setBridgeTree = (aBridgeList: any, aSubrList: any) => {
 
     return sParedTree;
 };
-export const gCameraList = atom<Record<string, CameraItem[]>>({
-    key: 'gCameraList',
-    default: {},
-});
-export const gActiveCamera = atom<any>({
-    key: 'gActiveCamera',
-    default: '' as string,
-});
-export const gCameraHealthTrigger = atom<number>({
-    key: 'gCameraHealthTrigger',
-    default: 0,
-});
-
 export const gBridgeList = atom<any>({
     key: 'gBridgeList',
     default: [] as any,

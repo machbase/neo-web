@@ -113,8 +113,6 @@ const GNBPanel = ({ pOpenSideBar, pCloseSideBar, pIsSidebar, pSetEula }: GNBPane
                 return <GiTallBridge />;
             case 'APPSTORE':
                 return <VscExtensions />;
-            // case 'CAMERA':
-            //     return <VscDeviceCameraVideo />;
             default:
                 return <Cmd />;
         }

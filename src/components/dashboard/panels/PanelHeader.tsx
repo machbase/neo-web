@@ -1,5 +1,9 @@
+import { isExtensionPanel } from '../extensions/types';
+import { isBuiltInDashboardPanel } from '@/utils/dashboardPanelSupport';
+import { useHostActions } from '../extensions/HostReact';
+import { mergePanelMenuItems } from '../extensions/headerMenu';
 import moment from 'moment';
-import { Delete, GearFill, VscRecord, GoGrabber, VscGraphScatter, Download, VscSync, Duplicate, ZoomPan, Checkmark, VscMultipleWindows, VscScreenFull } from '@/assets/icons/Icon';
+import { Delete, GearFill, VscRecord, GoGrabber, VscGraphScatter, Download, Duplicate, ZoomPan, Checkmark } from '@/assets/icons/Icon';
 import { gBoardList, GBoardListType, gSelectedTab, gRollupTableList } from '@/recoil/recoil';
 import { useRecoilState, useRecoilValue } from 'recoil';
 import './PanelHeader.scss';
@@ -29,7 +33,8 @@ import { createTagAnalyzerColumnInfoFromDashboardBlock } from '@/utils/tagAnalyz
 import { createTagAnalyzerBoardFromDashboard } from '@/components/tagAnalyzer/integration';
 import AutoRefreshControl from '@/components/dashboard/AutoRefreshControl';
 
-const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pBoardInfo, pOnFullscreen, pResolvedTheme, pRefreshCycleId }: any) => {
+const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pBoardInfo, pResolvedTheme, pRefreshCycleId }: any) => {
+    const hostActions = useHostActions(pPanelInfo.id);
     const [sBoardList, setBoardList] = useRecoilState<GBoardListType[]>(gBoardList);
     const [sSelectedTab, setSelectedTab] = useRecoilState(gSelectedTab);
     const sRollupTableList = useRecoilValue(gRollupTableList);
@@ -47,7 +52,11 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
     // Only on panels that are actually refreshing: one with no interval of its own has nothing to
     // report, and a ring on every panel is noise. Turning one on is the panel editor's job; from here
     // the interval can be changed or switched off.
-    const sPanelRefresh = pPanelInfo?.timeRange?.refresh ?? 'Off';
+    const sIsExtension = isExtensionPanel(pPanelInfo);
+    const sIsBuiltIn = isBuiltInDashboardPanel(pPanelInfo);
+    const sCanConfigure = sIsExtension || sIsBuiltIn;
+    const sCanExportChart = sIsBuiltIn && pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text';
+    const sPanelRefresh = sIsBuiltIn ? pPanelInfo?.timeRange?.refresh ?? 'Off' : 'Off';
     const sHonorsPanelRefresh = pPanelInfo?.type !== 'Geomap' || !!pPanelInfo?.chartOptions?.useAutoRefresh;
     const sShowPanelRefresh = sPanelRefresh !== 'Off' && sHonorsPanelRefresh && pType === undefined;
 
@@ -348,42 +357,6 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
         });
         setBoardList(() => sTabList);
     };
-    const handleVideoSyncOpt = () => {
-        const sTmpPanel = JSON.parse(JSON.stringify(pPanelInfo));
-        sTmpPanel.chartOptions.source.enableSync = !sTmpPanel.chartOptions.source.enableSync;
-        // sTmpPanel.id = generateUUID();
-        let sSaveTarget: any = sBoardList.find((aItem) => aItem.id === pBoardInfo.id);
-        const sTabList = sBoardList.map((aItem) => {
-            if (aItem.id === pBoardInfo.id) {
-                const sTmpDashboard = {
-                    ...aItem.dashboard,
-                    panels: aItem.dashboard.panels.map((aPanel: any) => {
-                        if (aPanel.id === pPanelInfo.id) return sTmpPanel;
-                        else return aPanel;
-                    }),
-                };
-                sSaveTarget = {
-                    ...aItem,
-                    dashboard: sTmpDashboard,
-                    savedCode: JSON.stringify(sTmpDashboard),
-                };
-                return sSaveTarget;
-            } else return aItem;
-        });
-        setBoardList(() => sTabList);
-    };
-    // Opens a new window only for panels that have dependency with video panel
-    // const handleDetailBoard = () => {
-    //     const currentUrl = `${window.location.origin + '/web/ui/board' + pBoardInfo?.path + pBoardInfo!.name.split('.')[0]}`;
-    //     const queryString = `?video=${encodeURIComponent(pPanelInfo.id)}`;
-    //     window.open(currentUrl + queryString, '_blank', 'width=1200,height=800');
-    // };
-    const handleChildBoard = () => {
-        const currentUrl = `${window.location.origin + '/web/ui/board/' + pPanelInfo?.chartOptions?.childBoard?.split('.')[0]}`;
-        // window.open(currentUrl, '_blank', 'width=1200,height=800');
-        window.open(currentUrl);
-    };
-
     return (
         <>
             {!pIsView && (
@@ -426,55 +399,44 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                 />
                             </Menu.Trigger>
                             <Menu.Content>
-                                <Menu.Item onClick={() => handleMoveEditOnMenu(pPanelInfo.id)} icon={<GearFill />}>
-                                    Setting
-                                </Menu.Item>
-                                {pPanelInfo.type === 'Video' ? (
-                                    <>
-                                        <Menu.Item
-                                            onClick={handleVideoSyncOpt}
-                                            icon={<VscSync size={16} />}
-                                            rightIcon={<Page.Switch pState={pPanelInfo?.chartOptions?.source?.enableSync ?? false} pCallback={() => {}} />}
-                                        >
-                                            Synchronization
-                                        </Menu.Item>
-                                        {/* <Menu.Item onClick={handleDetailBoard} icon={<VscMultipleWindows size={16} />}>
-                                            Detail board
-                                        </Menu.Item> */}
-                                        <Menu.Item onClick={handleChildBoard} icon={<VscMultipleWindows size={16} />}>
-                                            Child board
-                                        </Menu.Item>
-                                        <Menu.Item onClick={pOnFullscreen} icon={<VscScreenFull />}>
-                                            Fullscreen
-                                        </Menu.Item>
-                                    </>
-                                ) : null}
-                                {pPanelInfo.type === 'Geomap' && (
-                                    <Menu.Item onClick={handleGeomapZoom} icon={<ZoomPan />} rightIcon={pPanelInfo.chartOptions.useZoomControl ? <Checkmark /> : undefined}>
-                                        Use zoom control
-                                    </Menu.Item>
-                                )}
-                                <Menu.Item onClick={() => handleCopyPanel(pPanelInfo)} icon={<Duplicate />}>
-                                    Duplicate
-                                </Menu.Item>
-                                {pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && pPanelInfo.type !== 'Video' && (
-                                    <Menu.Item onClick={handleMoveTagz} icon={<MuiTagAnalyzerGray className="mui-svg-hover" width={13} />}>
-                                        Show Taganalyzer
-                                    </Menu.Item>
-                                )}
-                                {pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && pPanelInfo.type !== 'Video' && (
-                                    <Menu.Item onClick={HandleDataDownload} icon={<Download />}>
-                                        Download data
-                                    </Menu.Item>
-                                )}
-                                <Menu.Item onClick={handleDelete} icon={<Delete />}>
-                                    Delete
-                                </Menu.Item>
-                                {pPanelInfo.type !== 'Tql chart' && pPanelInfo.type !== 'Geomap' && pPanelInfo.type !== 'Text' && pPanelInfo.type !== 'Video' && (
-                                    <Menu.Item onClick={HandleDownload} icon={<VscGraphScatter />}>
-                                        Save to tql
-                                    </Menu.Item>
-                                )}
+                                {mergePanelMenuItems([
+                                    sCanConfigure && { id: 'setting', item: <Menu.Item key="setting" onClick={() => handleMoveEditOnMenu(pPanelInfo.id)} icon={<GearFill />}>
+                                        Setting
+                                    </Menu.Item> },
+                                    pPanelInfo.type === 'Geomap' && (
+                                        { id: 'zoom', item: <Menu.Item key="zoom" onClick={handleGeomapZoom} icon={<ZoomPan />} rightIcon={pPanelInfo.chartOptions.useZoomControl ? <Checkmark /> : undefined}>
+                                            Use zoom control
+                                        </Menu.Item> }
+                                    ),
+                                    { id: 'duplicate', item: <Menu.Item key="duplicate" onClick={() => handleCopyPanel(pPanelInfo)} icon={<Duplicate />}>
+                                        Duplicate
+                                    </Menu.Item> },
+                                    sCanExportChart && (
+                                        { id: 'taganalyzer', item: <Menu.Item key="taganalyzer" onClick={handleMoveTagz} icon={<MuiTagAnalyzerGray className="mui-svg-hover" width={13} />}>
+                                            Show Taganalyzer
+                                        </Menu.Item> }
+                                    ),
+                                    sCanExportChart && (
+                                        { id: 'download-data', item: <Menu.Item key="download-data" onClick={HandleDataDownload} icon={<Download />}>
+                                            Download data
+                                        </Menu.Item> }
+                                    ),
+                                    { id: 'delete', item: <Menu.Item key="delete" onClick={handleDelete} icon={<Delete />}>
+                                        Delete
+                                    </Menu.Item> },
+                                    sCanExportChart && (
+                                        { id: 'save-tql', item: <Menu.Item key="save-tql" onClick={HandleDownload} icon={<VscGraphScatter />}>
+                                            Save to tql
+                                        </Menu.Item> }
+                                    ),
+                                ], hostActions.map((action) => ({ position: action.position, item:
+                                    <Menu.Item key={action.ownerId + ':' + action.id} icon={action.icon} disabled={action.disabled}
+                                        rightIcon={action.checked === undefined ? undefined : <Page.Switch pState={action.checked} pCallback={() => {}} />}
+                                        onClick={() => {
+                                            try { Promise.resolve(action.onSelect()).catch(() => Toast.error('The extension action failed.')); }
+                                            catch { Toast.error('The extension action failed.'); }
+                                        }}>{action.label}</Menu.Item>
+                                })))}
                             </Menu.Content>
                         </Menu.Root>
                     </div>
@@ -490,7 +452,7 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                     {/* The dot marks a panel on its own range. A distance panel's window is numeric and
                         lives in its own field, so the tooltip has to read that one — `timeRange` is
                         empty there, and printing it would label an overridden panel ` ~ `. */}
-                    <a
+                    {sIsBuiltIn && <a
                         data-tooltip-place="bottom"
                         className={`panel-header-time-range${!pPanelInfo.useCustomTime && !pPanelInfo.useCustomDistance ? ' display-none' : ''}`}
                         id={sHeaderId}
@@ -505,7 +467,8 @@ const PanelHeader = ({ pShowEditPanel, pType, pPanelInfo, pIsView, pIsHeader, pB
                                     : `${pPanelInfo.timeRange.start} ~ ${pPanelInfo.timeRange.end} , ${pPanelInfo.timeRange.refresh}`
                             }
                         />
-                    </a>
+                    </a>}
+                    {!sIsBuiltIn && <span>{pPanelInfo.title}</span>}
                     {/* {!pIsView && (
                         <>
                             <IconButton pWidth={25} pIcon={<VscGraphScatter className="mui-svg-hover" width={16} />} onClick={HandleDownload} />

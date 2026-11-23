@@ -1,7 +1,7 @@
 export const TAG_SELECTION_REQUIRED_MESSAGE = 'Please select tag.';
 
 // Panel types that do not depend on tag selection. Values must match ChartTypeList keys in src/utils/constants.ts.
-export const TAG_INDEPENDENT_PANEL_TYPES = ['Video', 'Tql chart'];
+export const TAG_INDEPENDENT_PANEL_TYPES = ['Tql chart'];
 
 const hasSelectedTag = (tag: unknown) => {
     return typeof tag === 'string' && tag.trim() !== '';

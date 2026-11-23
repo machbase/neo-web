@@ -3,7 +3,7 @@ import { gCopyFileTree, gDeleteFileList, gDeleteFileTree, gFileTree, gRecentDire
 import { getId, isImage, binaryCodeEncodeBase64, extractionExtension } from '@/utils';
 import { useState } from 'react';
 import { Delete, Download, Update, Rename, TbFolderPlus, TbCloudDown, MdRefresh, VscNewFile } from '@/assets/icons/Icon';
-import { useRecoilState, useSetRecoilState } from 'recoil';
+import { useRecoilState, useRecoilTransaction_UNSTABLE, useSetRecoilState } from 'recoil';
 import { FileTree } from '../../fileTree/file-tree';
 import { useEffect } from 'react';
 import { getFiles, deleteFile as deleteContextFile } from '@/api/repository/fileTree';
@@ -118,6 +118,13 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
         }
     };
 
+    const openTab = useRecoilTransaction_UNSTABLE(({ get, set }) => (tab: GBoardListType) => {
+        const tabs = get(gBoardList);
+        const existing = tabs.find(item => item.path === tab.path && item.name === tab.name);
+        if (!existing) set(gBoardList, [...tabs, tab]);
+        set(gSelectedTab, existing?.id ?? tab.id);
+    }, []);
+
     const onSelect = async (file: FileType) => {
         closeContextMenu();
         const sTmpId = getId();
@@ -126,7 +133,7 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
             setSelectedTab(sExistBoard.id as string);
         } else {
             // As stored: the tab shows and saves the file's own text, never a re-serialized copy of it.
-            const sContentResult: any = await getFiles(`${file.path}${file.name}`, { rawText: true });
+            const sContentResult: any = await getFiles(file.path + file.name, { rawText: true });
             const sFileExtension = extractionExtension(file.id);
             if (axios.isAxiosError(sContentResult)) return;
             if (sContentResult?.hasOwnProperty('headers') || sContentResult?.hasOwnProperty('reason') || sContentResult?.data?.hasOwnProperty('reason')) {
@@ -180,12 +187,10 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
                     type: extractionExtension(file.id),
                 };
                 sTmpBoard = updateBoard;
-                setBoardList([...sBoardList, sTmpBoard]);
             } else sTmpBoard.code = sContentResult;
 
             pGetInfo();
-            setBoardList([...sBoardList, sTmpBoard]);
-            setSelectedTab(sTmpId);
+            openTab(sTmpBoard);
         }
         setSelectedFile(file);
     };
@@ -266,7 +271,7 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
     const multiDelete = async (aDelList: any) => {
         const sReslutList: any = [];
         for (const aItem of aDelList) {
-            const aResult: any = await deleteContextFile(aItem.path, aItem.query);
+            const aResult: any = await deleteContextFile(aItem.path, aItem.name, aItem.recursive);
             if (aResult.success || (isImage(aItem.name) && binaryCodeEncodeBase64(aResult))) {
                 sReslutList.push(aItem);
                 DeleteFileTree(aItem);
@@ -306,29 +311,24 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
 
     const handleDeleteFile = async (isRecursive: boolean) => {
         if (sDeleteFileList && (sDeleteFileList as any).length > 0) {
-            const sRecursivePath: any = { path: undefined, query: undefined };
+            const sRecursivePath = selectedContextFile;
             const sDeleteList = JSON.parse(JSON.stringify(sDeleteFileList)).map((aDelFile: any) => {
                 return {
                     path: aDelFile.path,
-                    query: isRecursive && aDelFile.type === 1 ? aDelFile.name + '?recursive=true' : aDelFile.name,
+                    recursive: isRecursive && aDelFile.type === 1,
                     name: aDelFile.name,
                     type: aDelFile.type,
                     depth: aDelFile.depth,
                 };
             });
-            if (selectedContextFile && selectedContextFile.path && selectedContextFile.name) {
-                sRecursivePath.path = selectedContextFile.path;
-                if (isRecursive && selectedContextFile.type === 1) sRecursivePath.query = selectedContextFile.name + '?recursive=true';
-                else sRecursivePath.query = selectedContextFile.name;
+            if (sRecursivePath && !sDeleteList.some((item: any) => item.path === sRecursivePath.path && item.name === sRecursivePath.name)) {
+                sDeleteList.push({ ...sRecursivePath, recursive: isRecursive && sRecursivePath.type === 1 });
             }
-
-            if (!sDeleteList.some((aItem: any) => aItem.path === sRecursivePath.path && aItem.query === sRecursivePath.query)) sDeleteList.push(sRecursivePath);
             setDeleteFileList(undefined);
             multiDelete(sDeleteList);
         } else {
             if (selectedContextFile && selectedContextFile.path && selectedContextFile.name) {
-                const sRecursivePath = isRecursive ? selectedContextFile.name + '?recursive=true' : selectedContextFile.name;
-                const sResult: any = await deleteContextFile(selectedContextFile.path, sRecursivePath);
+                const sResult: any = await deleteContextFile(selectedContextFile.path, selectedContextFile.name, isRecursive);
                 if (sResult.reason === 'success' || (isImage(selectedContextFile.name) && binaryCodeEncodeBase64(sResult))) {
                     const sTmpBoardList = JSON.parse(JSON.stringify(sBoardList));
                     let updateBoardList: any = [];
@@ -422,11 +422,15 @@ export const FileExplorer = ({ pGetInfo, pSavedPath, pDisplay }: any) => {
     };
 
     const handleCopy = async () => {
-        const sCopiedFile = await FileCopy(selectedContextFile);
-        if (sCopiedFile) {
-            CopyFileTree(sCopiedFile);
-        }
+        if (!selectedContextFile || selectedContextFile.type !== 0) return;
         closeContextMenu();
+        try {
+            const copied = await FileCopy(selectedContextFile as FileType);
+            if (copied) CopyFileTree(copied);
+            else Toast.error('Could not duplicate the file.');
+        } catch (error) {
+            Toast.error(error instanceof Error ? error.message : 'Could not duplicate the file.');
+        }
     };
 
     const handleFile = (aEvent: any) => {

@@ -5,7 +5,7 @@ import { stepReadManifest } from './steps/readManifest';
 import { stepRunInstall } from './steps/runInstall';
 import { stepRunStart } from './steps/runStart';
 import { stepRunStop } from './steps/runStop';
-import type { LifecycleContext, StepResult } from './types';
+import type { CopyPreparedPackage, LifecycleContext, StepResult } from './types';
 
 // Update sequence:
 //   1. read pre-update package.json to learn if the running instance must be
@@ -19,7 +19,7 @@ import type { LifecycleContext, StepResult } from './types';
 // Any failure aborts the remaining steps and returns the first failure.
 // No auto-rollback: partial state (stopped, new files, no start) is left
 // intact so the admin can inspect and retry rather than risk deeper damage.
-export async function runUpdate(ctx: LifecycleContext): Promise<StepResult> {
+export async function runUpdate(ctx: LifecycleContext, copy?: CopyPreparedPackage, restartAfterRetry = false): Promise<StepResult> {
     // ── Phase 1: pre-update manifest ──────────────────────────────────────
     const preRead = await stepReadManifest(ctx);
     if (!preRead.ok) return { ...preRead, log: ctx.logs.join('\n') };
@@ -44,7 +44,7 @@ export async function runUpdate(ctx: LifecycleContext): Promise<StepResult> {
     // user's pick in the version menu, and the archive itself is found
     // server-side from `ctx.tag` (steps/archiveExtract.ts).
     const useArchive = ctx.source === 'local';
-    const copyRes = useArchive ? await stepArchiveExtract(ctx, { force: true }) : await stepPkgCopy(ctx, { force: true });
+    const copyRes = copy ? await copy(hadStop) : useArchive ? await stepArchiveExtract(ctx, { force: true }) : await stepPkgCopy(ctx, { force: true });
     if (!copyRes.ok) return { ...copyRes, log: ctx.logs.join('\n') };
 
     // ── Phase 3: post-update manifest ─────────────────────────────────────
@@ -61,7 +61,7 @@ export async function runUpdate(ctx: LifecycleContext): Promise<StepResult> {
     }
 
     // ── Phase 4: restart service ──────────────────────────────────────────
-    if (hadStop || hasInstallNow) {
+    if (hadStop || restartAfterRetry || hasInstallNow) {
         const startRes = await stepRunStart(ctx);
         if (!startRes.ok) return { ...startRes, log: ctx.logs.join('\n') };
     }

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { getFileList, postFileList } from '@/api/repository/api';
+import { getFileList, postFileList, findSaveFileConflict } from '@/api/repository/api';
 import { gFileTree, gRecentModalPath } from '@/recoil/fileTree';
 import { gBoardList, gSelectedBoard, gSelectedTab } from '@/recoil/recoil';
 import { useRecoilState, useRecoilValue } from 'recoil';
@@ -157,17 +157,12 @@ export const SaveModal = (props: SaveModalProps) => {
     };
 
     const saveFile = async () => {
-        const sFileName = sSaveFileName;
-        const sTab = sBoardList.find((aItem) => aItem.id === sSelectedTab);
-        const sDupFile = sFileList && sFileList.find((aItem) => aItem.name === sFileName);
-        const sSaveData = sFileType === 'wrk' ? { data: sSaveWorkSheet } : sFileType === 'dsh' ? sTab : sTab?.code;
-
+        const tab = sBoardList.find(item => item.id === sSelectedTab);
+        if (!tab) return;
         if (sFileType === 'taz') {
-            if (!sTab) {
-                Toast.error('No TAZ tab is selected.');
-                return;
-            }
-
+            const sFileName = sSaveFileName;
+            const sTab = tab;
+            const sDupFile = sFileList?.find(item => item.name === sFileName);
             const sPath = sSelectedDir.length > 0 ? '/' + sSelectedDir.join('/') + '/' : '/';
             if (sDupFile && sTab?.name !== sFileName) {
                 const sConfirm = confirm('Do you want to overwrite it?');
@@ -198,80 +193,34 @@ export const SaveModal = (props: SaveModalProps) => {
             return;
         }
 
-        if (sDupFile && sTab?.name !== sFileName) {
-            const sConfirm = confirm('Do you want to overwrite it?');
-            if (sConfirm) {
-                const sResult: any = await postFileList(sSaveData, sSelectedDir.join('/'), sFileName);
-                if (sResult.success) {
-                    const sExist = getExistBoard(sDupFile);
-                    const sPath = sSelectedDir.length > 0 ? '/' + sSelectedDir.join('/') + '/' : '/';
-                    if (sExist) {
-                        setBoardList(
-                            sBoardList
-                                .filter((aItem) => aItem.name !== sFileName && aItem.path !== sPath)
-                                .map((aItem: any) => {
-                                    if (aItem.id === sSelectedTab) {
-                                        const sSaveData = {
-                                            ...aItem,
-                                            name: sFileName,
-                                            savedCode: sFileType === 'wrk' ? JSON.stringify(aItem.sheet) : aItem.code,
-                                            path: sPath,
-                                        };
-                                        return sSaveData;
-                                    } else {
-                                        return aItem;
-                                    }
-                                })
-                        );
-                    } else {
-                        setBoardList(
-                            sBoardList.map((aItem: any) => {
-                                if (aItem.id === sSelectedTab) {
-                                    const sSaveData = {
-                                        ...aItem,
-                                        name: sFileName,
-                                        savedCode: sFileType === 'wrk' ? JSON.stringify(aItem.sheet) : aItem.code,
-                                        path: sPath,
-                                    };
-                                    return sSaveData;
-                                } else {
-                                    return aItem;
-                                }
-                            })
-                        );
-                    }
-                    handleClose();
-                }
-                return;
-            } else return;
+        const destination = '/' + [...sSelectedDir, ''].join('/');
+        const conflict = await findSaveFileConflict(destination, sSaveFileName).catch(() => null);
+        if (conflict === null || conflict?.isDir) {
+            Toast.error('Could not check the destination file.');
+            return;
         }
-        const sPath = sSelectedDir.length > 0 ? '/' + sSelectedDir.join('/') + '/' : '/';
-        const sResult: any = await postFileList(sSaveData, sPath, sFileName);
-        setModalPath(sPath);
-        if (sResult.success) {
-            handleClose();
-            const sDrillRes = await TreeFetchDrilling(sFileTree, sPath + sFileName, true);
-            setFileTree(JSON.parse(JSON.stringify(sDrillRes.tree)));
-            setBoardList(
-                sBoardList.map((aItem: any) => {
-                    if (aItem.id === sSelectedTab) {
-                        const sSaveData = {
-                            ...aItem,
-                            name: sFileName,
-                            savedCode:
-                                sFileType === 'wrk'
-                                    ? JSON.stringify(aItem.sheet)
-                                    : sFileType === 'dsh'
-                                    ? JSON.stringify(aItem.dashboard)
-                                    : aItem.code,
-                            path: sPath,
-                        };
-                        return sSaveData;
-                    } else {
-                        return aItem;
-                    }
-                })
-            );
+        const name = conflict?.name ?? sSaveFileName;
+        if (conflict && (tab.name !== sSaveFileName || tab.path !== destination) && !confirm('Do you want to overwrite it?')) return;
+
+        const payload = sFileType === 'wrk' ? { data: sSaveWorkSheet } : sFileType === 'dsh' ? tab : tab.code;
+        const result: any = await postFileList(payload, destination, name, { create: !conflict });
+        if (!result?.success) {
+            Toast.error(result?.status === 412 ? 'The destination changed. Review it and try again.' : 'Failed to save the file.');
+            return;
+        }
+        const savedCode = sFileType === 'wrk' ? JSON.stringify(tab.sheet) :
+            sFileType === 'dsh' ? JSON.stringify(tab.dashboard) : tab.code;
+        const replacedId = sBoardList.find(item => item.path === destination && item.name === name)?.id;
+        setBoardList(tabs => tabs
+            .filter(item => item.id !== replacedId || item.id === tab.id || item.path !== destination || item.name !== name)
+            .map(item => item.id === tab.id && item.path === tab.path && item.name === tab.name
+                ? { ...item, name, path: destination, savedCode }
+                : item));
+        setModalPath(destination);
+        handleClose();
+        if (!conflict) {
+            const result = await TreeFetchDrilling(sFileTree, destination + name, true);
+            setFileTree(current => current === sFileTree ? result.tree : current);
         }
     };
 
@@ -318,8 +267,12 @@ export const SaveModal = (props: SaveModalProps) => {
         } else {
             const sPath = sSelectedDir.length > 0 ? '/' + sSelectedDir.join('/') + '/' : '/';
             const sType = extractionExtension(file.name);
-            const sData = await getFilesTree(`${sSelectedDir.join('/')}/${file.name}`);
-            let sParseData;
+            const sData: any = await getFilesTree(sPath + file.name, { rawText: true });
+            if (typeof sData !== 'string') {
+                Toast.error('Could not open the file.');
+                return;
+            }
+            let sParseData: any;
             if ((sType === 'wrk' && typeof sData === 'string') || (typeof sData === 'string' && sType === 'dsh')) {
                 sParseData = JSON.parse(sData);
             }
@@ -329,7 +282,7 @@ export const SaveModal = (props: SaveModalProps) => {
                     const sParsedTaz = typeof sData === 'string' ? JSON.parse(sData) : sData;
                     const sTazBoardInfo = loadTazBoard(sParsedTaz, sTmpId, file.name, sPath);
 
-                    setBoardList([...sBoardList, sTazBoardInfo as any]);
+                    setBoardList(boards => [...boards, sTazBoardInfo as any]);
                     setSelectedTab(sTmpId);
                     handleClose();
                     return;
@@ -339,8 +292,8 @@ export const SaveModal = (props: SaveModalProps) => {
                 }
             }
             if (sType === 'dsh') {
-                setBoardList([
-                    ...sBoardList,
+                setBoardList(boards => [
+                    ...boards,
                     {
                         ...sParseData,
                         id: sTmpId,
@@ -357,8 +310,8 @@ export const SaveModal = (props: SaveModalProps) => {
                 const sSheetData = sType === 'wrk' ? sParseData?.data ?? [] : [];
                 const sCodeData = sType === 'wrk' ? '' : sData;
                 const savedCode = sType === 'wrk' ? JSON.stringify(sSheetData) : sCodeData;
-                setBoardList([
-                    ...sBoardList,
+                setBoardList(boards => [
+                    ...boards,
                     {
                         id: sTmpId,
                         name: file.name,
@@ -378,7 +331,7 @@ export const SaveModal = (props: SaveModalProps) => {
         handleClose();
     };
 
-    const getExistBoard = (aTargetFile: FileType) => {
+    const getExistBoard = (aTargetFile: Pick<FileType, 'name'>) => {
         const sPath = sSelectedDir.length > 0 ? '/' + sSelectedDir.join('/') + '/' : '/';
         return sBoardList.filter((aBoard) => aBoard.name === aTargetFile.name && aBoard.path === sPath)[0];
     };

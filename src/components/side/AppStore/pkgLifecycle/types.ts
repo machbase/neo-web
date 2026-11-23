@@ -3,6 +3,7 @@
 // module (see below).
 
 export type StepResult = { ok: true; log: string } | { ok: false; log: string; reason: string };
+export type CopyPreparedPackage = (restartAfterCopy?: boolean) => Promise<StepResult>;
 
 /**
  * The row prefix a server-side script uses to say "I failed, and here is why"
@@ -83,5 +84,6 @@ export interface LifecycleContext {
     source?: 'hub' | 'local';
     manifest?: PkgManifest;
     logs: string[];
+    extensionInstallApi?: string;
     onProgress?: (label: string) => void;
 }

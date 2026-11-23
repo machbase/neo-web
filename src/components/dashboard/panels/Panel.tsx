@@ -1,12 +1,16 @@
+import { isBuiltInDashboardPanel } from '@/utils/dashboardPanelSupport';
+import { UnsupportedPanel } from './UnsupportedPanel';
+import { ExtensionErrorBoundary, ExtensionView } from '../extensions/ExtensionPanels';
+import { isExtensionPanel } from '../extensions/types';
+import { useHostBoard, useHostBorder } from '../extensions/HostReact';
 import LineChart from './chart/LineChart';
-import VideoPanel from './video/VideoPanel';
 import PanelHeader from './PanelHeader';
 import './Panel.scss';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { ChartThemeBackgroundColor } from '@/utils/constants';
 import { ChartTheme } from '@/type/eChart';
 
-const Panel = ({
+const BuiltInPanel = ({
     pLoopMode,
     pChartVariableId,
     pBoardInfo,
@@ -22,7 +26,9 @@ const Panel = ({
     pIsHeader,
     pBoardTimeMinMax,
     pIsActiveTab,
+    pHostBorderColor,
 }: any) => {
+    const hostBoard = useHostBoard();
     const [sRefreshCount, setRefreshCount] = useState<number>(0);
     // Bumped by the chart every time its own refresh timer fires. The header's countdown ring restarts
     // on it, so the animation is anchored to the real fetch instead of free-running from mount: a CSS
@@ -38,17 +44,8 @@ const Panel = ({
     useEffect(() => {
         if (!sIsTql) setResolvedTheme(pPanelInfo.theme);
     }, [pPanelInfo.theme, sIsTql]);
-    // Ref for VideoPanel to access fullscreen toggle
-    const videoPanelRef = useRef<any>(null);
-
-    const handleVideoFullscreen = () => {
-        if (videoPanelRef.current && videoPanelRef.current.toggleFullscreen) {
-            videoPanelRef.current.toggleFullscreen();
-        }
-    };
-
     return (
-        <div className="panel-wrap" style={{ backgroundColor: sResolvedTheme ? ChartThemeBackgroundColor[sResolvedTheme as ChartTheme] : 'transparent' }}>
+        <div className="panel-wrap" style={{ backgroundColor: sResolvedTheme ? ChartThemeBackgroundColor[sResolvedTheme as ChartTheme] : 'transparent', borderColor: pHostBorderColor }}>
             <PanelHeader
                 pRefreshCycleId={sRefreshCycleId}
                 pRefreshCount={sRefreshCount}
@@ -59,25 +56,11 @@ const Panel = ({
                 pPanelInfo={pPanelInfo}
                 pIsView={pIsView}
                 pIsHeader={pIsHeader}
-                pOnFullscreen={handleVideoFullscreen}
                 pResolvedTheme={sResolvedTheme}
             />
             {pPanelInfo ? (
-                pPanelInfo?.type === 'Video' ? (
-                    <VideoPanel
-                        pLoopMode={pLoopMode}
-                        pType={pType}
-                        pIsActiveTab={pIsActiveTab}
-                        pChartVariableId={pChartVariableId}
-                        ref={videoPanelRef}
-                        pPanelInfo={pPanelInfo}
-                        pBoardInfo={pBoardInfo}
-                        pBoardTimeMinMax={pBoardTimeMinMax}
-                        pParentWidth={pParentWidth}
-                        pIsHeader={pIsHeader}
-                    />
-                ) : (
-                    <LineChart
+                <LineChart
+                        pHostRuntime={hostBoard?.runtime}
                         pLoopMode={pLoopMode}
                         pDragStat={pDragStat}
                         pInsetDraging={pInsetDraging}
@@ -95,9 +78,39 @@ const Panel = ({
                         pOnResolveTheme={setResolvedTheme}
                         pOnRefreshTick={() => setRefreshCycleId((aId) => aId + 1)}
                     />
-                )
             ) : null}
         </div>
+    );
+};
+const Panel = (props: any) => {
+    const { pPanelInfo, pBoardInfo, pBoardTimeMinMax } = props;
+    const borderColor = useHostBorder(pPanelInfo?.id);
+    if (!isExtensionPanel(pPanelInfo) && !isBuiltInDashboardPanel(pPanelInfo)) return (
+        <div className="panel-wrap" style={{ borderColor }}>
+            <PanelHeader {...props} />
+            <UnsupportedPanel />
+        </div>
+    );
+    if (!isExtensionPanel(pPanelInfo)) return <BuiltInPanel {...props} pHostBorderColor={borderColor} />;
+
+    const distance = pBoardInfo.dashboard.distanceRange;
+    const time = pBoardTimeMinMax;
+    const timeRange = Number.isFinite(time?.min) && Number.isFinite(time?.max) ? { start: time.min, end: time.max } : null;
+    return (
+        <ExtensionErrorBoundary key={pPanelInfo.id}>
+            <div className="panel-wrap" style={{ backgroundColor: ChartThemeBackgroundColor[pPanelInfo.theme as ChartTheme], borderColor }}>
+                <PanelHeader {...props} pResolvedTheme={pPanelInfo.theme} />
+                <ExtensionView
+                    panel={pPanelInfo}
+                    data={pPanelInfo.extension}
+                    mode={props.pExtensionMode ?? 'dashboard'}
+                    timeRange={timeRange}
+                    distanceRange={{ start: distance?.start ?? '', end: distance?.end ?? '' }}
+                    title={pPanelInfo.title ?? ''}
+                    theme={pPanelInfo.theme}
+                />
+            </div>
+        </ExtensionErrorBoundary>
     );
 };
 export default Panel;

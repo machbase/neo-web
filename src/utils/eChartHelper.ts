@@ -29,20 +29,6 @@ export const chartTypeConverter = (aType: string): string => {
     return sResult.value;
 };
 
-// Chart types that depend on an installed package to be available.
-const CHART_TYPE_PKG_REQUIREMENTS: Record<string, string> = {
-    video: 'neo-pkg-blackbox',
-};
-
-// Return the ChartTypeList keys that should be shown, filtering out
-// chart types whose required package is not present in installedPkgs.
-export const getAvailableChartTypeKeys = (installedPkgs: Set<string>): string[] => {
-    return ChartTypeList.filter((aType) => {
-        const sRequiredPkg = CHART_TYPE_PKG_REQUIREMENTS[aType.value];
-        if (!sRequiredPkg) return true;
-        return installedPkgs.has(sRequiredPkg);
-    }).map((aType) => aType.key);
-};
 const CustomChartTypeList = Object.values(E_CUSTOM_CHART_TYPE);
 // Check if it is a chart that uses a custom type.
 export const CheckCustomChartType = (aType: ChartType): boolean => {
@@ -102,24 +88,6 @@ export const DefaultYAxisOption = {
     //         color: '#fff'
     //     }
     // }
-};
-
-export const DeafultVideoOption = {
-    source: {
-        table: '' as string,
-        camera: '' as string,
-        serverIp: '' as string,
-        serverPort: 0 as number,
-        serverAlias: '' as string,
-        liveModeOnStart: false as boolean,
-        enableSync: false as boolean,
-    },
-    event: {},
-    dependent: {
-        panels: [],
-        color: '#009CE0' as string,
-    },
-    childBoard: '' as string,
 };
 
 export const DefaultGeomapOpntion = {
@@ -278,18 +246,6 @@ export const DefaultChartOption = {
     h: 7 as number, // height
 };
 
-// Blackbox panel option - independent from chart system
-export const DefaultBlackboxOption = {
-    id: undefined as string | undefined,
-    title: 'Blackbox Panel' as string,
-    type: 'Blackbox' as string,
-    theme: 'dark' as ChartTheme,
-    x: 0 as number,
-    y: 0 as number,
-    w: 6 as number,
-    h: 6 as number,
-};
-
 export const DefaultVariableTableOption = {
     id: generateUUID(),
     table: '' as string | undefined,
@@ -423,8 +379,6 @@ export const getDefaultSeriesOption = (aChartType: ChartType) => {
             return DefaultTextchartOpntion;
         case 'geomap':
             return DefaultGeomapOpntion;
-        case 'video':
-            return DeafultVideoOption;
         default:
             return DefaultLineChartOption;
     }

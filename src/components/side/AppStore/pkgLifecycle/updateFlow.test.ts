@@ -135,6 +135,17 @@ describe('runUpdate — fetch step selection', () => {
         expect(order).toEqual(['readManifest', 'runStop', 'archiveExtract', 'readManifest', 'runStart']);
     });
 
+    test('a prepared update keeps the original restart decision when retried with the new manifest', async () => {
+        withManifests({}, {});
+        const copy = jest.fn(async () => {
+            order.push('preparedCopy');
+            return { ok: true as const, log: 'copied' };
+        });
+
+        await expect(runUpdate(makeCtx(), copy, true)).resolves.toEqual({ ok: true, log: '' });
+        expect(order).toEqual(['readManifest', 'preparedCopy', 'readManifest', 'runStart']);
+    });
+
     test('a failing archiveExtract aborts before the post-update manifest read', async () => {
         mockExtract.mockResolvedValue({ ok: false, log: 'boom', reason: 'version mismatch' });
         const ctx = makeCtx({ source: 'local', tag: '2.0.0' });

@@ -1,3 +1,8 @@
+import { isBuiltInDashboardPanel } from '@/utils/dashboardPanelSupport';
+import { PanelExtensionProvider } from './extensions/ExtensionPanels';
+import { HostBoardProvider, useHostBoard } from './extensions/HostReact';
+import { createDashboardRangeRequests, useHostRefresh } from './extensions/useHostRefresh';
+import { isExtensionPanel } from './extensions/types';
 import GridLayout from 'react-grid-layout';
 import { useState, useEffect, useRef } from 'react';
 import '/node_modules/react-grid-layout/css/styles.css';
@@ -11,7 +16,6 @@ import { TbSquarePlus, Save, SaveAs, MdRefresh, Share } from '@/assets/icons/Ico
 import TimeRangeModal from '../modal/TimeRangeModal';
 import AutoRefreshControl from './AutoRefreshControl';
 import RangeChips from './RangeChips';
-import { isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
 import { fetchBlockBaseMinMax } from '@/utils/dashboardBaseMinMax';
 import { isDistanceAnchorEdge, isDistanceEdgeSet, resolveDistanceEdge } from '@/utils/distanceRange';
 import moment from 'moment';
@@ -21,7 +25,7 @@ import { getId, isEmpty } from '@/utils';
 import { GRID_LAYOUT_COLS, GRID_LAYOUT_ROW_HEIGHT } from '@/utils/constants';
 import { useOverlapTimeout } from '@/hooks/useOverlapTimeout';
 import { timeMinMaxConverter } from '@/utils/bgnEndTimeRange';
-import { getTimeMinMaxFetchTarget, pickBoardTimeMinMaxPanel, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { getTimeMinMaxFetchTarget, pickBoardTimeMinMaxPanel, pickBoardDistanceMinMaxPanel, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
 import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
 import { Toast } from '@/design-system/components';
 import { Variable } from './variable';
@@ -31,10 +35,24 @@ import { SiVectorworks } from 'react-icons/si';
 import { IoMdOptions } from 'react-icons/io';
 import ShareModal from './ShareModal';
 import { Button, Input, Page, Drawer } from '@/design-system/components';
-import { clearBoardVideoStore } from '@/hooks/useVideoSync';
+
+// Keep the saved/grid ID stable. Only a committed edit invalidates this panel's execution.
+const HostManagedPanel = (props: any) => {
+    const board = useHostBoard();
+    return <Panel key={board?.executionRevisions[props.pPanelInfo.id] ?? 0} {...props} />;
+};
 
 const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveModal, pIsSave }: any) => {
-    const boardIdRef = useRef<string>(pInfo?.id);
+    const [hostRefresh, signalHostRefresh] = useHostRefresh();
+    const previousDistance = useRef(JSON.stringify(pInfo.dashboard.distanceRange ?? {}));
+    const distanceKey = JSON.stringify(pInfo.dashboard.distanceRange ?? {});
+    useEffect(() => {
+        if (previousDistance.current !== distanceKey) {
+            previousDistance.current = distanceKey;
+            signalHostRefresh('range-change');
+        }
+    }, [distanceKey, signalHostRefresh]);
+    const [updateRange] = useState(createDashboardRangeRequests);
     const [sTimeRangeModal, setTimeRangeModal] = useState<boolean>(false);
     const [sInitialRangeTab, setInitialRangeTab] = useState<'time' | 'distance'>('time');
     const [sBoardList, setBoardList] = useRecoilState(gBoardList);
@@ -98,13 +116,13 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
         let sFrom = Number(sDR.start);
         let sTo = Number(sDR.end);
         if (sAnchored) {
-            const sDistancePanel = pInfo.dashboard.panels.find((aPanel: any) => aPanel.type !== 'Tql chart' && isNumericBaseTimeBlock(aPanel.blockList?.[0]));
+            const sDistancePanel = pickBoardDistanceMinMaxPanel(pInfo.dashboard.panels);
             const sBounds = await fetchBlockBaseMinMax(sDistancePanel?.blockList?.[0]);
             sFrom = resolveDistanceEdge(sDR.start, sBounds) ?? NaN;
             sTo = resolveDistanceEdge(sDR.end, sBounds) ?? NaN;
         }
         if (!isDistanceEdgeSet(sDR.start) || !isDistanceEdgeSet(sDR.end) || !Number.isFinite(sFrom) || !Number.isFinite(sTo)) {
-            const sDistancePanel = pInfo.dashboard.panels.find((aPanel: any) => aPanel.type !== 'Tql chart' && isNumericBaseTimeBlock(aPanel.blockList?.[0]));
+            const sDistancePanel = pickBoardDistanceMinMaxPanel(pInfo.dashboard.panels);
             const sBounds = await fetchBlockBaseMinMax(sDistancePanel?.blockList?.[0]);
             if (!sBounds) return;
             sFrom = sBounds.min;
@@ -192,23 +210,28 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
     };
     const HandleRefresh = async (aTimeRange: any) => {
         if (pInfo.dashboard.panels.length < 1) return;
-        const sSvrRes: { min: number; max: number } = await fetchTableTimeMinMax();
-        const sTimeMinMax = timeMinMaxConverter(aTimeRange.start, aTimeRange.end, sSvrRes) ?? { min: setUnitTime(aTimeRange.start), max: setUnitTime(aTimeRange.end) };
-        sTimeMinMax.refresh = true;
-        setBoardTimeMinMax(() => sTimeMinMax);
-        GenChartVariableId();
+        await updateRange(false, fetchTableTimeMinMax, sSvrRes => {
+            const sTimeMinMax = timeMinMaxConverter(aTimeRange.start, aTimeRange.end, sSvrRes) ?? { min: setUnitTime(aTimeRange.start), max: setUnitTime(aTimeRange.end) };
+            sTimeMinMax.refresh = true;
+            setBoardTimeMinMax(() => sTimeMinMax);
+            signalHostRefresh('manual');
+            GenChartVariableId();
+        });
     };
     const handleDashboardTimeRange = async (sStart: any, sEnd: any, aIsAutoRefresh?: boolean) => {
         // if (pInfo.dashboard.panels.length < 1) return;
-        const sSvrRes: { min: number; max: number } = await fetchTableTimeMinMax();
-        const sTimeMinMax = timeMinMaxConverter(sStart, sEnd, sSvrRes) ?? { min: setUnitTime(sStart), max: setUnitTime(sEnd) };
-        // Tell panels this is an auto-refresh tick: markdown/text/csv sink TQL panels ignore it. The
-        // Refresh button is unaffected (it bumps chartVariableId), and time-arrows / TimeRangeModal
-        // Save carry no flag at all.
-        setBoardTimeMinMax(() => (aIsAutoRefresh ? { ...sTimeMinMax, autoRefresh: true } : sTimeMinMax));
+        await updateRange(!!aIsAutoRefresh, fetchTableTimeMinMax, sSvrRes => {
+            const sTimeMinMax = timeMinMaxConverter(sStart, sEnd, sSvrRes) ?? { min: setUnitTime(sStart), max: setUnitTime(sEnd) };
+            // Tell panels this is an auto-refresh tick: markdown/text/csv sink TQL panels ignore it. The
+            // Refresh button is unaffected (it bumps chartVariableId), and time-arrows / TimeRangeModal
+            // Save carry no flag at all.
+            setBoardTimeMinMax(() => (aIsAutoRefresh ? { ...sTimeMinMax, autoRefresh: true } : sTimeMinMax));
+            if (aIsAutoRefresh) signalHostRefresh('auto');
+            else signalHostRefresh('range-change', 'time-range-change');
+        });
     };
     const handleSaveTimeRange = (sStart: any, sEnd: any) => {
-        const sChartpanelList = pInfo.dashboard.panels.filter((aPanel: any) => aPanel.type !== 'Tql chart');
+        const sChartpanelList = pInfo.dashboard.panels.filter((aPanel: any) => isBuiltInDashboardPanel(aPanel) && aPanel.type !== 'Tql chart');
         const sTqlChartPanelList = pInfo.dashboard.panels.filter((aPanel: any) => aPanel.type === 'Tql chart');
         if (sChartpanelList.length === 0 && sTqlChartPanelList.length > 0 && ((!Number(sStart) && sStart.includes('last')) || (!Number(sEnd) && sEnd.includes('last'))))
             Toast.info('"Last of data" time range is applied as current time for TQL-only dashboards.');
@@ -260,9 +283,7 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
     };
 
     useEffect(() => {
-        boardIdRef.current = pInfo?.id;
         initDashboard();
-        return () => clearBoardVideoStore(boardIdRef.current);
     }, []);
 
     const handleSplitPaneSize = (varId: string = 'ALL') => {
@@ -298,8 +319,16 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
     }, [sRefreshDelay]);
 
     return (
-        // Render after rollup info load
-        sLoadedRollupTable && (
+        <HostBoardProvider
+            boardInfo={pInfo}
+            timeRange={Number.isFinite(sBoardTimeMinMax?.min) && Number.isFinite(sBoardTimeMinMax?.max)
+                ? { start: sBoardTimeMinMax.min, end: sBoardTimeMinMax.max } : null}
+            active={pInfo.id === sActiveTabId}
+            editing={sCreateModal || sThisPanelStatus === 'create' || sThisPanelStatus === 'edit'}
+            refresh={hostRefresh}
+        >
+        <PanelExtensionProvider enabled={sCreateModal || Boolean(pInfo.dashboard?.panels?.some(isExtensionPanel))}>
+        {sLoadedRollupTable && (
             <>
                 <Page>
                     <Page.Header>
@@ -380,8 +409,8 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                                     pInfo.dashboard.panels.map((aItem: any) => {
                                         return (
                                             <div key={aItem.id} data-grid={{ x: aItem.x, y: aItem.y, w: aItem.w, h: aItem.h }}>
-                                                <Panel
-                                                    pLoopMode={pInfo.dashboard.timeRange.refresh !== 'Off' || aItem.timeRange.refresh !== 'Off' ? true : false}
+                                                <HostManagedPanel
+                                                    pLoopMode={isBuiltInDashboardPanel(aItem) && (pInfo.dashboard.timeRange.refresh !== 'Off' || (aItem.timeRange?.refresh ?? 'Off') !== 'Off')}
                                                     pDragStat={pDragStat}
                                                     pType={sThisPanelStatus}
                                                     pShowEditPanel={showEditPanel}
@@ -445,12 +474,15 @@ const Dashboard = ({ pDragStat, pInfo, pWidth, pHandleSaveModalOpen, pSetIsSaveM
                         pBoardTimeMinMax={sBoardTimeMinMax}
                         pChartVariableId={sChartVariableId}
                         pSetBoardTimeMinMax={setBoardTimeMinMax}
+                        pResolveBoardTimeRange={handleSaveTimeRange}
                     />
                 )}
                 {sVariableModal && <Variable pBoardInfo={pInfo} pSetModal={setVariableModal} />}
                 {sShareModal && <ShareModal isOpen={sShareModal} onClose={() => setShareModal(false)} boardInfo={pInfo} />}
             </>
-        )
+        )}
+        </PanelExtensionProvider>
+        </HostBoardProvider>
     );
 };
 export default Dashboard;

@@ -1,6 +1,7 @@
+import { listPendingPanelPackages, PANEL_EXTENSIONS_CHANGED, type PendingPanelPackage } from './pkgLifecycle/panelPackage';
 import './item.scss';
 import { APP_INFO, PKG_STATUS } from '@/api/repository/appStore';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { MdVerified } from 'react-icons/md';
 import { VscArchive, VscChevronDown, VscWarning } from 'react-icons/vsc';
 import { useRecoilValue } from 'recoil';
@@ -87,7 +88,7 @@ const SplitAction = ({ label, onPrimary, onToggle, loading, disabled, primaryDis
     </div>
 );
 
-export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
+export const AppItem = ({ pItem, pIncomplete }: { pItem: APP_INFO; pIncomplete?: PendingPanelPackage }) => {
     const isInstalled = !!pItem?.installed_frontend;
     const sServerVersion = useRecoilValue(gServerVersion);
 
@@ -159,8 +160,8 @@ export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
     // responding" affordance rather than an empty slot.
     const isUnmanaged = pItem?.installed_packageService?.managed === false;
     const showRunSwitch = sIsAdmin && isInstalled && !isUnmanaged;
-    const showInstall = sIsAdmin && !isInstalled;
-    const showUpdate = sIsAdmin && hasUpdate;
+    const showInstall = sIsAdmin && !isInstalled && !pIncomplete;
+    const showUpdate = sIsAdmin && hasUpdate && !pIncomplete;
     const showUninstall = sIsAdmin && isInstalled;
 
     // install/update/uninstall all confirm first; install/update carry the chosen version.
@@ -230,7 +231,11 @@ export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
             void removeStrayDir(dir).finally(() => setRemoving(false));
             return;
         }
-        runCommand(pItem, cmd, version, resolveSource(version));
+        if (pIncomplete && cmd === pIncomplete.mode) {
+            runCommand(pItem, cmd, version, { source: pIncomplete.source, retry: pIncomplete });
+        } else {
+            runCommand(pItem, cmd, version, resolveSource(version));
+        }
     };
 
     // ---------------------------------------------------------------------------
@@ -461,6 +466,18 @@ export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
                             variant="update"
                         />
                     )}
+                    {sIsAdmin && pIncomplete && (
+                        <TextAction
+                            label="Retry"
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                setPending({ cmd: pIncomplete.mode, version: pIncomplete.tag || undefined });
+                            }}
+                            disabled={isBusy}
+                            loading={busyCmd === pIncomplete.mode}
+                            variant="primary"
+                        />
+                    )}
                     {showUninstall && (
                         <TextAction
                             label="Uninstall"
@@ -496,6 +513,27 @@ export const AppItem = ({ pItem }: { pItem: APP_INFO }) => {
 };
 
 export const AppList = ({ pList, pStatus }: { pList: APP_INFO[] | string[]; pStatus: PKG_STATUS }) => {
+    const [incomplete, setIncomplete] = useState<Record<string, PendingPanelPackage>>({});
+    const isAdmin = isCurUserEqualAdmin();
+    useEffect(() => {
+        if (!isAdmin) return;
+        let generation = 0;
+        const refresh = async () => {
+            const request = ++generation;
+            try {
+                const pending = await listPendingPanelPackages();
+                if (request === generation) setIncomplete(Object.fromEntries(pending.map(({ name, target }) => [name, target])));
+            } catch {
+                // Preserve known retry targets if the server is temporarily unreachable.
+            }
+        };
+        void refresh();
+        window.addEventListener(PANEL_EXTENSIONS_CHANGED, refresh);
+        return () => {
+            generation++;
+            window.removeEventListener(PANEL_EXTENSIONS_CHANGED, refresh);
+        };
+    }, [isAdmin]);
     const sBoardList = useRecoilValue<any[]>(gBoardList);
     const sSelectedTab = useRecoilValue<any>(gSelectedTab);
     const sOpenPkgViews = useRecoilValue(gOpenPkgViews);
@@ -610,7 +648,7 @@ export const AppList = ({ pList, pStatus }: { pList: APP_INFO[] | string[]; pSta
                                 : `${isOpen ? 'app-store-row--open' : ''}${isSelected ? ' app-store-row--selected' : ''}`.trim() || undefined
                         }
                     >
-                        <AppItem pItem={aItem} />
+                        <AppItem pItem={aItem} pIncomplete={incomplete[aItem.name]} />
                     </div>
                 );
             })}

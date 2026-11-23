@@ -426,9 +426,6 @@ export const SIDE_EXTENSION_LIST = [
     'appView',
     'DBTable',
     'DataViewer',
-    'camera',
-    'event',
-    'blackboxsvr',
 ];
 export const EXTENSION_SET = new Set([...IMAGE_EXTENSION_LIST, ...FILE_EXTENSION_LIST, ...SIDE_EXTENSION_LIST]);
 
@@ -473,7 +470,6 @@ export const ChartTypeList = [
     { key: 'Text', value: 'text' },
     { key: 'Geomap', value: 'geomap' },
     { key: 'Tql chart', value: 'tql' },
-    { key: 'Video', value: 'video' },
 ];
 
 export const ChartThemeBackgroundColor: { [key in ChartTheme]: string } = {

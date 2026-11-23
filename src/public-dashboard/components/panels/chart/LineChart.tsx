@@ -1,11 +1,13 @@
 import './LineChart.scss';
+import type { DashboardHostRuntime } from '@/components/dashboard/extensions/hostRuntime';
+import { attachChartOverlays, chartRangePolicy } from '@/components/dashboard/extensions/chartHostAdapter';
 import { fetchMountTimeMinMax, fetchTimeMinMax, getTqlChart, getTqlScripts } from '../../../api/repository/machiot';
 import { useOverlapTimeout } from '../../../hooks/useOverlapTimeout';
 import { calcInterval, calcRefreshTime, decodeFormatterFunction, PanelIdParser, setUnitTime } from '../../../utils/dashboardUtil';
 import { isNumericBaseTimeBlock } from '../../../../utils/timeFieldColumns';
 import { fetchBlockBaseMinMax } from '../../../utils/dashboardBaseMinMax';
 import { isDistanceAnchorEdge, isDistanceEdgeSet, resolveDistanceEdge } from '../../../../utils/distanceRange';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { DashboardQueryParser, SqlResDataType } from '../../../utils/DashboardQueryParser';
 import { DashboardChartCodeParser } from '../../../utils/DashboardChartCodeParser';
 import { DashboardChartOptionParser } from '../../../utils/DashboardChartOptionParser';
@@ -32,8 +34,22 @@ import { replaceVariablesInTql } from '../../../utils/TqlVariableReplacer';
 // them to settle for this long before re-running the query.
 const PARENT_WIDTH_DEBOUNCE_MS = 150;
 
-const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pParentWidth, pIsHeader, pBoardTimeMinMax, pBoardInfo, pOnResolveTheme, pOnRefreshTick }: any) => {
+const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pParentWidth, pIsHeader, pBoardTimeMinMax, pBoardInfo, pOnResolveTheme, pOnRefreshTick, pHostRuntime }: any) => {
     const ChartRef = useRef<HTMLDivElement>(null);
+    const hostRuntime = pHostRuntime as DashboardHostRuntime | undefined;
+    const subscribeHost = useCallback((listener: () => void) => hostRuntime?.subscribe(listener) ?? (() => {}), [hostRuntime]);
+    const readHost = useCallback(() => hostRuntime?.getSnapshot() ?? 0, [hostRuntime]);
+    const hostRevision = useSyncExternalStore(subscribeHost, readHost, readHost);
+    const hostState = useMemo(() => hostRuntime?.getPanelState(pPanelInfo.id), [hostRuntime, hostRevision, pPanelInfo.id]);
+    const numericBase = isNumericBaseTimeBlock(pPanelInfo.blockList?.[0]);
+    const hostPolicy = chartRangePolicy(hostState, numericBase);
+    const hostRange = numericBase ? hostState?.rangeOverrides.distance : hostState?.rangeOverrides.time;
+    // Board-source overrides follow current render props, not a previous runtime snapshot.
+    const hostTimeRange = hostState?.rangePolicies.time?.source === 'board'
+        ? (pBoardTimeMinMax ? { start: pBoardTimeMinMax.min, end: pBoardTimeMinMax.max } : undefined)
+        : hostState?.rangeOverrides.time;
+    const hostDistanceRange = hostState?.rangePolicies.distance?.source === 'board'
+        ? (pBoardInfo?.dashboard?.distanceRange ?? { start: '', end: '' }) : hostState?.rangeOverrides.distance;
     const [sChartData, setChartData] = useState<any>(undefined);
     const [sIsMessage, setIsMessage] = useState<any>('Please set up a Query.');
     const [sIsError, setIsError] = useState<boolean>(false);
@@ -63,6 +79,7 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
     let sRefClientHeight = 0;
 
     const calculateTimeRange = () => {
+        if (hostTimeRange) return hostTimeRange;
         let sStartTimeBeforeStart = pPanelInfo.useCustomTime ? pPanelInfo.timeRange.start : pBoardTimeMinMax.min;
         let sStartTimeBeforeEnd = pPanelInfo.useCustomTime ? pPanelInfo.timeRange.end : pBoardTimeMinMax.max;
 
@@ -88,6 +105,7 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
      */
     const executeTqlChart = async (aWidth?: number, aSelfRefresh?: boolean) => {
         if (!pIsActiveTab) return;
+        if (hostPolicy && !numericBase && !hostTimeRange) return;
         setIsLoading(true);
         if (ChartRef.current && ChartRef.current.clientWidth !== 0 && !aWidth) {
             sRefClientWidth = ChartRef.current.clientWidth;
@@ -101,14 +119,16 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
 
         let sStartTime = undefined;
         let sEndTime = undefined;
-        if (isNumericBaseTimeBlock(pPanelInfo.blockList?.[0])) {
+        if (!numericBase && hostTimeRange) {
+            sStartTime = hostTimeRange.start; sEndTime = hostTimeRange.end;
+        } else if (numericBase) {
             // Distance (numeric base) panel — resolve from the kind-separated distanceRange: the
             // panel's own window when it has one, otherwise the board's. Numeric start/end are used
             // as-is; '' means the full [first, last] data extent.
             const sBoardDistanceRange = pBoardInfo?.dashboard?.distanceRange ?? {};
             const sPanelDistanceRange = pPanelInfo.useCustomDistance ? pPanelInfo.distanceRange ?? {} : {};
             const sPick = (aPanelEdge: any, aBoardEdge: any) => (isDistanceEdgeSet(aPanelEdge) ? aPanelEdge : aBoardEdge);
-            const sDistanceRange = { start: sPick(sPanelDistanceRange.start, sBoardDistanceRange.start), end: sPick(sPanelDistanceRange.end, sBoardDistanceRange.end) };
+            const sDistanceRange = hostDistanceRange ?? { start: sPick(sPanelDistanceRange.start, sBoardDistanceRange.start), end: sPick(sPanelDistanceRange.end, sBoardDistanceRange.end) };
             const sHasStart = isDistanceEdgeSet(sDistanceRange.start);
             const sHasEnd = isDistanceEdgeSet(sDistanceRange.end);
             // An unset edge is the data's own end, and so is an anchored one ('last-5000', 'first') —
@@ -168,7 +188,7 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
 
             // On a self refresh the window above was resolved for *this* query; calculateTimeRange()
             // would read the board's frozen snapshot again and hand the TQL file stale $from_/$to_.
-            const sTqlTimeRange = aSelfRefresh ? { start: sStartTime, end: sEndTime } : calculateTimeRange();
+            const sTqlTimeRange = aSelfRefresh || hostRange ? { start: sStartTime, end: sEndTime } : calculateTimeRange();
             const sResult: any = await getTqlScripts(TqlChartParser(pPanelInfo.tqlInfo, sTqlTimeRange, sIntervalInfo, pBoardInfo.dashboard.variables));
             const { parsedStatus, parsedType, parsedData } = DetermineTqlResultType(E_TQL_SCR.DSH, { status: sResult?.status, headers: sResult?.headers, data: sResult?.data, text: sResult?.request?.response });
 
@@ -346,6 +366,7 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
         setIsLoading(false);
     };
     const sSetIntervalTime = () => {
+        if (hostPolicy?.followPanelRefresh === false) return null;
         if (pPanelInfo.type === 'Geomap' && !pPanelInfo.chartOptions?.useAutoRefresh) return null;
         // markdown/text/csv sink TQL panels opt out of auto refresh (the sink kind is only known from
         // the first response).
@@ -360,7 +381,7 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
     };
     const fetchTableTimeMinMax = async (): Promise<{ min: number; max: number }> => {
         const sTargetPanel = pPanelInfo;
-        // TQL/Video panels can carry an empty blockList (same guard as the main LineChart).
+        // Non-block panels can carry an empty blockList (same guard as the main LineChart).
         if (!sTargetPanel.blockList?.length) return defaultMinMax();
         const sTargetTag = sTargetPanel.blockList[0];
         const sCustomTag = sTargetTag.filter?.filter((aFilter: any) => {
@@ -393,6 +414,10 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
         prevBoardTimeMinMaxRef.current = pBoardTimeMinMax;
         // Dashboard auto-refresh ticks are not applied to markdown/text/csv sink TQL panels. The
         // Refresh button arrives as refresh=true without the autoRefresh flag, so it still re-queries.
+        if (hostPolicy) {
+            if ((hostPolicy.followBoardRefresh || (hostPolicy.followManualRefresh && sBoardWindowChanged && pBoardTimeMinMax?.refresh)) && (sIsMounted || sIsError)) executeTqlChart();
+            return;
+        }
         if (sBoardWindowChanged && pBoardTimeMinMax?.autoRefresh) {
             if (sIsNonVisualSink) return;
             // A panel with its own refresh interval is already re-queried by its own timer
@@ -430,6 +455,36 @@ const LineChart = ({ pIsActiveTab, pLoopMode, pChartVariableId, pPanelInfo, pPar
             executeTqlChart();
         }
     }, [pIsActiveTab]);
+
+    const previousHostRangeRevision = useRef(hostState?.rangeRevision ?? 0);
+    const previousHostRefreshRevision = useRef(hostState?.refresh.revision ?? 0);
+    const pendingHostQuery = useRef(false);
+    const previousActiveTab = useRef(pIsActiveTab);
+    useEffect(() => {
+        const becameActive = pIsActiveTab && !previousActiveTab.current;
+        previousActiveTab.current = pIsActiveTab;
+        const rangeChanged = previousHostRangeRevision.current !== (hostState?.rangeRevision ?? 0);
+        const refreshChanged = previousHostRefreshRevision.current !== (hostState?.refresh.revision ?? 0);
+        previousHostRangeRevision.current = hostState?.rangeRevision ?? 0;
+        previousHostRefreshRevision.current = hostState?.refresh.revision ?? 0;
+        if (rangeChanged || (refreshChanged && hostState?.refresh.reasons.includes('panel-request'))) pendingHostQuery.current = true;
+        if (!pIsActiveTab) return;
+        const needsInitialQuery = becameActive && sIsMounted && ChartRef.current?.dataset && !ChartRef.current.dataset.processed;
+        if (!pendingHostQuery.current && !needsInitialQuery) return;
+        if (hostPolicy && !numericBase && !hostTimeRange) return;
+        // Keep requests pending while hidden, including when later board refreshes
+        // replace their reasons. On return, query only the latest effective range.
+        pendingHostQuery.current = false;
+        executeTqlChart();
+    }, [hostState?.rangeRevision, hostState?.refresh.revision, pIsActiveTab, sIsMounted, hostTimeRange?.start, hostTimeRange?.end]);
+
+    const hostOverlays = useRef(hostState?.overlays ?? []);
+    hostOverlays.current = hostState?.overlays ?? [];
+    const overlayKey = JSON.stringify(hostState?.overlays ?? []);
+    useEffect(() => {
+        if (!ChartRef.current || !hostOverlays.current.length) return;
+        return attachChartOverlays(ChartRef.current, () => hostOverlays.current);
+    }, [overlayKey]);
 
     useOverlapTimeout(() => {
         // Announced before the (possibly skipped) query: the next tick is scheduled from this moment

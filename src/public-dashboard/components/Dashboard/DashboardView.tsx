@@ -1,7 +1,12 @@
+import { encodeHostPath } from '@/extensions/host/paths';
 import Panel from '../panels/Panel';
-import { useEffect, useRef, useState } from 'react';
+import { isBlackboxVideoPanel } from '@/components/dashboard/extensions/types';
+import { HostBoardProvider } from '@/components/dashboard/extensions/HostReact';
+import { PanelExtensionProvider } from '@/components/dashboard/extensions/ExtensionPanels';
+import { createDashboardRangeRequests, useHostRefresh } from '@/components/dashboard/extensions/useHostRefresh';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import GridLayout from 'react-grid-layout';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
 import moment from 'moment';
 import { MdRefresh } from '../../assets/icons/Icon';
 import { calcRefreshTime, setUnitTime } from '../../utils/dashboardUtil';
@@ -12,11 +17,10 @@ import AutoRefreshControl from '@/components/dashboard/AutoRefreshControl';
 import RangeChips from '@/components/dashboard/RangeChips';
 import DistanceRangeModal from '../modal/DistanceRangeModal';
 import { fetchBlockBaseMinMax } from '../../utils/dashboardBaseMinMax';
-import { isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
 import { isDistanceAnchorEdge, isDistanceEdgeSet, resolveDistanceEdge } from '@/utils/distanceRange';
 import { timeMinMaxConverter } from '../../utils/bgnEndTimeRange';
 import { executeQuery, fetchMountTimeMinMax, fetchTimeMinMax } from '../../api/repository/machiot';
-import { getTimeMinMaxFetchTarget, pickBoardTimeMinMaxPanel, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
+import { getTimeMinMaxFetchTarget, pickBoardTimeMinMaxPanel, pickBoardDistanceMinMaxPanel, shouldFetchBlockTimeMinMax } from '@/utils/dashboardTimeMinMax';
 import { convertDashboardMinMaxRows } from '@/utils/dashboardBlockColumns';
 import { CheckDataCompatibility } from '../../utils/CheckDataCompatibility';
 import { VariableHeader } from '../variable/VariableHeader';
@@ -32,13 +36,17 @@ import ShareModal from '../../components/modal/ShareModal';
 
 const DashboardView = () => {
     const sParams = useParams();
-    const [sSearchParams] = useSearchParams();
+    const { pathname, search } = useLocation();
+    const [hostRefresh, requestHostRefresh] = useHostRefresh();
+    const [updateRange] = useState(createDashboardRangeRequests);
     const sBodyRef = useRef<HTMLDivElement>(null);
     const [sBoardInformation, setBoardInformation] = useState<{ dashboard: any; name: string; id: string; panelHeader: boolean }>();
     const [sNotfound, setNotFound] = useState<boolean>(false);
     const [sIsTimeRangeModal, setIsTimeRangeModal] = useState<boolean>(false);
     const sIsMobile = isMobile();
     const [sBoardTimeMinMax, setBoardTimeMinMax] = useState<any>(undefined);
+    const sHostTimeRange = useMemo(() => Number.isFinite(sBoardTimeMinMax?.min) && Number.isFinite(sBoardTimeMinMax?.max)
+        ? { start: sBoardTimeMinMax.min, end: sBoardTimeMinMax.max } : null, [sBoardTimeMinMax?.min, sBoardTimeMinMax?.max]);
     const sBoardRef = useRef<any>(undefined);
     // Bumped on every refresh tick so the countdown ring restarts with the fetch rather than free-running.
     const [sRingCycleId, setRingCycleId] = useState<number>(0);
@@ -50,23 +58,37 @@ const DashboardView = () => {
     const [sIsShareModal, setIsShareModal] = useState<boolean>(false);
     const [sIsDistanceModal, setIsDistanceModal] = useState<boolean>(false);
 
-    const getDshFile = async (aFileName: string | undefined) => {
-        if (!aFileName) return;
+    const getDshFile = async (boardPath: string, exact: boolean, videoId: string | null) => {
         try {
-            const cleanFileName = aFileName.replace('board/', '');
-            const response = await fetch(`/db/tql/${cleanFileName}.dsh`);
+            const decodedSegments = boardPath.split('/').map((segment) => decodeURIComponent(segment));
+            // Legacy links sometimes percent-encode the full relative path, including its separators.
+            const segments = exact ? decodedSegments : decodedSegments.flatMap((segment) => segment.split('/')).filter(Boolean);
+            if (!segments.length || segments.some((segment) => !segment || segment === '.' || segment === '..' || segment.includes('/') || segment.split('\\').includes('..'))) {
+                setNotFound(true);
+                return;
+            }
+            const last = segments.length - 1;
+            if (exact && !/\.dsh$/i.test(segments[last])) {
+                setNotFound(true);
+                return;
+            }
+            if (!exact) segments[last] += '.dsh';
+            const path = '/' + encodeHostPath(segments.join('/'));
+            // Public files already have a static route. Keep encoded names intact
+            // by going directly there instead of through the TQL redirect.
+            const response = await fetch(segments[0] === 'public' ? path : '/db/tql' + path);
             if (response.ok) {
                 const sResult = await response.text();
                 const sParsedRes = CheckDataCompatibility(sResult, 'dsh');
                 await handleDashboardTimeRange(sParsedRes.dashboard.timeRange.start, sParsedRes.dashboard.timeRange.end, sParsedRes);
 
-                // Filter panels by video query parameter
-                const videoId = sSearchParams.get('video');
                 if (videoId) {
-                    const videoPanel = sParsedRes.dashboard.panels.find((p: any) => p.id === videoId && p.type === 'Video');
+                    const panels = sParsedRes.dashboard.panels;
+                    const videoPanel = panels.find((panel: any) => panel.id === videoId && isBlackboxVideoPanel(panel));
                     if (videoPanel) {
-                        const dependentPanelIds: string[] = videoPanel.chartOptions?.dependent?.panels ?? [];
-                        sParsedRes.dashboard.panels = sParsedRes.dashboard.panels.filter((p: any) => p.id === videoId || dependentPanelIds.includes(p.id));
+                        const linked = videoPanel.extension.settings?.dependent?.panels;
+                        const linkedIds = Array.isArray(linked) ? linked : [];
+                        sParsedRes.dashboard.panels = panels.filter((panel: any) => panel.id === videoId || linkedIds.includes(panel.id));
                     }
                 }
 
@@ -91,14 +113,17 @@ const DashboardView = () => {
         setVariableCollapse(false);
     };
     const handleDashboardTimeRange = async (sStart: any, sEnd: any, aBoardInfo?: any, aIsAutoRefresh?: boolean) => {
-        const sBoard: any = aBoardInfo ?? sBoardInformation;
-        const sSvrRes: { min: number; max: number } = await fetchTableTimeMinMax(sBoard);
-        // timeMinMaxConverter returns undefined for a mixed time range (only one side is now/last).
-        // Without the same fallback the main dashboard has, every consumer downstream throws.
-        const sTimeMinMax = timeMinMaxConverter(sStart, sEnd, sSvrRes) ?? { min: setUnitTime(sStart), max: setUnitTime(sEnd) };
-        // Tell panels this is an auto-refresh tick: markdown/text/csv sink TQL panels ignore it.
-        setBoardTimeMinMax(() => (aIsAutoRefresh ? { ...sTimeMinMax, autoRefresh: true } : sTimeMinMax));
-        return;
+        const sBoard = aBoardInfo ?? sBoardInformation;
+        await updateRange(!!aIsAutoRefresh, () => fetchTableTimeMinMax(sBoard), sSvrRes => {
+            // timeMinMaxConverter returns undefined for a mixed time range (only one side is now/last).
+            // Without the same fallback the main dashboard has, every consumer downstream throws.
+            const sTimeMinMax = timeMinMaxConverter(sStart, sEnd, sSvrRes) ?? { min: setUnitTime(sStart), max: setUnitTime(sEnd) };
+            // Tell panels this is an auto-refresh tick: markdown/text/csv sink TQL panels ignore it.
+            setBoardTimeMinMax(() => (aIsAutoRefresh ? { ...sTimeMinMax, autoRefresh: true } : sTimeMinMax));
+            if (aBoardInfo) return;
+            if (aIsAutoRefresh) requestHostRefresh('auto');
+            else requestHostRefresh('range-change', 'time-range-change');
+        });
     };
     const defaultMinMax = () => {
         const sNowTime = moment().unix() * 1000;
@@ -108,7 +133,7 @@ const DashboardView = () => {
     const fetchTableTimeMinMax = async (aBoardInfo: any): Promise<{ min: number; max: number }> => {
         // Source the board time min/max from a TIME (non-distance) panel — distance panels self-resolve.
         const sTargetPanel = pickBoardTimeMinMaxPanel(aBoardInfo.dashboard.panels);
-        // No usable candidate (e.g. a TQL/Video-only board). Without this guard the TypeError below
+        // No usable candidate (e.g. a non-query-only board). Without this guard the TypeError below
         // stops handleRefresh before GenChartVariableId(), leaving Refresh silently dead.
         if (!sTargetPanel?.blockList?.length) return defaultMinMax();
         const sTargetTag = sTargetPanel.blockList[0];
@@ -153,7 +178,7 @@ const DashboardView = () => {
     // same resolution rule: an anchored edge is measured first, then written out as coordinates.
     const moveDistanceRange = async (aDir: 'l' | 'r') => {
         const sDR = sBoardInformation?.dashboard?.distanceRange ?? {};
-        const sDistancePanel = sBoardInformation?.dashboard?.panels?.find((aPanel: any) => aPanel.type !== 'Tql chart' && isNumericBaseTimeBlock(aPanel.blockList?.[0]));
+        const sDistancePanel = pickBoardDistanceMinMaxPanel(sBoardInformation?.dashboard?.panels);
         const sAnchored = isDistanceAnchorEdge(sDR.start) || isDistanceAnchorEdge(sDR.end);
         let sFrom = Number(sDR.start);
         let sTo = Number(sDR.end);
@@ -205,18 +230,19 @@ const DashboardView = () => {
     };
     const handleRefresh = async () => {
         const sTimeRange = sBoardInformation?.dashboard.timeRange;
-        const sSvrRes: { min: number; max: number } = await fetchTableTimeMinMax(sBoardInformation);
-        // Without the fallback, a mixed time range makes timeMinMaxConverter return undefined and the
-        // .min below throws, so GenChartVariableId() never runs and the Refresh button goes silently dead.
-        const sTimeMinMax = timeMinMaxConverter(sTimeRange.start, sTimeRange.end, sSvrRes) ?? {
-            min: setUnitTime(sTimeRange.start),
-            max: setUnitTime(sTimeRange.end),
-        };
-        setBoardTimeMinMax(() => {
-            return { min: sTimeMinMax.min, max: sTimeMinMax.max, refresh: true };
+        await updateRange(false, () => fetchTableTimeMinMax(sBoardInformation), sSvrRes => {
+            // Without the fallback, a mixed time range makes timeMinMaxConverter return undefined and the
+            // .min below throws, so GenChartVariableId() never runs and the Refresh button goes silently dead.
+            const sTimeMinMax = timeMinMaxConverter(sTimeRange.start, sTimeRange.end, sSvrRes) ?? {
+                min: setUnitTime(sTimeRange.start),
+                max: setUnitTime(sTimeRange.end),
+            };
+            setBoardTimeMinMax(() => {
+                return { min: sTimeMinMax.min, max: sTimeMinMax.max, refresh: true };
+            });
+            requestHostRefresh('manual');
+            GenChartVariableId();
         });
-        GenChartVariableId();
-        return;
     };
     // Board-wide auto refresh — updating timeRange.refresh re-runs the interval effect below ([sBoardInformation]).
     const changeAutoRefresh = (aRefresh: string) => {
@@ -333,7 +359,9 @@ const DashboardView = () => {
     useEffect(() => {
         const sIsLogin = localStorage.getItem('accessToken');
         if (!sIsLogin) localStorage.setItem('view', JSON.stringify({ path: '/view/' + sParams['*'] }));
-        getDshFile(sParams['*']);
+        const boardPath = pathname.slice('/board/'.length);
+        const query = new URLSearchParams(search);
+        if (boardPath) void getDshFile(boardPath, query.get('exact') === '1', query.get('video'));
         GenChartVariableId();
     }, []);
 
@@ -342,7 +370,8 @@ const DashboardView = () => {
             <span>404 not found file name</span>
         </div>
     ) : (
-        <>
+        <PanelExtensionProvider enabled publicView>
+            <HostBoardProvider boardInfo={sBoardInformation ?? { id: 'public-loading' }} timeRange={sHostTimeRange} active refresh={hostRefresh} publicView onChange={setBoardInformation}>
             <Page style={{ width: '100vw', height: '100vh' }}>
                 <Page.Header>
                     <Button.Group>
@@ -450,7 +479,8 @@ const DashboardView = () => {
             {sIsDistanceModal && <DistanceRangeModal pBoardInfo={sBoardInformation} pOnApply={applyDistanceRange} pOnClose={() => setIsDistanceModal(false)} />}
 
             {sIsShareModal && <ShareModal isOpen={sIsShareModal} onClose={() => setIsShareModal(false)} />}
-        </>
+            </HostBoardProvider>
+        </PanelExtensionProvider>
     );
 };
 

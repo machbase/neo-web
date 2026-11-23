@@ -12,7 +12,7 @@
 // `ctx.archivePath` → param), which could go stale between listing and click and
 // made display and install two separate lookups.
 
-import { ARCHIVE_SCRIPT_PRELUDE } from '../archiveScript';
+import { ARCHIVE_SCRIPT_PRELUDE, COPY_PACKAGE_FILE } from '../archiveScript';
 import { ARCHIVE_PROBE_ATTEMPTS, ARCHIVE_PROBE_DELAY_MS, waitForPkgInstalled } from '../fsProbe';
 import { runScript } from '../script';
 import type { LifecycleContext, StepResult } from '../types';
@@ -252,9 +252,7 @@ function writeEntries(entries, target) {
 // The pair below is byte-exact (same measurement) and is what writeEntries above
 // already uses for every extracted member. (The platform's own /sbin/pkg.js
 // copies with the same broken call; that one is not ours to fix.)
-function copyFile(from, to) {
-    fs.writeFileSync(to, fs.readFileSync(from, "buffer"), "buffer");
-}
+${COPY_PACKAGE_FILE}
 
 // THE UPDATE WRITER — copy \`from\`'s CONTENTS over \`to\`, keeping whatever else
 // lives there. This is the whole reason the update path exists separately:
@@ -411,7 +409,7 @@ $.yield("installed " + dest);
  *   replaced. Without it the step installs, and refuses a destination that
  *   already exists.
  */
-export async function stepArchiveExtract(ctx: LifecycleContext, opts?: { force?: boolean }): Promise<StepResult> {
+export async function stepArchiveExtract(ctx: LifecycleContext, opts?: { force?: boolean; stageAt?: string }): Promise<StepResult> {
     const force = opts?.force === true;
     ctx.onProgress?.(force ? 'extract archive -f' : 'extract archive');
 
@@ -433,8 +431,8 @@ export async function stepArchiveExtract(ctx: LifecycleContext, opts?: { force?:
         return { ok: false, log: reason, reason };
     }
 
-    const staging = `${ARCHIVE_STAGING_PREFIX}${ctx.appName}`;
-    const dest = `/work/public/${ctx.appName}`;
+    const dest = opts?.stageAt ?? `/work/public/${ctx.appName}`;
+    const staging = opts?.stageAt ? `${opts.stageAt}-extract` : `${ARCHIVE_STAGING_PREFIX}${ctx.appName}`;
     ctx.logs.push(`== extract ${ctx.appName} ${version} -> ${dest}${force ? ' (merge)' : ''} ==`);
 
     // `force` is sent ONLY when set, so the install call keeps the exact param
@@ -450,6 +448,10 @@ export async function stepArchiveExtract(ctx: LifecycleContext, opts?: { force?:
     const r = await runScript(EXTRACT_SCRIPT, params);
     ctx.logs.push(r.log);
     if (!r.ok) return r;
+    if (opts?.stageAt) {
+        if (r.log.split('\n').includes(`installed ${dest}`)) return r;
+        return { ok: false, log: r.log, reason: 'The archive was not staged completely.' };
+    }
 
     // Same rationale as stepPkgCopy: TQL can return before /api/files reflects
     // the new directory. Uses the archive-specific budget, not pkg copy's.

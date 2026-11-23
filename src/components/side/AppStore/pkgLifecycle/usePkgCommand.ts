@@ -1,3 +1,4 @@
+import { deployPanelPackage, type PendingPanelPackage } from './panelPackage';
 // Shared lifecycle command runner for AppStore catalog inline buttons and the
 // detail view. Owns:
 //   - global per-package busy lock (gPkgBusy) to prevent concurrent ops
@@ -114,6 +115,7 @@ export interface PkgCommandOptions {
      * server-side from the package name and the version (`ctx.tag`).
      */
     source?: 'hub' | 'local';
+    retry?: PendingPanelPackage;
 }
 
 export function usePkgCommand() {
@@ -131,7 +133,7 @@ export function usePkgCommand() {
                 // `shouldBlockHubCommand` for why the UI gate is not enough.
                 const catalogStatus = await snapshot.getPromise(gCatalogStatus);
                 const catalogMode: CatalogMode = catalogStatus?.mode ?? 'online';
-                if (shouldBlockHubCommand(catalogMode, command, opts?.source)) {
+                if (!opts?.retry && shouldBlockHubCommand(catalogMode, command, opts?.source)) {
                     Toast.warning(buildHubBlockedMessage(appName));
                     return { ok: false, log: '', reason: 'hub_unreachable' };
                 }
@@ -171,9 +173,11 @@ export function usePkgCommand() {
 
                 let result: StepResult;
                 try {
-                    if (command === 'install') result = await runInstall(ctx);
-                    else if (command === 'update') result = await runUpdate(ctx);
-                    else if (command === 'uninstall') result = await runUninstall(ctx);
+                    if (command === 'install' || command === 'update') {
+                        result = await deployPanelPackage(ctx, command, (deployment, mode, copy, restartAfterRetry) => (
+                            mode === 'install' ? runInstall(deployment, copy) : runUpdate(deployment, copy, restartAfterRetry)
+                        ), opts?.retry);
+                    } else if (command === 'uninstall') result = await runUninstall(ctx);
                     else if (command === 'start') result = await runStart(ctx);
                     else result = await runStop(ctx);
                 } catch (e: any) {

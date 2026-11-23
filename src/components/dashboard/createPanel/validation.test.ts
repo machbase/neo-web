@@ -33,12 +33,6 @@ describe('getFirstMissingTagSelectionBlockId', () => {
             expectedMessage: undefined,
         },
         {
-            name: 'excludes Video panels with an empty tag block (regression)',
-            panelOption: createPanelOption('Video', [createTagBlock({ id: 'b1', tag: '' })]),
-            expectedBlockId: undefined,
-            expectedMessage: undefined,
-        },
-        {
             name: 'flags tag-dependent Line panels with an unselected tag',
             panelOption: createPanelOption('Line', [createTagBlock({ id: 'b1', tag: '' })]),
             expectedBlockId: 'b1',
@@ -85,6 +79,6 @@ describe('getFirstMissingTagSelectionBlockId', () => {
     });
 
     test('TAG_INDEPENDENT_PANEL_TYPES matches the ChartTypeList keys used for exclusion', () => {
-        expect(TAG_INDEPENDENT_PANEL_TYPES).toEqual(['Video', 'Tql chart']);
+        expect(TAG_INDEPENDENT_PANEL_TYPES).toEqual(['Tql chart']);
     });
 });

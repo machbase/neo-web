@@ -1,7 +1,7 @@
-import { getFileList, postFileList } from '@/api/repository/api';
-import { fileTreeParser } from './fileTreeParser';
-import { isJsonString } from './utils';
-import { getFileNameAndExtension, generateCopyName } from './fileNameUtils';
+import { getFileList } from '@/api/repository/api';
+import { copyFile } from '@/api/repository/fileTree';
+import { fileTreeParser, type FileType } from './fileTreeParser';
+import { generateCopyName } from './fileNameUtils';
 
 export const UpdateTree = async ({ path, name }: { path: string; name: string }) => {
     const sPath = path.replace(name, '');
@@ -113,35 +113,21 @@ export const TreeFetchDrilling = async (aOriginTree: any, aFullPath: string, aIs
     return { tree: aOriginTree, exist: sAlreadyExist };
 };
 
-export const FileCopy = async (aTargetFile: any) => {
-    const sTargetFolderInfo = await getFileList('', aTargetFile.path, '');
-    const sTargetFileInfo: any = await getFileList('', aTargetFile.path, aTargetFile.name);
-    const sParsedTargetFolder = fileTreeParser(sTargetFolderInfo.data, aTargetFile.path, aTargetFile.depth - 1, aTargetFile.parentId);
-    const sTargetFileList = sParsedTargetFolder.files;
-    const { fileName } = getFileNameAndExtension(aTargetFile.name);
-    const sDuplList = sTargetFileList.filter(
-        (aFile: any) =>
-            aFile.path === aTargetFile.path &&
-            aFile.depth === aTargetFile.depth &&
-            aFile.parentId === aTargetFile.parentId &&
-            (aFile.path + aFile.name).includes(aTargetFile.path + fileName)
-    );
-    const sCopyName = generateCopyName(aTargetFile.name, sDuplList.length);
-    let payload = undefined;
+export const FileCopy = async (file: FileType) => {
+    const directory = await getFileList('', file.path, '');
+    if (!directory || !('success' in directory) || directory.success !== true || !directory.data?.isDir) return undefined;
+    const names = new Set((directory.data.children ?? []).map((entry: { name: string }) => entry.name.normalize().toLowerCase()));
 
-    if (isJsonString(sTargetFileInfo)) {
-        payload = JSON.parse(sTargetFileInfo);
-    } else {
-        payload = sTargetFileInfo;
+    for (let number = 1; ; number++) {
+        const name = generateCopyName(file.name, number);
+        if (names.has(name.normalize().toLowerCase())) continue;
+        const result: any = await copyFile(file.path + file.name, file.path + name);
+        if (result?.success) return { ...file, name, id: name };
+        // A simultaneous save or a spelling alias can occupy the candidate even
+        // if it wasn't present in the directory listing. The server leaves it intact.
+        if (result?.status === 400 && result?.data?.reason === 'destination is not specified.') {
+            throw new Error('This Neo server does not support safe file duplication.');
+        }
+        if (result?.status !== 409) return undefined;
     }
-
-    const sResult: any = await postFileList(payload, aTargetFile.path, sCopyName);
-    if (sResult.success) {
-        const sCopyFile = JSON.parse(JSON.stringify(aTargetFile));
-        sCopyFile.name = sCopyName;
-        sCopyFile.id = sCopyName;
-
-        return sCopyFile;
-    }
-    return undefined;
 };

@@ -1,15 +1,36 @@
 import request from '@/api/core';
+import { repositoryFileUrl } from '@/extensions/host/paths';
 import { rpcCall, RpcMethod } from '@/api/repository/rpc';
 import { getUserName, isCurUserEqualAdmin } from '@/utils';
-
-const normalizePath = (path: string) => path.replace(/[\\/]+/g, '/');
 
 const getFileList = (aFilter: string, aDir: string, aName: string) => {
     return request({
         method: 'GET',
-        url: normalizePath(`/api/files/${aDir}${aName ? '/' + aName : ''}${aFilter}`),
+        url: repositoryFileUrl(aDir + (aName ? '/' + aName : '')) + aFilter,
     });
 };
+export async function findSaveFileConflict(path: string, name: string) {
+    const response = await getFileList('', path, '');
+    if (!response || !('success' in response) || response.success !== true || !response.data?.isDir) {
+        throw new Error('Could not read the destination folder.');
+    }
+    const entries: { name: string; isDir: boolean }[] = response.data.children ?? [];
+    const exact = entries.find(entry => entry.name === name);
+    if (exact) return exact;
+
+    // On filesystems that fold case, another spelling can resolve to an existing file.
+    const folded = name.normalize().toLowerCase();
+    const alternate = entries.find(entry => entry.name.normalize().toLowerCase() === folded);
+    if (!alternate) return undefined;
+    const found: unknown = await request({
+        method: 'GET',
+        url: repositoryFileUrl(path + '/' + name),
+        transformResponse: [body => body],
+    });
+    if (typeof found === 'string' || found instanceof ArrayBuffer) return alternate;
+    if (found && typeof found === 'object' && 'status' in found && found.status === 404) return undefined;
+    throw new Error('Could not check the destination file.');
+}
 const getReferenceList = () => {
     return request({
         method: 'GET',
@@ -17,17 +38,18 @@ const getReferenceList = () => {
     });
 };
 
-const postFileList = (aContents: any, aDir: string, aFileName: string) => {
+const postFileList = (aContents: any, aDir: string, aFileName: string, guard?: { create?: boolean }) => {
     return request({
         method: 'POST',
-        url: normalizePath(`/api/files/${aDir}/${aFileName}`),
+        url: repositoryFileUrl(aDir + '/' + aFileName),
         data: aContents,
+        ...(guard?.create ? { headers: { 'If-None-Match': '*' } } : {}),
     });
 };
 const deleteFileList = (aDir: string, aFileName: string) => {
     return request({
         method: 'DELETE',
-        url: normalizePath(`/api/files/${aDir}/${aFileName}`),
+        url: repositoryFileUrl(aDir + '/' + aFileName),
     });
 };
 

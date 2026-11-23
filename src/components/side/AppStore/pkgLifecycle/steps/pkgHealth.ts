@@ -1,7 +1,6 @@
 // Probes /public/{name}/cgi-bin/health to learn whether the package supports
 // start/stop AND whether the service is currently running. Served by neo-server
-// outside the /web axios baseURL, so we use plain fetch (mirrors
-// getMediaServerConfig in src/api/repository/mediaSvr.ts).
+// outside the /web axios baseURL, so we use plain fetch.
 //
 // Response shapes:
 //   running:        HTTP 200 { ok: true,  data: { healthy: true,  status: "running", ... } }

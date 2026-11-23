@@ -66,7 +66,6 @@ export {
     MdLink,
     MdDevicesFold,
     MdCheck as Check,
-    MdVideocam,
     MdDragIndicator,
     MdKeyboardDoubleArrowLeft,
     MdKeyboardDoubleArrowRight,

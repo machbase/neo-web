@@ -3,7 +3,7 @@ import { stepArchiveExtract } from './steps/archiveExtract';
 import { stepPkgCopy } from './steps/pkgCopy';
 import { stepReadManifest } from './steps/readManifest';
 import { stepRunInstall } from './steps/runInstall';
-import type { LifecycleContext, StepResult } from './types';
+import type { CopyPreparedPackage, LifecycleContext, StepResult } from './types';
 
 /**
  * issue #1452 — pick how the package bytes are obtained.
@@ -28,11 +28,11 @@ function fetchStep(ctx: LifecycleContext) {
     return ctx.source === 'local' ? stepArchiveExtract : stepPkgCopy;
 }
 
-export async function runInstall(ctx: LifecycleContext): Promise<StepResult> {
-    for (const step of [fetchStep(ctx), stepReadManifest]) {
-        const r = await step(ctx);
-        if (!r.ok) return { ...r, log: ctx.logs.join('\n') };
-    }
+export async function runInstall(ctx: LifecycleContext, copy?: CopyPreparedPackage): Promise<StepResult> {
+    const copied = copy ? await copy() : await fetchStep(ctx)(ctx);
+    if (!copied.ok) return { ...copied, log: ctx.logs.join('\n') };
+    const manifest = await stepReadManifest(ctx);
+    if (!manifest.ok) return { ...manifest, log: ctx.logs.join('\n') };
 
     if (!hasScript(ctx.manifest, 'install')) {
         return { ok: true, log: ctx.logs.join('\n') };

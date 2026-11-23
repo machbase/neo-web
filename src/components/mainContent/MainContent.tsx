@@ -34,12 +34,8 @@ import DataViewerPage from '../dataViewer/DataViewerPage';
 import { EXTENSION_SET, IMAGE_EXTENSION_LIST } from '@/utils/constants';
 import { UnknownExtension } from '../unknownExtension';
 import { SaveModal } from '../side/FileExplorer/SaveModal';
-import { CameraPage } from '../side/Camera/cameraPage';
-import { EventPage } from '../side/Camera/Event';
-import { ServerPage } from '../side/Camera/serverPage';
 import {
     gActiveBridge,
-    gActiveCamera,
     gActiveKey,
     gActiveShellManage,
     gActiveSubr,
@@ -88,7 +84,6 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
     const setActiveKey = useSetRecoilState<any>(gActiveKey);
     const setActiveBridge = useSetRecoilState(gActiveBridge);
     const setActiveSubr = useSetRecoilState(gActiveSubr);
-    const setActiveCamera = useSetRecoilState(gActiveCamera);
     // Selecting an `APP: x` tab reveals package x in the App Store panel. It does
     // NOT reach into the panel's own state directly: `useRevealPkgView` owns the
     // "only packages with a side.html get a pill" rule and the cached probe that
@@ -133,36 +128,20 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                     return;
                 }
 
-                let sSaveData: any =
-                    sFileType === 'wrk'
-                        ? { data: sSaveWorkSheet }
-                        : sFileType === 'dsh'
-                          ? sFilterBoard
-                          : sFilterBoard?.code;
+                const savedBoard = sFilterBoard;
+                const payload = sFileType === 'wrk' ? { data: sSaveWorkSheet } : sFileType === 'dsh' ? savedBoard : savedBoard.code;
                 try {
-                    const sResult: any = await postFileList(
-                        sSaveData,
-                        sFilterBoard.path.replace('/', ''),
-                        sFilterBoard.name,
-                    );
-                    if (sResult.success) {
-                        const sIndex = sBoardList.findIndex((aBoard) => aBoard.id === sSelectedTab);
-                        const sTempBoardList = JSON.parse(JSON.stringify(sBoardList));
-                        if (sFileType === 'wrk') {
-                            sTempBoardList[sIndex].sheet = sSaveWorkSheet;
-                            sTempBoardList[sIndex].savedCode = JSON.stringify(sSaveWorkSheet);
-                        } else if (sFileType === 'json' && typeof sSaveData === 'object') {
-                            sTempBoardList[sIndex].code = JSON.stringify(sSaveData, null, 4);
-                            sTempBoardList[sIndex].savedCode = JSON.stringify(sSaveData, null, 4);
-                        } else if (sFileType === 'dsh') {
-                            sTempBoardList[sIndex].code = '';
-                            sTempBoardList[sIndex].savedCode = JSON.stringify(sSaveData.dashboard);
-                        } else {
-                            sTempBoardList[sIndex].code = sSaveData;
-                            sTempBoardList[sIndex].savedCode = sSaveData;
-                        }
-                        setBoardList(sTempBoardList);
+                    const result: any = await postFileList(payload, savedBoard.path, savedBoard.name);
+                    if (!result?.success) {
+                        Toast.error('Failed to save the file.');
+                        return;
                     }
+                    const savedCode = sFileType === 'wrk' ? JSON.stringify(sSaveWorkSheet) :
+                        sFileType === 'dsh' ? JSON.stringify(savedBoard.dashboard) :
+                        sFileType === 'json' && typeof payload === 'object' ? JSON.stringify(payload, null, 4) : payload;
+                    setBoardList(boards => boards.map(board => board.id === savedBoard.id && board.path === savedBoard.path && board.name === savedBoard.name
+                        ? { ...board, savedCode }
+                        : board));
                 } catch (aError) {
                     Toast.error('save file fail retry please');
                 }
@@ -208,7 +187,6 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
         if (board.type === 'key') setActiveKey(undefined);
         if (board.type === 'bridge') setActiveBridge(undefined);
         if (board.type === 'subscriber') setActiveSubr(undefined);
-        if (board.type === 'camera') setActiveCamera(undefined);
         // ONE PACKAGE IS ONE SESSION ACROSS TWO SURFACES. Closing an `APP:` tab
         // closes its pill in the App Store panel, and the pill's × closes this tab
         // (AppStore/pkgViews.ts `useClosePkgSession`) — the symmetry is the point.
@@ -530,11 +508,6 @@ const MainContent = ({ pExtentionList, pSideSizes, pDraged, pGetInfo, pGetPath, 
                                 {checkExtension(aItem.type, 'appView') && <AppView pAppName={aItem.code?.appName} pIsActiveTab={aItem.id === sSelectedTab} />}
                                 {checkExtension(aItem.type, 'DBTable') && <DBTablePage pCode={aItem} pIsActiveTab={aItem.id === sSelectedTab} />}
                                 {checkExtension(aItem.type, 'DataViewer') && <DataViewerPage pCode={aItem.code} embedded />}
-                                {checkExtension(aItem.type, 'camera') && <CameraPage pCode={aItem.code} mode={aItem.mode} />}
-                                {checkExtension(aItem.type, 'blackboxsvr') && <ServerPage pCode={aItem.code} />}
-                                {checkExtension(aItem.type, 'event') && (
-                                    <EventPage key={aItem.refreshKey} pServerConfig={aItem.code} />
-                                )}
                                 {checkExtension(aItem.type, 'unknown') && (
                                     <UnknownExtension pIsActiveTab={aItem.id === sSelectedTab} pCode={aItem.code} />
                                 )}

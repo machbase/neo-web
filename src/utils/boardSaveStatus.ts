@@ -2,7 +2,7 @@ import { isValidJSON } from '@/utils';
 import { isTazBoardSaved as isTagAnalyzerBoardSaved } from '@/components/tagAnalyzer/persistence/tazDocumentService';
 
 // Tab types that are always considered "saved" (no unsaved indicator)
-const ALWAYS_SAVED_TYPES = ['appStore', 'appView', 'DBTable', 'camera', 'blackboxsvr', 'event', 'unknown'];
+const ALWAYS_SAVED_TYPES = ['appStore', 'appView', 'DBTable', 'unknown'];
 
 /**
  * Determine whether a board (tab) has unsaved changes.

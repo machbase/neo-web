@@ -1,11 +1,15 @@
-import { ChangeEvent, useEffect, useMemo, useState } from 'react';
+import { ChartTypeList } from '@/utils/constants';
+import { ExtensionErrorBoundary, ExtensionFields, useExtensionEntries, type ExtensionFieldInput } from '../extensions/ExtensionPanels';
+import { supportsPanelContract } from '../extensions/contracts';
+import { extensionKey, isBlackboxVideoPanel, isExtensionPanel, type ExtensionDefinition } from '../extensions/types';
+import { ChangeEvent, useMemo } from 'react';
 import { ChartCommonOptions } from './option/ChartCommonOptions';
-import { CheckCustomChartType, CheckPlgChart, DefaultCommonOption, chartTypeConverter, getAvailableChartTypeKeys, getDefaultSeriesOption } from '@/utils/eChartHelper';
+import { CheckCustomChartType, CheckPlgChart, DefaultChartOption, DefaultCommonOption, chartTypeConverter, getDefaultSeriesOption } from '@/utils/eChartHelper';
 import { validateAndRepairDashboardPanel } from '@/utils/panelValidator';
 import { PieOptions } from './option/PieOptions';
 import { LineOptions } from './option/LineOptions';
 import { XAxisOptions } from './option/XAxisOptions';
-import { geomapAggregatorList, useXAxis, useYAxis } from '@/utils/dashboardUtil';
+import { createDefaultTagTableOption, getTableType, geomapAggregatorList, useXAxis, useYAxis } from '@/utils/dashboardUtil';
 import { YAxisOptions } from './option/YAxisOptions';
 import { BarOptions } from './option/BarOptions';
 import { ScatterOptions } from './option/ScatterOptions';
@@ -13,7 +17,6 @@ import { GaugeOptions } from './option/GaugeOptions';
 import { ChartType, E_CHART_TYPE } from '@/type/eChart';
 import { LiquidfillOptions } from './option/LiquidfillOptions';
 import { TqlOptions } from './option/TqlOptions';
-import { VideoOptions } from './option/VideoOptions';
 import { TextOptions } from './option/TextOptions';
 import { VARIABLE_REGEX } from '@/utils/CheckDataCompatibility';
 import { GeomapOptions } from './option/GeomapOptions';
@@ -22,24 +25,39 @@ import { CalcBlockTotal, CalcBlockTotalType } from '@/utils/helpers/Dashboard/Bl
 import { TrxParsedBlockType } from '@/utils/Chart/TransformDataParser';
 import { ConfirmableSelect } from '@/components/inputs/ConfirmableSelect';
 import { Page } from '@/design-system/components';
-import { getFiles } from '@/api/repository/fileTree';
+import { TableTypeOrderList } from '@/components/side/DBExplorer/utils';
 
 interface CreatePanelRightProps {
     pPanelOption: any;
     pSetPanelOption: any;
     pType: undefined | 'create' | 'edit';
     pBoardInfo?: any;
+    pTableList?: any[];
+    pExtensionDefinition?: ExtensionDefinition;
+    pExtensionEditorProps: ExtensionFieldInput;
+    pExtensionError?: string;
+    pExtensionSaving?: boolean;
 }
 
 const CreatePanelRight = (props: CreatePanelRightProps) => {
-    const { pPanelOption, pSetPanelOption, pType, pBoardInfo } = props;
-    const [sInstalledPkgs, setInstalledPkgs] = useState<Set<string>>(new Set());
+    const { pPanelOption, pSetPanelOption, pType } = props;
+    const entries = useExtensionEntries();
+    const isExtension = isExtensionPanel(pPanelOption);
+    const selected = isExtension ? (pPanelOption.extension ? extensionKey(pPanelOption.extension) : 'Extension') : pPanelOption.type;
+    const options = props.pExtensionDefinition?.commonOptions;
     const sPieLegendValue = { legendTop: 'top', legendLeft: 'right', legendOrient: 'vertical' };
-    const sIsTql = chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.TQL;
-    const sIsVideo = chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.VIDEO;
-    const sUseCommOpt = !(sIsTql || sIsVideo);
+    const sChartType = isExtension ? undefined : chartTypeConverter(pPanelOption.type);
+    const sIsTql = sChartType === E_CHART_TYPE.TQL;
+    const sUseCommOpt = !sIsTql;
 
     const changeTypeOfSeriesOption = (aEvent: ChangeEvent<HTMLInputElement>) => {
+        if (props.pExtensionSaving || aEvent.target.value === selected) return;
+        const entry = entries.find((item) => extensionKey(item) === aEvent.target.value);
+        if (entry) {
+            const { id, x, y, w, h, title, theme } = pPanelOption;
+            pSetPanelOption({ id, x, y, w, h, title, theme, type: 'Extension', extensionPending: true, extension: { packageId: entry.packageId, typeId: entry.typeId } });
+            return;
+        }
         const sConvertedChartType = chartTypeConverter(aEvent.target.value);
         const sIsPlgChart = CheckPlgChart(sConvertedChartType as ChartType);
         const sChangeChartOption = getDefaultSeriesOption(sConvertedChartType as ChartType);
@@ -49,19 +67,35 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
         const sIsTql = sConvertedChartType === E_CHART_TYPE.TQL;
 
         pSetPanelOption((aPrev: any) => {
+            let source = aPrev;
+            if (isExtension) {
+                const table = [...(props.pTableList ?? [])].sort((left, right) =>
+                    TableTypeOrderList.indexOf(getTableType(left[4])) - TableTypeOrderList.indexOf(getTableType(right[4]))
+                )[0];
+                source = {
+                    ...structuredClone(DefaultChartOption),
+                    id: aPrev.id,
+                    ...(isBlackboxVideoPanel(aPrev) ? { title: aPrev.title, theme: aPrev.theme } : {}),
+                    x: aPrev.x,
+                    y: aPrev.y,
+                    w: aPrev.w,
+                    h: aPrev.h,
+                    blockList: createDefaultTagTableOption(table?.[1] ?? '', table, table ? getTableType(table[4]) : 'none', '', aEvent.target.value),
+                };
+            }
             const sResVal = {
-                ...aPrev,
+                ...source,
                 type: aEvent.target.value,
                 chartInfo: sChangeChartOption,
                 chartOptions: sChangeChartOption,
             };
-            if (pType === 'create') {
+            if (pType === 'create' || isExtension) {
                 const sPieLegendOption = {
                     ...DefaultCommonOption,
                     ...sPieLegendValue,
                 };
                 if (sIsPie) sResVal.commonOptions = sPieLegendOption;
-                else sResVal.commonOptions = DefaultCommonOption;
+                else sResVal.commonOptions = isExtension ? structuredClone(DefaultCommonOption) : DefaultCommonOption;
 
                 if (sIsAdvScatter) sResVal.commonOptions.tooltipTrigger = 'item';
             }
@@ -145,24 +179,11 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
         else return false;
     }, [pPanelOption?.transformBlockList]);
 
-    useEffect(() => {
-        let isCancelled = false;
-        (async () => {
-            try {
-                const sRes: any = await getFiles('/public/');
-                const sChildren: any[] = sRes?.data?.children ?? sRes?.children ?? [];
-                if (isCancelled) return;
-                setInstalledPkgs(new Set(sChildren.filter((aChild: any) => aChild.isDir).map((aChild: any) => aChild.name)));
-            } catch {
-                if (!isCancelled) setInstalledPkgs(new Set());
-            }
-        })();
-        return () => {
-            isCancelled = true;
-        };
-    }, []);
-
-    const sChartTypeOptions = useMemo(() => getAvailableChartTypeKeys(sInstalledPkgs), [sInstalledPkgs]);
+    const sChartTypeOptions = ChartTypeList.map(({ key }) => key);
+    const extensionOptions = entries.filter((entry) => supportsPanelContract(entry.contractVersion)).map((entry) => ({ label: entry.label, value: extensionKey(entry) }));
+    if (isExtension && !extensionOptions.some((option) => option.value === selected)) {
+        extensionOptions.push({ label: 'Unavailable extension', value: selected });
+    }
 
     return (
         <Page style={{ padding: '8px 16px 8px 8px' }}>
@@ -174,47 +195,55 @@ const CreatePanelRight = (props: CreatePanelRightProps) => {
                     pFontSize={14}
                     pWidth={'100%'}
                     pBorderRadius={4}
-                    pValue={pPanelOption.type}
+                    pValue={selected}
+                    pIsDisabled={props.pExtensionSaving}
                     pHeight={30}
                     onChange={(aEvent: any) => changeTypeOfSeriesOption(aEvent)}
-                    pOptions={sChartTypeOptions}
+                    pOptions={[...sChartTypeOptions, ...extensionOptions]}
                 />
+                {isExtension ? (
+                    <>
+                        {props.pExtensionError && <div role="alert">{props.pExtensionError}</div>}
+                        {options?.length ? <ChartCommonOptions pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} pExtensionOptions={options} /> : null}
+                        <ExtensionErrorBoundary key={selected}>
+                            <ExtensionFields definition={props.pExtensionDefinition} area="Options" {...props.pExtensionEditorProps} />
+                        </ExtensionErrorBoundary>
+                    </>
+                ) : <>
                 {sUseCommOpt ? <ChartCommonOptions pPanelOption={pPanelOption} pSetPanelOption={pSetPanelOption} /> : null}
-                {useXAxis(chartTypeConverter(pPanelOption.type) as ChartType) && pPanelOption?.xAxisOptions && (
+                {useXAxis(sChartType as ChartType) && pPanelOption?.xAxisOptions && (
                     <XAxisOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
                 )}
-                {useYAxis(chartTypeConverter(pPanelOption.type) as ChartType) && pPanelOption?.yAxisOptions && (
+                {useYAxis(sChartType as ChartType) && pPanelOption?.yAxisOptions && (
                     <YAxisOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
                 )}
                 <Page.Divi />
                 {CheckCustomChartType(pPanelOption.type) ? (
                     <>
-                        {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.GEOMAP ? <GeomapOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                        {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.TEXT ? <TextOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                        {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.TQL ? <TqlOptions /> : null}
-                        {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.ADV_SCATTER ? (
+                        {sChartType === E_CHART_TYPE.GEOMAP ? <GeomapOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                        {sChartType === E_CHART_TYPE.TEXT ? <TextOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                        {sChartType === E_CHART_TYPE.TQL ? <TqlOptions /> : null}
+                        {sChartType === E_CHART_TYPE.ADV_SCATTER ? (
                             <AdvancedScatterOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
-                        ) : null}
-                        {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.VIDEO ? (
-                            <VideoOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} pBoardInfo={pBoardInfo} />
                         ) : null}
                     </>
                 ) : (
                     <Page.Collapse pTrigger="Chart option">
                         <Page.ContentBlock pHoverNone style={{ padding: 0 }}>
-                            {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.LINE ? <LineOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                            {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.BAR ? <BarOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                            {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.SCATTER ? (
+                            {sChartType === E_CHART_TYPE.LINE ? <LineOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                            {sChartType === E_CHART_TYPE.BAR ? <BarOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                            {sChartType === E_CHART_TYPE.SCATTER ? (
                                 <ScatterOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
                             ) : null}
-                            {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.PIE ? <PieOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                            {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.GAUGE ? <GaugeOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
-                            {chartTypeConverter(pPanelOption.type) === E_CHART_TYPE.LIQUID_FILL ? (
+                            {sChartType === E_CHART_TYPE.PIE ? <PieOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                            {sChartType === E_CHART_TYPE.GAUGE ? <GaugeOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} /> : null}
+                            {sChartType === E_CHART_TYPE.LIQUID_FILL ? (
                                 <LiquidfillOptions pSetPanelOption={pSetPanelOption} pPanelOption={pPanelOption} />
                             ) : null}
                         </Page.ContentBlock>
                     </Page.Collapse>
                 )}
+                </>}
             </Page.Body>
         </Page>
     );

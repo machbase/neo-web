@@ -1,3 +1,4 @@
+import { removePanelPackage } from './panelPackage';
 import { hasScript } from './manifest';
 import { stepReadManifest } from './steps/readManifest';
 import { stepRmPkg } from './steps/rmPkg';
@@ -24,6 +25,10 @@ export async function runUninstall(ctx: LifecycleContext): Promise<StepResult> {
 
     const rm = await stepRmPkg(ctx);
     if (!rm.ok && !firstFailure) firstFailure = rm;
+    if (rm.ok) {
+        const cleanup = await removePanelPackage(ctx);
+        if (!cleanup.ok && !firstFailure) firstFailure = cleanup;
+    }
 
     if (firstFailure) return { ...firstFailure, log: ctx.logs.join('\n') };
     return { ok: true, log: ctx.logs.join('\n') };

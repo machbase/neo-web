@@ -54,3 +54,11 @@
         }
     }
 }
+
+// Match the native panel's floating action menu without adding a second header.
+.public-extension-actions {
+    position: absolute;
+    top: 0;
+    right: 4px;
+    z-index: 5;
+}
