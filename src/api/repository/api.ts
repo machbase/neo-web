@@ -1,4 +1,5 @@
 import request from '@/api/core';
+import { repositoryFileUrl } from '@/extensions/host/paths';
 import { rpcCall, RpcMethod } from '@/api/repository/rpc';
 import { getUserName, isCurUserEqualAdmin } from '@/utils';
 
@@ -7,7 +8,7 @@ const normalizePath = (path: string) => path.replace(/[\\/]+/g, '/');
 const getFileList = (aFilter: string, aDir: string, aName: string) => {
     return request({
         method: 'GET',
-        url: normalizePath(`/api/files/${aDir}${aName ? '/' + aName : ''}${aFilter}`),
+        url: repositoryFileUrl(aDir + (aName ? '/' + aName : '')) + aFilter,
     });
 };
 const getReferenceList = () => {
@@ -20,7 +21,7 @@ const getReferenceList = () => {
 const postFileList = (aContents: any, aDir: string, aFileName: string) => {
     return request({
         method: 'POST',
-        url: normalizePath(`/api/files/${aDir}/${aFileName}`),
+        url: repositoryFileUrl(aDir + '/' + aFileName),
         data: aContents,
     });
 };

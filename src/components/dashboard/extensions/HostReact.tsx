@@ -1,13 +1,14 @@
+import { getPublicDashboardPath } from '@/extensions/host/paths';
 import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
-import { useRecoilState, useSetRecoilState } from 'recoil';
-import { gBoardList, gSelectedTab } from '@/recoil/recoil';
-import { getFileList } from '@/api/repository/api';
+import { useRecoilState, useRecoilTransaction_UNSTABLE, useSetRecoilState } from 'recoil';
+import { gBoardList, gSelectedTab, type GBoardListType } from '@/recoil/recoil';
 import { getFiles } from '@/api/repository/fileTree';
 import { CheckDataCompatibility } from '@/utils/CheckDataCompatibility';
 import { getId, isImage, binaryCodeEncodeBase64 } from '@/utils';
 import { loadTazBoard } from '@/components/tagAnalyzer/persistence/tazDocumentService';
-import { Button, Modal, Toast } from '@/design-system/components';
-import { TreeFolder } from '@/assets/icons/Icon';
+import { Toast } from '@/design-system/components';
+import { SelectFileDialog } from '@/components/buttons/SelectFileBtn';
+export { isSelectableHostFile } from '@/components/buttons/SelectFileBtn';
 import { DashboardHostRuntime } from './hostRuntime';
 import { normalizeHostPath as cleanPath } from './hostPaths';
 import { isNumericBaseTimeBlock } from '@/utils/timeFieldColumns';
@@ -74,49 +75,6 @@ function loadHostWorksheet(content: string) {
         : Array.isArray(compatible?.data) ? compatible.data
         : Array.isArray(compatible?.sheet) ? compatible.sheet : sections;
     return { sheet, code: '', savedCode: JSON.stringify(sheet) };
-}
-export function isSelectableHostFile(entry: any, extensions: string[] = []) {
-    if (!entry || entry.isDir === true || entry.type === 'dir' || typeof entry.name !== 'string') return false;
-    return !extensions.length || extensions.some((extension) => entry.name.toLowerCase().endsWith('.' + extension.replace(/^\./, '').toLowerCase()));
-}
-function HostFilePicker({ request, onClose }: { request: HostFileSelection; onClose(path: string | null): void }) {
-    const [directory, setDirectory] = useState(() => cleanPath(request.startPath ?? ''));
-    const [entries, setEntries] = useState<any[]>([]);
-    const [error, setError] = useState('');
-    useEffect(() => {
-        let active = true;
-        setError(''); setEntries([]);
-        // The shared HTTP client treats names ending in .dsh/.tql as raw files.
-        // A trailing slash keeps a directory with such a name on the JSON-list path.
-        getFileList('', directory ? directory + '/' : '/', '').then((response: any) => {
-            if (!active) return;
-            const data = response?.data;
-            const directoryResponse = data?.isDir === true || data?.type === 'dir';
-            if (response?.success !== true || !directoryResponse || (data.children !== undefined && !Array.isArray(data.children))) {
-                setError('Could not read files.'); return;
-            }
-            // Empty directories omit children in Neo 8.5.13.
-            setEntries(data.children ?? []);
-        }).catch(() => { if (active) setError('Could not read files.'); });
-        return () => { active = false; };
-    }, [directory]);
-    return <Modal.Root isOpen onClose={() => onClose(null)} size="md">
-        <Modal.Header><Modal.Title>Select file</Modal.Title><Modal.Close /></Modal.Header>
-        <Modal.Body>
-            <div>{'/' + directory}</div>
-            <Button onClick={() => setDirectory(directory.split('/').slice(0, -1).join('/'))} disabled={!directory}>Parent folder</Button>
-            {error && <div role="alert">{error}</div>}
-            {entries.filter((entry) => entry.isDir === true || entry.type === 'dir' || isSelectableHostFile(entry, request.extensions)).map((entry) => {
-                const folder = entry.isDir === true || entry.type === 'dir';
-                return <Button key={entry.name} onClick={() => {
-                    if (entry.name.includes('/') || entry.name.includes('\\') || ['.', '..'].includes(entry.name)) return;
-                    const path = [directory, entry.name].filter(Boolean).join('/');
-                    if (folder) setDirectory(path); else onClose(path);
-                }}>{folder && <TreeFolder />}{entry.name}</Button>;
-            })}
-        </Modal.Body>
-        <Modal.Footer><Button onClick={() => onClose(null)}>Cancel</Button></Modal.Footer>
-    </Modal.Root>;
 }
 export function useHostActions(panelId: string) {
     const board = useHostBoard();
@@ -204,6 +162,12 @@ export function HostBoardProvider({ boardInfo, timeRange, active, editing = fals
 }) {
     const [boards, setBoards] = useRecoilState(gBoardList);
     const setSelectedTab = useSetRecoilState(gSelectedTab);
+    const openFileTab = useRecoilTransaction_UNSTABLE(({ get, set }) => (opened: GBoardListType) => {
+        const tabs = get(gBoardList);
+        const existing = tabs.find((tab) => tab.name === opened.name && tab.path === opened.path);
+        if (!existing) set(gBoardList, [...tabs, opened]);
+        set(gSelectedTab, existing?.id ?? opened.id);
+    }, []);
     const [executionRevisions, setExecutionRevisions] = useState<Record<string, number>>({});
     const input = boardInput(boardInfo, timeRange, active, refresh, executionRevisions, editing);
     const runtime = useMemo(() => new DashboardHostRuntime(input), [boardInfo.id]);
@@ -251,7 +215,7 @@ export function HostBoardProvider({ boardInfo, timeRange, active, editing = fals
         selectFile: (request, signal) => new Promise((resolve, reject) => {
             if (signal?.aborted) { resolve(null); return; }
             if (selectionRef.current) { reject(new Error('A file selection is already open.')); return; }
-            const checkedRequest = { ...request, startPath: cleanPath(request.startPath ?? '') };
+            const checkedRequest = { ...request, startPath: request.startPath === undefined ? undefined : cleanPath(request.startPath) };
             const abort = () => next.resolve(null);
             const next = { request: checkedRequest, resolve: (path: string | null) => {
                 signal?.removeEventListener('abort', abort);
@@ -271,8 +235,8 @@ export function HostBoardProvider({ boardInfo, timeRange, active, editing = fals
             if (request.kind === 'dashboard' && extension !== 'dsh') throw new Error('Select a dashboard file.');
             if (publicView || request.target === 'window') {
                 if (request.kind !== 'dashboard') throw new Error('Only dashboards support a new window.');
-                const path = segments.join('/').replace(/\.dsh$/i, '').split('/').map(encodeURIComponent).join('/');
-                if (!window.open(`${window.location.origin}/web/ui/board/${path}`, '_blank')) throw new Error('The browser blocked the new window.');
+                const path = getPublicDashboardPath(segments.join('/'));
+                if (!window.open(window.location.origin + path, '_blank')) throw new Error('The browser blocked the new window.');
                 return;
             }
             const existing = current.current.boards.find((board) => board.name === name && board.path === directory);
@@ -291,10 +255,10 @@ export function HostBoardProvider({ boardInfo, timeRange, active, editing = fals
                 : extension === 'taz' ? loadTazBoard(JSON.parse(content), id, name, directory)
                 : extension === 'wrk' ? { id, name, path: directory, type: extension, ...loadHostWorksheet(content) }
                 : { id, name, path: directory, type: extension, code: content, savedCode: content };
-            setBoards((all) => [...all, opened]); setSelectedTab(id);
+            openFileTab(opened);
         },
     };
     return <HostBoardContext.Provider value={value}>{children}
-        {selection && <HostFilePicker request={selection.request} onClose={selection.resolve} />}
+        {selection && <SelectFileDialog {...selection.request} onSelect={selection.resolve} onCancel={() => selection.resolve(null)} />}
     </HostBoardContext.Provider>;
 }

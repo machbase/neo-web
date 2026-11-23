@@ -1,5 +1,6 @@
 import { ResFileListType } from '@/utils/fileTreeParser';
 import request from '../core';
+import { repositoryFileUrl } from '@/extensions/host/paths';
 import { AxiosResponse } from 'axios';
 
 const normalizePath = (path: string) => path.replace(/[\\/]+/g, '/');
@@ -11,10 +12,9 @@ const normalizePath = (path: string) => path.replace(/[\\/]+/g, '/');
  * overflows the call stack doing so (#1553).
  */
 export const getFiles = (aPath: string, aOptions?: { rawText?: boolean }): Promise<AxiosResponse<ResFileListType>> => {
-    const sRegExp = new RegExp(/[/]*[/]/, 'g');
     return request({
         method: 'GET',
-        url: `/api/files${aPath.replaceAll(sRegExp, '/')}`,
+        url: repositoryFileUrl(aPath),
         ...(aOptions?.rawText ? { transformResponse: [(aData: unknown) => aData] } : {}),
     });
 };

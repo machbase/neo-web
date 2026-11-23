@@ -6,197 +6,192 @@ import { useRecoilState } from 'recoil';
 import { gRecentModalPath } from '@/recoil/fileTree';
 import icons from '@/utils/icons';
 import { Button, Modal, FileListHeader } from '@/design-system/components';
+import { normalizeHostPath } from '@/extensions/host/paths';
 import './SelectFileBtn.scss';
 
-export const SelectFileBtn = ({ btnTxt, pType, pCallback }: { pType: string; btnTxt?: string; pCallback: (aTqlPath: string) => void }) => {
-    const [sOpen, setOpen] = useState<boolean>(false);
-    const [sSelectedDir, setSelectedDir] = useState<string[]>([]);
-    const [sSelectedFile, setSelectedFile] = useState<any>();
-    const [sFileList, setFileList] = useState<any[]>([]);
-    const [sModalPath, setModalPath] = useRecoilState(gRecentModalPath);
+interface FileEntry {
+    name: string;
+    type?: string;
+    isDir?: boolean;
+    gitClone?: boolean;
+    lastModifiedUnixMillis?: number;
+    size?: number;
+}
+const isFolder = (entry: FileEntry) => entry.isDir === true || entry.type === 'dir';
+const isChildName = (name: unknown): name is string => typeof name === 'string' && !!name && !name.includes('/') && !name.split('\\').includes('..') && name !== '.' && name !== '..';
+export function isSelectableHostFile(entry: FileEntry, extensions: string[] = []) {
+    return !!entry && isChildName(entry.name) && !isFolder(entry) && (!extensions.length || extensions.some((extension) =>
+        entry.name.toLowerCase().endsWith('.' + extension.replace(/^\./, '').toLowerCase())));
+}
+
+export function SelectFileDialog({ extensions, legacyExtension, startPath, onSelect, onCancel }: {
+    extensions?: string[];
+    legacyExtension?: string;
+    startPath?: string;
+    onSelect(path: string): void;
+    onCancel(): void;
+}) {
+    const [recentPath, setRecentPath] = useRecoilState(gRecentModalPath);
+    const [sSelectedDir, setSelectedDir] = useState<string[]>(() => normalizeHostPath(startPath ?? recentPath).split('/').filter(Boolean));
+    const [sSelectedFile, setSelectedFile] = useState('');
+    const [sFileList, setFileList] = useState<FileEntry[]>([]);
     const [sDeletePath, setDeletePath] = useState<string[]>([]);
+    const [error, setError] = useState('');
+    const directory = sSelectedDir.join('/');
+    const selectableFile = (entry: FileEntry) => isSelectableHostFile(entry, extensions) &&
+        (!legacyExtension || entry.name.endsWith('.' + legacyExtension));
 
-    const getFiles = async () => {
-        const sData = await getFileList(`?filter=*.${pType}`, sSelectedDir.join('/'), '');
-        setFileList(sData.data?.children ?? []);
-    };
-    const handleSave = () => {
-        const sTargetPath = '/' + sSelectedDir.join('/') + '/' + sSelectedFile;
-        const fullPath = sTargetPath
-            .split('/')
-            .filter((aPath: string) => aPath !== '')
-            .join('/');
-        pCallback(fullPath);
-        setModalPath('/' + sSelectedDir.join('/') + '/');
-        setOpen(false);
-    };
-    const handleSelectFile = (aEvent: React.MouseEvent<HTMLDivElement>, aItem: any) => {
-        const currentPath = JSON.parse(JSON.stringify(sSelectedDir));
-
-        switch (aEvent.detail) {
-            // click
-            case 1: {
-                if (!aItem.isDir) setSelectedFile(aItem.name);
+    useEffect(() => {
+        let active = true;
+        // A trailing slash asks for a directory even when its name ends in .dsh or .tql.
+        getFileList(legacyExtension ? `?filter=${encodeURIComponent('*.' + legacyExtension)}` : '', directory ? directory + '/' : '/', '').then((response) => {
+            if (!active) return;
+            const data = response?.data;
+            if (!response || !('success' in response) || response.success !== true || !data || !isFolder(data) || (data.children !== undefined && !Array.isArray(data.children))) {
+                setError('Could not read files.');
                 return;
             }
-            // double click
-            case 2: {
-                // dir type
-                if (aItem.isDir) {
-                    setDeletePath([]);
-                    currentPath.push(aItem.name);
-                    setSelectedDir([...currentPath]);
-                    return;
-                }
-                // file type
-                else {
-                    handleSave();
-                    return;
-                }
-            }
-        }
+            // Neo omits children for empty directories.
+            setFileList(data.children ?? []);
+        }).catch(() => { if (active) setError('Could not read files.'); });
+        return () => { active = false; };
+    }, [directory, legacyExtension]);
+
+    const navigate = (path: string[], forward: string[]) => {
+        setSelectedDir(path);
+        setDeletePath(forward);
+        setSelectedFile('');
+        setFileList([]);
+        setError('');
+    };
+    const handleSave = (name: string) => {
+        const file = sFileList.find((entry) => entry?.name === name && selectableFile(entry));
+        if (!file) return;
+        setRecentPath('/' + [...sSelectedDir, ''].join('/'));
+        onSelect([...sSelectedDir, file.name].join('/'));
+    };
+    const handleOpen = (entry: FileEntry) => {
+        if (isFolder(entry)) navigate([...sSelectedDir, entry.name], []);
+        else handleSave(entry.name);
     };
     const handleBackPath = () => {
-        if (sSelectedDir.length === 0) return;
-        const sOldPath = JSON.parse(JSON.stringify(sSelectedDir));
-        const sForwardPath = JSON.parse(JSON.stringify(sDeletePath));
-        const sBackItem = sOldPath.at(-1);
-        const sCurPath = sOldPath.slice(0, sSelectedDir.length - 1);
-        setDeletePath([...sForwardPath, sBackItem]);
-        setSelectedDir([...sCurPath]);
+        if (sSelectedDir.length > 0) navigate(sSelectedDir.slice(0, -1), [...sDeletePath, sSelectedDir[sSelectedDir.length - 1]]);
     };
-    const handleForwardPath = async () => {
-        if (sDeletePath.length === 0) return;
-        const sOldForwardPath = JSON.parse(JSON.stringify(sDeletePath));
-        const sForwardItem = sOldForwardPath.pop();
-        const sOldPath = JSON.parse(JSON.stringify(sSelectedDir));
-        setDeletePath(sOldForwardPath);
-        setSelectedDir([...sOldPath, sForwardItem]);
+    const handleForwardPath = () => {
+        if (sDeletePath.length > 0) navigate([...sSelectedDir, sDeletePath[sDeletePath.length - 1]], sDeletePath.slice(0, -1));
     };
-    const handleDirectPath = (aPath: string) => {
-        if (sSelectedDir.at(-1) === aPath) return;
-        const sOldPath = JSON.parse(JSON.stringify(sSelectedDir));
-        const sBackItemList = sOldPath.splice(sOldPath.findIndex((bPath: string) => aPath === bPath) + 1, sOldPath.length);
-        setDeletePath([...sBackItemList.reverse()]);
-        if (aPath === '') {
-            setSelectedDir([]);
-        } else {
-            const sCurPath = sOldPath.slice(0, sOldPath.findIndex((bPath: string) => aPath === bPath) + 1);
-            setSelectedDir([...sCurPath]);
-        }
+    const handleDirectPath = (length: number) => {
+        if (length < sSelectedDir.length) navigate(sSelectedDir.slice(0, length), sSelectedDir.slice(length).reverse());
     };
-    const initPathNFile = () => {
-        setDeletePath([]);
-        setSelectedDir(sModalPath.split('/').filter((aPath: string) => !!aPath));
-        setSelectedFile('');
-    };
-
-    useEffect(() => {
-        if (sOpen) {
-            initPathNFile();
-            getFiles();
-        }
-    }, [sOpen]);
-    useEffect(() => {
-        getFiles();
-    }, [sSelectedDir]);
+    const visibleFiles = sFileList.filter((entry) => entry && isChildName(entry.name) && (isFolder(entry) || selectableFile(entry)));
 
     return (
-        <>
-            <Button size="sm" variant="secondary" onClick={() => setOpen(true)}>
-                {btnTxt ?? 'Select file'}
-            </Button>
+        <Modal.Root isOpen={true} onClose={onCancel} size="md">
+            <Modal.Header>
+                <Modal.Title>
+                    <FolderOpen />
+                    <span>Open</span>
+                </Modal.Title>
+                <Modal.Close />
+            </Modal.Header>
 
-            {sOpen && (
-                <Modal.Root isOpen={true} onClose={() => setOpen(false)} size="md">
-                    <Modal.Header>
-                        <Modal.Title>
-                            <FolderOpen />
-                            <span>Open</span>
-                        </Modal.Title>
-                        <Modal.Close />
-                    </Modal.Header>
-
-                    {/* Navigation Bar */}
-                    <div className="select-file-btn__nav">
-                        <Button
-                            size="sm"
-                            variant="ghost"
-                            active={sSelectedDir.length > 0}
-                            isToolTip
-                            toolTipContent="Backward"
-                            icon={<ArrowLeft size={16} />}
-                            onClick={() => handleBackPath()}
-                        />
-                        <Button
-                            size="sm"
-                            variant="ghost"
-                            active={sDeletePath.length > 0}
-                            isToolTip
-                            toolTipContent="Forward"
-                            icon={<ArrowRight size={16} />}
-                            onClick={() => handleForwardPath()}
-                        />
-                        <div className="select-file-btn__breadcrumb">
-                            <div className="select-file-btn__breadcrumb-item" onClick={() => handleDirectPath('')}>
-                                <Home size={14} />
-                            </div>
-                            {sSelectedDir.map((aDir: string) => {
-                                return (
-                                    <div key={aDir} className="select-file-btn__breadcrumb-wrapper">
-                                        <Play size={14} className="select-file-btn__breadcrumb-separator" />
-                                        <div className="select-file-btn__breadcrumb-item" onClick={() => handleDirectPath(aDir)}>
-                                            {aDir}
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
+            {/* Navigation Bar */}
+            <div className="select-file-btn__nav">
+                <Button
+                    size="sm"
+                    variant="ghost"
+                    active={sSelectedDir.length > 0}
+                    isToolTip
+                    toolTipContent="Backward"
+                    icon={<ArrowLeft size={16} />}
+                    aria-label="Backward"
+                    onClick={handleBackPath}
+                />
+                <Button
+                    size="sm"
+                    variant="ghost"
+                    active={sDeletePath.length > 0}
+                    isToolTip
+                    toolTipContent="Forward"
+                    icon={<ArrowRight size={16} />}
+                    aria-label="Forward"
+                    onClick={handleForwardPath}
+                />
+                <div className="select-file-btn__breadcrumb">
+                    <div className="select-file-btn__breadcrumb-item" onClick={() => handleDirectPath(0)}>
+                        <Home size={14} />
                     </div>
+                    {sSelectedDir.map((aDir, index) => {
+                        return (
+                            <div key={sSelectedDir.slice(0, index + 1).join('/')} className="select-file-btn__breadcrumb-wrapper">
+                                <Play size={14} className="select-file-btn__breadcrumb-separator" />
+                                <div className="select-file-btn__breadcrumb-item" onClick={() => handleDirectPath(index + 1)}>
+                                    {aDir}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
 
-                    <FileListHeader />
+            <FileListHeader />
 
-                    {/* File List */}
-                    <Modal.Body style={{ padding: 0 }}>
-                        <div className="select-file-btn__file-list">
-                            {sFileList &&
-                                sFileList.map((aItem, aIdx) => {
-                                    const isSelected = sSelectedFile && sSelectedFile === aItem.name;
-                                    return (
-                                        <div
-                                            key={aItem.name + aIdx}
-                                            className={`select-file-btn__file-row ${isSelected ? 'select-file-btn__file-row--selected' : ''}`}
-                                            onClick={(aEvent) => handleSelectFile(aEvent, aItem)}
-                                        >
-                                            <div className="select-file-btn__file-name">
-                                                {aItem.type === 'dir' ? (
-                                                    aItem.gitClone ? (
-                                                        <Button forceOpacity disabled size="sm" variant="none" icon={icons('gitClosedDirectory')} />
-                                                    ) : (
-                                                        <Button forceOpacity disabled size="sm" variant="none" icon={<TreeFolder />} />
-                                                    )
-                                                ) : (
-                                                    <Button forceOpacity disabled size="sm" variant="none" icon={icons(aItem.type.replace('.', ''))} />
-                                                )}
-                                                <span>{aItem.name}</span>
-                                            </div>
-                                            <span className="select-file-btn__file-modified">{elapsedTime(aItem.lastModifiedUnixMillis)}</span>
-                                            <span className="select-file-btn__file-size">{elapsedSize(aItem.size)}</span>
-                                        </div>
-                                    );
-                                })}
-                        </div>
-                    </Modal.Body>
+            {/* File List */}
+            <Modal.Body style={{ padding: 0 }}>
+                {error && <div role="alert">{error}</div>}
+                <div className="select-file-btn__file-list">
+                    {visibleFiles.map((aItem) => {
+                        const isSelected = sSelectedFile && sSelectedFile === aItem.name;
+                        return (
+                            <div
+                                key={aItem.name}
+                                role="button"
+                                tabIndex={0}
+                                aria-label={aItem.name}
+                                className={`select-file-btn__file-row ${isSelected ? 'select-file-btn__file-row--selected' : ''}`}
+                                onClick={() => { if (!isFolder(aItem)) setSelectedFile(aItem.name); }}
+                                onDoubleClick={() => handleOpen(aItem)}
+                                onKeyDown={(event) => {
+                                    if (event.key !== 'Enter') return;
+                                    event.preventDefault();
+                                    handleOpen(aItem);
+                                }}
+                            >
+                                <div className="select-file-btn__file-name">
+                                    {isFolder(aItem) ? (
+                                        aItem.gitClone ? (
+                                            <Button forceOpacity disabled size="sm" variant="none" icon={icons('gitClosedDirectory')} />
+                                        ) : (
+                                            <Button forceOpacity disabled size="sm" variant="none" icon={<TreeFolder />} />
+                                        )
+                                    ) : (
+                                        <Button forceOpacity disabled size="sm" variant="none" icon={icons(aItem.type?.replace('.', '') ?? '')} />
+                                    )}
+                                    <span>{aItem.name}</span>
+                                </div>
+                                <span className="select-file-btn__file-modified">{elapsedTime(aItem.lastModifiedUnixMillis ?? 0)}</span>
+                                <span className="select-file-btn__file-size">{elapsedSize(aItem.size ?? 0)}</span>
+                            </div>
+                        );
+                    })}
+                </div>
+            </Modal.Body>
 
-                    {/* Footer */}
-                    <Modal.Footer>
-                        <Button.Group>
-                            <Modal.Confirm onClick={handleSave}>OK</Modal.Confirm>
-                            <Modal.Cancel>Cancel</Modal.Cancel>
-                        </Button.Group>
-                    </Modal.Footer>
-                </Modal.Root>
-            )}
-        </>
+            {/* Footer */}
+            <Modal.Footer>
+                <Button.Group>
+                    <Modal.Confirm onClick={() => handleSave(sSelectedFile)} disabled={!sSelectedFile}>OK</Modal.Confirm>
+                    <Modal.Cancel>Cancel</Modal.Cancel>
+                </Button.Group>
+            </Modal.Footer>
+        </Modal.Root>
     );
+}
+
+export const SelectFileBtn = ({ btnTxt, pType, pCallback }: { pType: string; btnTxt?: string; pCallback: (path: string) => void }) => {
+    const [open, setOpen] = useState(false);
+    return <>
+        <Button size="sm" variant="secondary" onClick={() => setOpen(true)}>{btnTxt ?? 'Select file'}</Button>
+        {open && <SelectFileDialog legacyExtension={pType} onSelect={(path) => { pCallback(path); setOpen(false); }} onCancel={() => setOpen(false)} />}
+    </>;
 };

@@ -4,6 +4,7 @@ import { RecoilRoot, useRecoilValue } from 'recoil';
 import { gBoardList, gSelectedTab } from '@/recoil/recoil';
 import { getFileList } from '@/api/repository/api';
 import { getFiles } from '@/api/repository/fileTree';
+import { SelectFileBtn } from '@/components/buttons/SelectFileBtn';
 import { IMAGE_EXTENSION_LIST } from '@/utils/constants';
 import { HostBoardProvider, useExtensionHost, useHostActions, useHostBoard, isSelectableHostFile, hostPanelInfo } from './HostReact';
 import { ExtensionFields, ExtensionView, PanelExtensionProvider } from './ExtensionPanels';
@@ -11,15 +12,25 @@ import { listPanelExtensions, loadPanelExtension } from './registry';
 import type { ExtensionHost } from './hostTypes';
 import type { ExtensionDefinition } from './types';
 jest.mock('@/api/repository/api', () => ({ getFileList: jest.fn() }));
-jest.mock('@/api/repository/fileTree', () => ({ getFiles: jest.fn() }));
+jest.mock('@/api/repository/fileTree', () => {
+    const getFiles = jest.fn();
+    return {
+        getFiles
+    };
+});
 jest.mock('@/utils/CheckDataCompatibility', () => ({ CheckDataCompatibility: (text: string, extension: string) => extension === 'wrk'
     ? jest.requireActual('@/utils/CheckDataCompatibility').CheckDataCompatibility(text, extension) : JSON.parse(text) }));
 jest.mock('./registry', () => ({ listPanelExtensions: jest.fn(), loadPanelExtension: jest.fn() }));
-jest.mock('@/assets/icons/Icon', () => ({ TreeFolder: () => <span>folder</span> }));
+jest.mock('@/assets/icons/Icon', () => {
+    const Icon = () => <span />;
+    return { ArrowLeft: Icon, ArrowRight: Icon, FolderOpen: Icon, Home: Icon, TreeFolder: Icon, Play: Icon };
+});
 jest.mock('@/design-system/components', () => {
     const Block = ({ children }: any) => <div>{children}</div>;
-    return { Button: ({ children, onClick, disabled }: any) => <button onClick={onClick} disabled={disabled}>{children}</button>,
-        Modal: { Root: Block, Header: Block, Title: Block, Close: () => null, Body: Block, Footer: Block },
+    const Button = ({ children, onClick, disabled, 'aria-label': ariaLabel }: any) => <button onClick={onClick} disabled={disabled} aria-label={ariaLabel}>{children}</button>;
+    Button.Group = Block;
+    return { Button, FileListHeader: Block,
+        Modal: { Root: Block, Header: Block, Title: Block, Close: () => null, Body: Block, Footer: Block, Confirm: Button, Cancel: Block },
         Toast: { info: jest.fn(), success: jest.fn(), error: jest.fn() } };
 });
 const hosts = new Map<string, ExtensionHost>();
@@ -84,20 +95,33 @@ it('selects real list entries with case-insensitive extensions and excludes fold
     ] } } as any);
     setup(<Owner />); const api = await host(); let result: any;
     act(() => { void api.files.select({ extensions: ['dsh'] }).then((value) => { result = value; }); });
-    fireEvent.click(await screen.findByRole('button', { name: '3.DSH' }));
+    fireEvent.doubleClick(await screen.findByRole('button', { name: '3.DSH' }));
     await waitFor(() => expect(result).toEqual({ ok: true, value: '3.DSH' }));
     expect(isSelectableHostFile({ name: '4.dsh', isDir: true }, ['dsh'])).toBe(false);
     expect(isSelectableHostFile({ name: 'other.dsh.bak', isDir: false }, ['dsh'])).toBe(false);
     expect(screen.queryByRole('button', { name: 'other.csv' })).toBeNull();
+});
+it('retains the legacy TQL picker filter and only selects executable lowercase scripts', async () => {
+    jest.mocked(getFileList).mockResolvedValue({ success: true, data: { isDir: true, children: [
+        { name: 'upper.TQL', isDir: false }, { name: 'lower.tql', isDir: false },
+    ] } } as any);
+    const selected = jest.fn();
+    setup(<SelectFileBtn pType="tql" pCallback={selected} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Select file' }));
+    await screen.findByRole('button', { name: 'lower.tql' });
+    expect(getFileList).toHaveBeenCalledWith('?filter=*.tql', '/', '');
+    expect(screen.queryByRole('button', { name: 'upper.TQL' })).toBeNull();
+    fireEvent.doubleClick(screen.getByRole('button', { name: 'lower.tql' }));
+    expect(selected).toHaveBeenCalledWith('lower.tql');
 });
 it('cancels a pending picker when its owner exits', async () => {
     jest.mocked(getFileList).mockResolvedValue({ success: true, data: { isDir: true, children: [] } } as any);
     function Toggle() { const [on, setOn] = useState(true); return <><button onClick={() => setOn(false)}>Remove owner</button>{on && <Owner />}</>; }
     setup(<Toggle />); const api = await host(); let result: any;
     act(() => { void api.files.select().then((value) => { result = value; }); });
-    await screen.findByText('Select file'); fireEvent.click(screen.getByText('Remove owner'));
+    await screen.findByText('Open'); fireEvent.click(screen.getByText('Remove owner'));
     await waitFor(() => expect(result).toMatchObject({ ok: false, error: { code: 'DISPOSED' } }));
-    expect(screen.queryByText('Select file')).toBeNull();
+    expect(screen.queryByText('Open')).toBeNull();
 });
 it('shares the latest draft between Editor and Options without losing same-turn patches', async () => {
     function Field(props: any) { hosts.set(props.context.surface, props.host); return <pre data-testid={props.context.surface}>{JSON.stringify(props.settings)}</pre>; }
@@ -167,7 +191,7 @@ it.each([{ isDir: true }, { type: 'dir' }])('accepts an empty directory without 
     jest.mocked(getFileList).mockResolvedValue({ success: true, reason: 'success', elapse: '1ms', data: { name: '02.dsh', gitClone: false, ...metadata } } as any);
     setup(<Owner />); const api = await host();
     await act(async () => { void api.files.select({ extensions: ['dsh'], startPath: '02.dsh' }); });
-    expect(screen.getByText('/02.dsh')).toBeTruthy(); expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.getByText('02.dsh')).toBeTruthy(); expect(screen.queryByRole('alert')).toBeNull();
     expect(jest.mocked(getFileList)).toHaveBeenCalledWith('', '02.dsh/', '');
     expect(JSON.parse(screen.getByTestId('boards').textContent!)).toEqual([board]);
 });
@@ -182,12 +206,30 @@ it.each([
     expect(screen.getByRole('alert').textContent).toBe('Could not read files.');
     expect(JSON.parse(screen.getByTestId('boards').textContent!)).toEqual([board]);
 });
-it('opens uppercase dashboard files through the existing raw-text read option', async () => {
+it.each([
+    ['another.DSH', '/another.DSH'],
+    ['A # %23/Child ? # %23.DSH', '/A # %23/Child ? # %23.DSH'],
+])('opens the exact dashboard file %s through the raw-text read option', async (path, url) => {
     jest.mocked(getFiles).mockResolvedValue(JSON.stringify({ dashboard: { panels: [] } }) as any);
     setup(<Owner />); const api = await host(); let result: any;
-    await act(async () => { result = await api.navigation.open({ kind: 'dashboard', path: 'another.DSH' }); });
+    await act(async () => { result = await api.navigation.open({ kind: 'dashboard', path }); });
     expect(result.ok).toBe(true);
-    expect(jest.mocked(getFiles)).toHaveBeenCalledWith('/another.DSH', { rawText: true });
+    expect(jest.mocked(getFiles)).toHaveBeenCalledWith(url, { rawText: true });
+});
+it('passes literal child folder names to the file API without changing the selected repository path', async () => {
+    const directory = 'A # ? %23.dsh';
+    const file = 'Child # %23.DSH';
+    const directoryPath = directory + '/';
+    jest.mocked(getFileList).mockImplementation(async (_filter, path) => ({
+        success: true,
+        data: { isDir: true, children: path === directoryPath ? [{ name: file, isDir: false }] : [{ name: directory, isDir: true }] },
+    }) as any);
+    setup(<Owner />); const api = await host(); let selected: any;
+    act(() => { void api.files.select({ extensions: ['dsh'] }).then((value) => { selected = value; }); });
+    fireEvent.doubleClick(await screen.findByRole('button', { name: directory }));
+    fireEvent.doubleClick(await screen.findByRole('button', { name: file }));
+    await waitFor(() => expect(selected).toEqual({ok: true, value: directory + '/' + file}));
+    expect(getFileList).toHaveBeenCalledWith('', directoryPath, '');
 });
 
 const worksheetSection = { id: 'section-1', type: 'sql', contents: 'SELECT COUNT(*) FROM SENSOR', height: 200, unknownField: 'keep' };
@@ -251,11 +293,13 @@ it.each(['../', 'folder/../other', 'folder\\..\\other'])('rejects invalid picker
     await act(async () => { result = await api.files.select({ startPath }); });
     expect(result).toMatchObject({ ok: false, error: { code: 'INVALID_INPUT' } });
     expect(getFileList).not.toHaveBeenCalled();
-    expect(screen.queryByText('Select file')).toBeNull();
+    expect(screen.queryByText('Open')).toBeNull();
     expect(JSON.parse(screen.getByTestId('boards').textContent!)).toEqual([board]);
     let selected: any;
     act(() => { void api.files.select({ extensions: ['dsh'], startPath: './' }).then((value) => { selected = value; }); });
     fireEvent.click(await screen.findByRole('button', { name: '03.DSH' }));
+    expect(selected).toBeUndefined();
+    fireEvent.click(screen.getByRole('button', { name: 'OK' }));
     await waitFor(() => expect(selected).toEqual({ ok: true, value: '03.DSH' }));
     expect(JSON.parse(screen.getByTestId('boards').textContent!)).toEqual([board]);
 });
@@ -266,12 +310,14 @@ it.each(['dashboard', 'preview', 'editor', 'options'] as const)('rejects sparse 
     await act(async () => { void api.files.select({ extensions: filters }).then((result) => { invalid = result; }); });
     expect(invalid).toMatchObject({ ok: false, error: { code: 'INVALID_INPUT' } });
     expect(getFileList).not.toHaveBeenCalled();
-    expect(screen.queryByText('Select file')).toBeNull();
+    expect(screen.queryByText('Open')).toBeNull();
     expect(JSON.parse(screen.getByTestId('boards').textContent!)).toEqual([board]);
     expect(filters.length).toBe(1); expect(Object.keys(filters)).toEqual([]);
     let selected: any;
     await act(async () => { void api.files.select({ extensions: ['dsh'] }).then((result) => { selected = result; }); });
     fireEvent.click(await screen.findByRole('button', { name: '03.DSH' }));
+    expect(selected).toBeUndefined();
+    fireEvent.click(screen.getByRole('button', { name: 'OK' }));
     await waitFor(() => expect(selected).toMatchObject({ ok: true, value: '03.DSH' }));
     expect(JSON.parse(screen.getByTestId('boards').textContent!)).toEqual([board]);
 });
@@ -284,12 +330,27 @@ it.each([{ extensions: ['dsh'] }, { extensions: ['.DsH'] }, { extensions: [] }])
     await act(async () => { void api.files.select({ extensions }).then((value) => { result = value; }); });
     await screen.findByRole('button', { name: '03.DSH' });
     expect(Boolean(screen.queryByRole('button', { name: 'notes.csv' }))).toBe(extensions.length === 0);
-    fireEvent.click(screen.getByRole('button', { name: /02\.dsh/ }));
-    await screen.findByText('/02.dsh'); expect(result).toBeUndefined();
-    fireEvent.click(screen.getByRole('button', { name: 'Parent folder' }));
-    fireEvent.click(await screen.findByRole('button', { name: '03.DSH' }));
+    fireEvent.doubleClick(screen.getByRole('button', { name: '02.dsh' }));
+    await screen.findByText('02.dsh'); expect(result).toBeUndefined();
+    fireEvent.click(screen.getByRole('button', { name: 'Backward' }));
+    fireEvent.doubleClick(await screen.findByRole('button', { name: '03.DSH' }));
     await waitFor(() => expect(result).toMatchObject({ ok: true, value: '03.DSH' }));
     expect(JSON.parse(screen.getByTestId('boards').textContent!)).toEqual([board]);
+});
+
+it('selects and opens a repository filename with a literal backslash', async () => {
+    const name = 'camera\\east.dsh';
+    jest.mocked(getFileList).mockResolvedValue({ success: true, data: { isDir: true, children: [{ isDir: false, name }] } } as any);
+    jest.mocked(getFiles).mockResolvedValue(JSON.stringify({ dashboard: { panels: [], title: 'Camera' } }) as any);
+    setup(<Owner />);
+    const api = await host();
+    let result: any;
+    await act(async () => { void api.files.select({ extensions: ['dsh'] }).then((value) => { result = value; }); });
+    fireEvent.doubleClick(await screen.findByRole('button', { name }));
+    await waitFor(() => expect(result).toMatchObject({ ok: true, value: name }));
+    await act(async () => { expect((await api.navigation.open({ kind: 'dashboard', path: result.value })).ok).toBe(true); });
+    expect(getFiles).toHaveBeenCalledWith('/' + name, { rawText: true });
+    expect(JSON.parse(screen.getByTestId('boards').textContent!)[1].name).toBe(name);
 });
 
 it('uses the checked filter copy even if the caller later changes its original array', async () => {
@@ -297,7 +358,7 @@ it('uses the checked filter copy even if the caller later changes its original a
     setup(<Owner />); const api = await host(); const extensions = ['dsh']; let result: any;
     await act(async () => { void api.files.select({ extensions }).then((value) => { result = value; }); extensions[0] = 'csv'; });
     expect(screen.queryByRole('button', { name: 'notes.csv' })).toBeNull();
-    fireEvent.click(await screen.findByRole('button', { name: '03.DSH' }));
+    fireEvent.doubleClick(await screen.findByRole('button', { name: '03.DSH' }));
     await waitFor(() => expect(result).toMatchObject({ ok: true, value: '03.DSH' }));
     expect(extensions).toEqual(['csv']);
     expect(JSON.parse(screen.getByTestId('boards').textContent!)).toEqual([board]);
@@ -311,7 +372,7 @@ it.each([
     setup(<Owner />); const api = await host(); let result: any;
     await act(async () => { void api.files.select(request).then((value) => { result = value; }); });
     expect(result).toBeUndefined();
-    fireEvent.click(await screen.findByRole('button', { name: expected }));
+    fireEvent.doubleClick(await screen.findByRole('button', { name: expected }));
     await waitFor(() => expect(result).toMatchObject({ ok: true, value: expected }));
     expect(JSON.parse(screen.getByTestId('boards').textContent!)).toEqual([board]);
     expect(Object.prototype.hasOwnProperty.call(request, 'extensions')).toBe(true);
@@ -437,9 +498,26 @@ it('keeps public viewer patches local, denies file selection, and opens only sha
     expect(JSON.parse(screen.getByTestId('boards').textContent!)).toEqual([JSON.parse(original)]);
     expect((await api.files.select()).ok).toBe(false);
     expect((await api.navigation.open({ kind: 'file', path: 'private.sql' })).ok).toBe(false);
-    expect((await api.navigation.open({ kind: 'dashboard', path: 'folder/child.DSH' })).ok).toBe(true);
-    expect(open).toHaveBeenCalledWith(window.location.origin + '/web/ui/board/folder/child', '_blank');
+    expect((await api.navigation.open({ kind: 'dashboard', path: 'folder/Child # %23.DSH' })).ok).toBe(true);
+    expect(open).toHaveBeenCalledWith(window.location.origin + '/web/ui/board/folder/Child%20%23%20%2523.DSH?exact=1', '_blank');
     expect(getFileList).not.toHaveBeenCalled(); expect(getFiles).not.toHaveBeenCalled();
     expect(JSON.stringify(board)).toBe(original);
     open.mockRestore();
+});
+
+it('opens one tab when two opens of the same dashboard finish together', async () => {
+    const reads: Array<(contents: any) => void> = [];
+    jest.mocked(getFiles).mockImplementation(() => new Promise((resolve) => reads.push(resolve)));
+    setup(<Owner />);
+    const api = await host();
+    const first = api.navigation.open({ kind: 'dashboard', path: 'ordinary.dsh' });
+    const second = api.navigation.open({ kind: 'dashboard', path: 'ordinary.dsh' });
+    const contents = JSON.stringify({ dashboard: { panels: [], title: 'Child' } });
+    expect(reads).toHaveLength(2);
+    await act(async () => {
+        reads.forEach((complete) => complete(contents));
+        expect((await first).ok).toBe(true);
+        expect((await second).ok).toBe(true);
+    });
+    expect(JSON.parse(screen.getByTestId('boards').textContent!).filter((item: any) => item.name === 'ordinary.dsh')).toHaveLength(1);
 });

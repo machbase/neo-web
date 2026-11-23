@@ -1,10 +1,11 @@
+import { encodeHostPath } from '@/extensions/host/paths';
 import Panel from '../panels/Panel';
 import { HostBoardProvider } from '@/components/dashboard/extensions/HostReact';
 import { PanelExtensionProvider } from '@/components/dashboard/extensions/ExtensionPanels';
 import { useHostRefresh } from '@/components/dashboard/extensions/useHostRefresh';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import GridLayout from 'react-grid-layout';
-import { useParams } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
 import moment from 'moment';
 import { MdRefresh } from '../../assets/icons/Icon';
 import { calcRefreshTime, setUnitTime } from '../../utils/dashboardUtil';
@@ -34,6 +35,7 @@ import ShareModal from '../../components/modal/ShareModal';
 
 const DashboardView = () => {
     const sParams = useParams();
+    const { pathname, search } = useLocation();
     const [hostRefresh, requestHostRefresh] = useHostRefresh();
     const sBodyRef = useRef<HTMLDivElement>(null);
     const [sBoardInformation, setBoardInformation] = useState<{ dashboard: any; name: string; id: string; panelHeader: boolean }>();
@@ -54,11 +56,25 @@ const DashboardView = () => {
     const [sIsShareModal, setIsShareModal] = useState<boolean>(false);
     const [sIsDistanceModal, setIsDistanceModal] = useState<boolean>(false);
 
-    const getDshFile = async (aFileName: string | undefined) => {
-        if (!aFileName) return;
+    const getDshFile = async (boardPath: string, exact: boolean) => {
         try {
-            const cleanFileName = aFileName.replace('board/', '');
-            const response = await fetch(`/db/tql/${cleanFileName}.dsh`);
+            const decodedSegments = boardPath.split('/').map((segment) => decodeURIComponent(segment));
+            // Legacy links sometimes percent-encode the full relative path, including its separators.
+            const segments = exact ? decodedSegments : decodedSegments.flatMap((segment) => segment.split('/')).filter(Boolean);
+            if (!segments.length || segments.some((segment) => !segment || segment === '.' || segment === '..' || segment.includes('/') || segment.split('\\').includes('..'))) {
+                setNotFound(true);
+                return;
+            }
+            const last = segments.length - 1;
+            if (exact && !/\.dsh$/i.test(segments[last])) {
+                setNotFound(true);
+                return;
+            }
+            if (!exact) segments[last] += '.dsh';
+            const path = '/' + encodeHostPath(segments.join('/'));
+            // Public files already have a static route. Keep encoded names intact
+            // by going directly there instead of through the TQL redirect.
+            const response = await fetch(segments[0] === 'public' ? path : '/db/tql' + path);
             if (response.ok) {
                 const sResult = await response.text();
                 const sParsedRes = CheckDataCompatibility(sResult, 'dsh');
@@ -329,7 +345,9 @@ const DashboardView = () => {
     useEffect(() => {
         const sIsLogin = localStorage.getItem('accessToken');
         if (!sIsLogin) localStorage.setItem('view', JSON.stringify({ path: '/view/' + sParams['*'] }));
-        getDshFile(sParams['*']);
+        const boardPath = pathname.slice('/board/'.length);
+        const query = new URLSearchParams(search);
+        if (boardPath) void getDshFile(boardPath, query.get('exact') === '1');
         GenChartVariableId();
     }, []);
 

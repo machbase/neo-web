@@ -1,4 +1,5 @@
 import './ShareModal.scss';
+import { getPublicDashboardPath } from '@/extensions/host/paths';
 import { Share } from '../../assets/icons/Icon';
 import { Toast } from '@/design-system/components';
 import { useState } from 'react';
@@ -11,7 +12,7 @@ interface ShareModalProps {
 }
 
 export const ShareModal = ({ isOpen, onClose, boardInfo }: ShareModalProps) => {
-    const currentUrl = `${window.location.origin + '/web/ui/board' + boardInfo?.path + boardInfo!.name.split('.')[0]}`;
+    const currentUrl = window.location.origin + getPublicDashboardPath(`${boardInfo?.path ?? ''}/${boardInfo?.name ?? ''}`);
     const [activeTab, setActiveTab] = useState<'iframe' | 'embed'>('iframe');
 
     const createIframeCode = (url: string) => `<iframe width="100%" height="100%" src="${url}" frameborder="0" allowfullscreen></iframe>`;
