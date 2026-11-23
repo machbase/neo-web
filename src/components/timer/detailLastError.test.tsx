@@ -61,25 +61,23 @@ describe('Last Error', () => {
         expect(screen.queryByTestId('timer-last-error')).not.toBeInTheDocument();
     });
 
-    test('a failure the timer ran past is a neutral record: "kept running", no error colour', () => {
-        renderTimer({ ...BASE, state: 'RUNNING', lastError: FAILURE, lastErrorAt: '2026-11-19T17:13:25.002041+09:00' });
+    // the same record in every state — what the timer does now is the switch's to say
+    const STATES: [string, any][] = [
+        ['running after a failure it ran past', { state: 'RUNNING', continueOnError: true }],
+        ['stopped by the failure (the server appends it to the state)', { state: `STOP, ${FAILURE}`, continueOnError: false }],
+        ['stopped, after a server restart dropped what the state carried', { state: 'STOP', continueOnError: false }],
+        ['stopped by the user', { state: 'STOP', continueOnError: true }],
+    ];
+    test.each(STATES)('%s: the time and the failure, nothing about running or stopping, no error colour', (_aCase, aState) => {
+        renderTimer({ ...BASE, ...aState, lastError: FAILURE, lastErrorAt: '2026-11-19T17:13:21.002041+09:00' });
         const sBlock = screen.getByTestId('timer-last-error');
         expect(screen.getByText('Last Error')).toBeInTheDocument();
-        expect(sBlock).toHaveAttribute('data-stopped', 'false');
-        expect(sBlock.className).toBe('');
-        expect(sBlock).toHaveTextContent('· kept running');
-        expect(sBlock).not.toHaveTextContent('stopped the timer');
+        expect(sBlock.textContent).toBe(`${screen.getByTestId('timer-last-error-at').textContent}${FAILURE}`);
+        expect(sBlock).not.toHaveTextContent(/kept running|stopped the timer/);
         expect(sBlock.querySelector('svg')).toBeNull();
         expect(sBlock.querySelector('pre')).toHaveTextContent(FAILURE);
-    });
-
-    test('the failure that stopped the timer is red and says so — and shows once, not in the badge as well', () => {
-        renderTimer({ ...BASE, continueOnError: false, state: `STOP, ${FAILURE}`, lastError: FAILURE, lastErrorAt: '2026-11-19T17:13:21.002041+09:00' });
-        const sBlock = screen.getByTestId('timer-last-error');
-        expect(sBlock).toHaveAttribute('data-stopped', 'true');
-        expect(sBlock.className).toBe('stopped');
-        expect(sBlock).toHaveTextContent('· stopped the timer');
-        expect(sBlock.querySelector('svg')).not.toBeNull();
+        expect(sBlock.querySelector('pre')?.className).toBe('message');
+        // the failure shows once — not in the badge as well
         expect(screen.getAllByText(FAILURE, { exact: false })).toHaveLength(1);
     });
 
@@ -94,7 +92,7 @@ describe('Last Error', () => {
     test('a time that does not parse is left out rather than shown raw', () => {
         renderTimer({ ...BASE, state: 'RUNNING', lastError: FAILURE, lastErrorAt: 'not-a-time' });
         expect(screen.queryByTestId('timer-last-error-at')).not.toBeInTheDocument();
-        expect(screen.getByTestId('timer-last-error')).toHaveTextContent(/^kept running/);
+        expect(screen.getByTestId('timer-last-error').textContent).toBe(FAILURE);
     });
 
     test('the block sits under Task, above Delete/Save', () => {
@@ -124,7 +122,6 @@ describe('start/stop', () => {
         const sBlock = screen.getByTestId('timer-last-error');
         expect(sBlock).toHaveTextContent(NEW_FAILURE);
         expect(sBlock).not.toHaveTextContent(OLD_FAILURE);
-        expect(sBlock).toHaveAttribute('data-stopped', 'true');
     });
 
     test('a failure that happened while the screen was open appears after start/stop', async () => {

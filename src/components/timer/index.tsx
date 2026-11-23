@@ -270,7 +270,7 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                                         </Button.Group>
                                     </Page.DpRow>
                                 </Page.ContentBlock>
-                                <TimerLastError pState={sPayload.state} pLastError={sPayload.lastError} pLastErrorAt={sPayload.lastErrorAt} />
+                                <TimerLastError pLastError={sPayload.lastError} pLastErrorAt={sPayload.lastErrorAt} />
                                 <Page.ContentBlock pHoverNone>{sResOpenFile && <Alert variant="error" message={sResOpenFile} />}</Page.ContentBlock>
                                 <Page.ContentBlock>
                                     {/* BTN */}
