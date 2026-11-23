@@ -5,7 +5,7 @@ import { SashContent } from 'split-pane-react';
 import { CreatePayloadType, TimerItemType, genTimer, getTimer } from '@/api/repository/timer';
 import { gActiveTimer, gBoardList, gTimerList } from '@/recoil/recoil';
 import { LuFlipVertical } from 'react-icons/lu';
-import { AUTO_START_DESC, CRON_EXPRESSION, CRON_EXPRESSION_HINT, INTERVAL, INTERVAL_DESC, PREDEFINED_SCHEDULES, TIMER_SPEC } from './content';
+import { AUTO_START_DESC, CONTINUE_ON_ERROR_DESC, CRON_EXPRESSION, CRON_EXPRESSION_HINT, INTERVAL, INTERVAL_DESC, PREDEFINED_SCHEDULES, TIMER_SPEC } from './content';
 import { SelectFileBtn } from '../buttons/SelectFileBtn';
 import { OpenFileBtn } from '../buttons/OpenFileBtn';
 import { resMessage } from '@/utils/resMessage';
@@ -20,6 +20,7 @@ export const EditTimer = () => {
     const [sCreateName, setCreateName] = useState<string>('');
     const [sCreatePayload, setCreatePayload] = useState<CreatePayloadType>({
         autoStart: false,
+        continueOnError: true,
         schedule: '', //@every 1h30m
         path: '', ///sql_select_log.tql
     });
@@ -154,6 +155,15 @@ export const EditTimer = () => {
                                 label={<Page.ContentDesc>{AUTO_START_DESC}</Page.ContentDesc>}
                                 checked={sCreatePayload.autoStart}
                                 onChange={(e: any) => handlePayload('autoStart', { target: { value: e.target.checked } } as any)}
+                            />
+                        </Page.ContentBlock>
+                        <Page.ContentBlock>
+                            <Page.ContentTitle>Continue on error</Page.ContentTitle>
+                            <Checkbox
+                                size="sm"
+                                label={<Page.ContentDesc>{CONTINUE_ON_ERROR_DESC}</Page.ContentDesc>}
+                                checked={sCreatePayload.continueOnError}
+                                onChange={(e: any) => handlePayload('continueOnError', { target: { value: e.target.checked } } as any)}
                             />
                         </Page.ContentBlock>
 

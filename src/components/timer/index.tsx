@@ -6,12 +6,13 @@ import { SashContent } from 'split-pane-react';
 import { EditTimer } from './editTimer';
 import { TimerItemType, delTimer, getTimer, getTimerItem, modTimer } from '@/api/repository/timer';
 import { useState, useEffect, useRef } from 'react';
-import { AUTO_START_DESC } from './content';
+import { AUTO_START_DESC, CONTINUE_ON_ERROR_DESC } from './content';
 import { SelectFileBtn } from '../buttons/SelectFileBtn';
 import { OpenFileBtn } from '../buttons/OpenFileBtn';
 import { ConfirmModal } from '../modal/ConfirmModal';
-import { isTimerRunningState, useTimerStateAction } from './useTimerStateAction';
+import { isTimerRunningState, splitTimerState, useTimerStateAction, withServerStatus } from './useTimerStateAction';
 import { resMessage } from '@/utils/resMessage';
+import { TimerLastError } from './lastError';
 
 export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
     const [sBoardList, setBoardList] = useRecoilState<any[]>(gBoardList);
@@ -86,7 +87,8 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
     const editItem = async () => {
         // `timer.update` REPLACES the definition — every editable field has to go in every time,
         // or the omitted one is reset on the server (omitting autoStart turns it off).
-        const sResult = await modTimer({ autoStart: sPayload.autoStart, schedule: sPayload.schedule, path: sPayload.task }, sPayload.id);
+        // continueOnError is kept when omitted, but it goes in every time too so all fields follow one rule.
+        const sResult = await modTimer({ autoStart: sPayload.autoStart, continueOnError: sPayload.continueOnError, schedule: sPayload.schedule, path: sPayload.task }, sPayload.id);
 
         if (sResult.success) {
             const sTimerInfo = await getTimerItem(sPayload.id);
@@ -135,7 +137,7 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
         const sServer: TimerItemType = sTimerInfo.data;
         setResTimerList((aList) => aList && aList.map((aTimerInfo: any) => (aTimerInfo.id === sServer.id ? sServer : aTimerInfo)));
         const sBefore: any = sBoardList.find((aBoard: any) => aBoard.type === 'timer')?.savedCode;
-        const sMoved = !sBefore || (['schedule', 'task', 'state', 'autoStart'] as const).some((aKey) => sServer[aKey] !== sBefore[aKey]);
+        const sMoved = !sBefore || (['schedule', 'task', 'state', 'autoStart', 'continueOnError'] as const).some((aKey) => sServer[aKey] !== sBefore[aKey]);
         if (!sMoved) return;
         // the board update re-runs the pCode effect below, which would clear the message just set
         sKeepMessageRef.current = true;
@@ -153,9 +155,8 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
         // success needs no toast — the switch and its state badge already say it
         if (sResCommand.success) {
             if (sResCommand.updatedTimer) {
-                setPayload((currentPayload: any) =>
-                    currentPayload ? { ...currentPayload, state: sResCommand.updatedTimer?.state } : sResCommand.updatedTimer
-                );
+                const sUpdated = sResCommand.updatedTimer;
+                setPayload((currentPayload: any) => (currentPayload ? withServerStatus(currentPayload, sUpdated) : sUpdated));
             }
         } else {
             // same toast the side panel's toggle raises, so the two entry points behave alike
@@ -195,6 +196,9 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                 task: pCode.task || '',
                 schedule: pCode.schedule || '',
                 autoStart: pCode?.autoStart || false,
+                continueOnError: pCode?.continueOnError || false,
+                lastError: pCode?.lastError,
+                lastErrorAt: pCode?.lastErrorAt,
             });
     }, [pCode]);
 
@@ -215,7 +219,7 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                                                 <Page.Switch
                                                     pState={isTimerRunningState(sPayload.state)}
                                                     pCallback={handleCommand}
-                                                    pBadge={sPayload.state}
+                                                    pBadge={splitTimerState(sPayload.state).word}
                                                     pBadgeL={true}
                                                     pReadOnly={sIsCommandLoading}
                                                 />
@@ -241,6 +245,15 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                                     />
                                 </Page.ContentBlock>
                                 <Page.ContentBlock>
+                                    <Page.ContentTitle>Continue on error</Page.ContentTitle>
+                                    <Checkbox
+                                        size="sm"
+                                        label={<Page.ContentDesc>{CONTINUE_ON_ERROR_DESC}</Page.ContentDesc>}
+                                        checked={sPayload.continueOnError}
+                                        onChange={(e: any) => handlePayload('continueOnError', { target: { value: e.target.checked } } as any)}
+                                    />
+                                </Page.ContentBlock>
+                                <Page.ContentBlock>
                                     {/* Schedule */}
                                     <Page.ContentTitle>schedule</Page.ContentTitle>
                                     <Page.Input data-testid="timer-detail-schedule" pValue={sPayload.schedule} pCallback={(event: React.FormEvent<HTMLInputElement>) => handlePayload('schedule', event)} />
@@ -257,6 +270,7 @@ export const Timer = ({ pCode }: { pCode: TimerItemType }) => {
                                         </Button.Group>
                                     </Page.DpRow>
                                 </Page.ContentBlock>
+                                <TimerLastError pLastError={sPayload.lastError} pLastErrorAt={sPayload.lastErrorAt} />
                                 <Page.ContentBlock pHoverNone>{sResOpenFile && <Alert variant="error" message={sResOpenFile} />}</Page.ContentBlock>
                                 <Page.ContentBlock>
                                     {/* BTN */}

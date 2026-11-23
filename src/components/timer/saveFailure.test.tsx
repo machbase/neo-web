@@ -6,6 +6,7 @@
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { RecoilRoot, useRecoilValue } from 'recoil';
 import { Timer } from './index';
+import { CONTINUE_ON_ERROR_DESC } from './content';
 import { getTimerItem, modTimer } from '@/api/repository/timer';
 import { gActiveTimer, gBoardList, gTimerList } from '@/recoil/recoil';
 
@@ -85,4 +86,23 @@ test('a failed save the server did not store keeps the typed values to fix', asy
     expect(value('timer-detail-schedule')).toBe('not a schedule');
     expect(screen.getByText('invalid schedule')).toBeInTheDocument();
     expect(screen.getByText('STOP')).toBeInTheDocument();
+});
+
+test('save sends continue-on-error and displays the last failure', async () => {
+    const timer = { ...OLD, continueOnError: true, lastError: 'execution failed', lastErrorAt: '2026-01-01T00:00:00Z' };
+    (modTimer as jest.Mock).mockResolvedValue({ success: true });
+    (getTimerItem as jest.Mock).mockResolvedValue({ success: true, data: timer });
+    render(
+        <RecoilRoot initializeState={({ set }) => {
+            set(gActiveTimer, timer.id);
+            set(gTimerList, [timer]);
+            set(gBoardList, [{ id: 'board-1', type: 'timer', code: timer, savedCode: timer }] as any);
+        }}>
+            <Host />
+        </RecoilRoot>
+    );
+    expect(screen.getByTestId('timer-last-error')).toHaveTextContent('execution failed');
+    expect(screen.getByRole('checkbox', { name: CONTINUE_ON_ERROR_DESC })).toBeChecked();
+    await act(async () => fireEvent.click(screen.getByText('Save')));
+    expect(modTimer).toHaveBeenCalledWith(expect.objectContaining({ continueOnError: true }), timer.id);
 });

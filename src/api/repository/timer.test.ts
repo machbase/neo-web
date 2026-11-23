@@ -32,7 +32,7 @@ describe('timer.ts — UI-API(JSON-RPC) `timer.*` wrappers + REST 봉투 adapter
             );
             const res = await getTimer();
             expect(mockedRpcCall).toHaveBeenCalledWith(RpcMethod.timer.list, []);
-            expect(res.data).toEqual([{ id: 7, name: 'timer-a', schedule: '@every 1m', state: 'RUNNING', task: '/a.tql', type: 'TIMER', autoStart: true }]);
+            expect(res.data).toEqual([{ id: 7, name: 'timer-a', schedule: '@every 1m', state: 'RUNNING', task: '/a.tql', type: 'TIMER', autoStart: true, continueOnError: false, lastError: undefined, lastErrorAt: undefined }]);
         });
 
         it('`type` 이 사라진 timer.Info 응답에도 TIMER 상수를 채운다', async () => {
@@ -57,7 +57,7 @@ describe('timer.ts — UI-API(JSON-RPC) `timer.*` wrappers + REST 봉투 adapter
                 success: true,
                 reason: 'success',
                 elapse: '',
-                data: { id: 7, name: 'timer-a', schedule: '@every 1m', state: 'STOP', task: '/a.tql', type: 'TIMER', autoStart: true },
+                data: { id: 7, name: 'timer-a', schedule: '@every 1m', state: 'STOP', task: '/a.tql', type: 'TIMER', autoStart: true, continueOnError: false, lastError: undefined, lastErrorAt: undefined },
             });
         });
 
@@ -65,7 +65,13 @@ describe('timer.ts — UI-API(JSON-RPC) `timer.*` wrappers + REST 봉투 adapter
             // 백엔드 timer.Info는 모든 필드가 omitempty라 false/'' 는 키 자체가 사라진다
             mockedRpcCall.mockResolvedValue(ok({ id: 7, name: 'timer-a', state: 'STOP' }));
             const res = await getTimerItem(7);
-            expect(res.data).toEqual({ id: 7, name: 'timer-a', schedule: '', state: 'STOP', task: '', type: 'TIMER', autoStart: false });
+            expect(res.data).toEqual({ id: 7, name: 'timer-a', schedule: '', state: 'STOP', task: '', type: 'TIMER', autoStart: false, continueOnError: false, lastError: undefined, lastErrorAt: undefined });
+        });
+
+        it('maps the continuation option and the last execution error', async () => {
+            mockedRpcCall.mockResolvedValue(ok({ id: 7, continueOnError: true, lastError: 'failed', lastErrorAt: '2026-01-01T00:00:00Z' }));
+            const res = await getTimerItem(7);
+            expect(res.data).toMatchObject({ continueOnError: true, lastError: 'failed', lastErrorAt: '2026-01-01T00:00:00Z' });
         });
 
         it('RPC 에러는 reason/statusText/data.reason을 모두 채운 실패 봉투가 된다', async () => {
@@ -88,19 +94,19 @@ describe('timer.ts — UI-API(JSON-RPC) `timer.*` wrappers + REST 봉투 adapter
     describe('genTimer → timer.add', () => {
         it('구조체 payload 하나를 params로 넘긴다(schedule.timer.add 와 동일한 형태)', async () => {
             mockedRpcCall.mockResolvedValue(ok(12));
-            await genTimer({ autoStart: true, schedule: '@every 1m', path: '/a.tql' }, 'timer-a');
-            expect(mockedRpcCall).toHaveBeenCalledWith(RpcMethod.timer.add, [{ name: 'timer-a', spec: '@every 1m', command: '/a.tql', autoStart: true }]);
+            await genTimer({ autoStart: true, continueOnError: true, schedule: '@every 1m', path: '/a.tql' }, 'timer-a');
+            expect(mockedRpcCall).toHaveBeenCalledWith(RpcMethod.timer.add, [{ name: 'timer-a', spec: '@every 1m', command: '/a.tql', autoStart: true, continueOnError: true }]);
         });
 
         it('생성된 id를 봉투에 담아 돌려준다', async () => {
             mockedRpcCall.mockResolvedValue(ok(12));
-            const res = await genTimer({ autoStart: false, schedule: '@every 1m', path: '/a.tql' }, 'timer-a');
+            const res = await genTimer({ autoStart: false, continueOnError: false, schedule: '@every 1m', path: '/a.tql' }, 'timer-a');
             expect(res).toEqual({ success: true, reason: 'success', elapse: '', id: 12 });
         });
 
         it('중복 이름 에러를 reason으로 노출한다(이전 서버는 조용히 덮어썼다)', async () => {
             mockedRpcCall.mockResolvedValue(fail(-32000, "schedule name 'TIMER-A' already exists"));
-            const res = await genTimer({ autoStart: false, schedule: '@every 1m', path: '/a.tql' }, 'timer-a');
+            const res = await genTimer({ autoStart: false, continueOnError: false, schedule: '@every 1m', path: '/a.tql' }, 'timer-a');
             expect(res.success).toBe(false);
             expect(res.reason).toBe("schedule name 'TIMER-A' already exists");
         });
@@ -110,19 +116,19 @@ describe('timer.ts — UI-API(JSON-RPC) `timer.*` wrappers + REST 봉투 adapter
         it('name이 아니라 id로 대상을 지정하고, 나머지 필드를 항상 전부 보낸다', async () => {
             // 백엔드가 merge가 아니라 replace라 생략한 필드는 서버에서 초기화된다
             mockedRpcCall.mockResolvedValue(ok(null));
-            await modTimer({ autoStart: false, schedule: '@every 5m', path: '/b.tql' }, 7);
-            expect(mockedRpcCall).toHaveBeenCalledWith(RpcMethod.timer.update, [{ id: 7, spec: '@every 5m', command: '/b.tql', autoStart: false }]);
+            await modTimer({ autoStart: false, continueOnError: true, schedule: '@every 5m', path: '/b.tql' }, 7);
+            expect(mockedRpcCall).toHaveBeenCalledWith(RpcMethod.timer.update, [{ id: 7, spec: '@every 5m', command: '/b.tql', autoStart: false, continueOnError: true }]);
         });
 
         it('성공 시 success 봉투를 반환한다', async () => {
             mockedRpcCall.mockResolvedValue(ok(null));
-            const res = await modTimer({ autoStart: true, schedule: '@every 5m', path: '/b.tql' }, 7);
+            const res = await modTimer({ autoStart: true, continueOnError: false, schedule: '@every 5m', path: '/b.tql' }, 7);
             expect(res).toEqual({ success: true, reason: 'success', elapse: '' });
         });
 
         it('RPC 에러 메시지를 reason으로 그대로 노출한다', async () => {
             mockedRpcCall.mockResolvedValue(fail(-32000, 'invalid schedule expression'));
-            const res = await modTimer({ autoStart: true, schedule: 'nope', path: '/b.tql' }, 7);
+            const res = await modTimer({ autoStart: true, continueOnError: false, schedule: 'nope', path: '/b.tql' }, 7);
             expect(res.success).toBe(false);
             expect(res.reason).toBe('invalid schedule expression');
         });

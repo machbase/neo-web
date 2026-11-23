@@ -1,0 +1,24 @@
+@use '@/design-system/tokens' as t;
+
+// when the failure happened, above its text
+.at {
+    margin-bottom: t.$spacing-8;
+    color: t.$text-tertiary;
+    font-size: t.$font-size-sm;
+}
+
+// the failure text as the server wrote it: lines kept, long lines wrapped
+.message {
+    margin: 0;
+    padding: t.$spacing-8 t.$spacing-12;
+    border-radius: t.$border-radius-base;
+    background-color: t.$bg-primary;
+    border: 1px solid t.$border-color-default;
+    color: t.$text-secondary;
+    // the global `*` font-family reaches pre too, so the monospace is set here
+    font-family: 'D2Coding', 'Consolas', monospace;
+    font-size: t.$font-size-sm;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}

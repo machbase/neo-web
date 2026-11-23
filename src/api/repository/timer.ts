@@ -20,6 +20,9 @@ export interface TimerItemType {
     task: string;
     type: string;
     autoStart: boolean;
+    continueOnError: boolean;
+    lastError?: string;
+    lastErrorAt?: string;
 }
 interface TimerListResType {
     data: TimerItemType[];
@@ -45,12 +48,14 @@ export interface GenTimerResType {
 export interface CreatePayloadType {
     [key: string]: string | boolean;
     autoStart: boolean;
+    continueOnError: boolean;
     schedule: string;
     path: string; // tqlPath
 }
 export interface EditPayloadType {
     [key: string]: string | boolean;
     autoStart: boolean;
+    continueOnError: boolean;
     schedule: string;
     path: string; // tqlPath
 }
@@ -82,6 +87,9 @@ const toTimerItem = (s: any): TimerItemType => ({
     task: s?.task ?? '',
     type: s?.type ?? 'TIMER',
     autoStart: Boolean(s?.autoStart),
+    continueOnError: Boolean(s?.continueOnError),
+    lastError: s?.lastError,
+    lastErrorAt: s?.lastErrorAt,
 });
 
 // Failure envelope the timer call sites expect. They read `.reason` first, but older branches still
@@ -142,7 +150,7 @@ export const getTimerItem = async (aTimerId: number): Promise<TimerItemResType> 
 export const genTimer = async (aData: CreatePayloadType, aTimerName: string): Promise<GenTimerResType> => {
     try {
         const res = await rpcCall<number>(RpcMethod.timer.add, [
-            { name: aTimerName, spec: aData.schedule, command: aData.path, autoStart: Boolean(aData.autoStart) },
+            { name: aTimerName, spec: aData.schedule, command: aData.path, autoStart: Boolean(aData.autoStart), continueOnError: Boolean(aData.continueOnError) },
         ]);
         const err = rpcErrMessage(res);
         if (err) return errEnvelope(err);
@@ -167,7 +175,7 @@ export const genTimer = async (aData: CreatePayloadType, aTimerName: string): Pr
 export const modTimer = async (aData: EditPayloadType, aTimerId: number): Promise<GenTimerResType> => {
     try {
         const res = await rpcCall(RpcMethod.timer.update, [
-            { id: aTimerId, spec: aData.schedule, command: aData.path, autoStart: Boolean(aData.autoStart) },
+            { id: aTimerId, spec: aData.schedule, command: aData.path, autoStart: Boolean(aData.autoStart), continueOnError: Boolean(aData.continueOnError) },
         ]);
         const err = rpcErrMessage(res);
         return err ? errEnvelope(err) : { success: true, reason: 'success', elapse: '' };
