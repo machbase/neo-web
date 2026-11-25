@@ -10,21 +10,20 @@ import { Input } from '@/design-system/components/Input';
 import { Alert } from '@/design-system/components/Alert';
 import { Button, Page, PasswordInput, Checkbox } from '@/design-system/components';
 import { readViewPath } from './loginRedirect';
-import { applyStoredTheme, localLoginPictureRef, readStoredTheme, readThemePicture, themeLoginImageSrc } from '@/design-system/theme';
+import { applyThemeState, readThemePicture, themeLoginPicture } from '@/design-system/theme';
 
 const Login = () => {
     const sNavigate = useNavigate();
-    // The theme this browser last chose may bring its own picture: a package's file (neoTheme.loginImage),
-    // or one set in the theme builder, kept in IndexedDB and read once the page is up — until then
-    // (undefined) no picture shows, so the built-in one does not flash first. One that does not
-    // load gives way to the built-in picture.
-    const [sPictureRef] = useState(() => localLoginPictureRef(readStoredTheme()));
-    const [sThemeImage, setThemeImage] = useState<string | null | undefined>(() => (sPictureRef ? undefined : themeLoginImageSrc(readStoredTheme())));
+    // The theme in use may bring its own picture, set in the Theme Builder and kept in IndexedDB: read
+    // once the page is up — until then (undefined) no picture shows, so the built-in one does not
+    // flash first. One that does not load gives way to the built-in picture.
+    const [sPictureRef] = useState(() => themeLoginPicture());
+    const [sThemeImage, setThemeImage] = useState<string | null | undefined>(() => (sPictureRef ? undefined : null));
     useEffect(() => {
         if (!sPictureRef) return;
         let sLive = true;
         let sUrl: string | null = null;
-        readThemePicture(sPictureRef.id).then((aBlob) => {
+        readThemePicture(sPictureRef).then((aBlob) => {
             if (!sLive) return;
             sUrl = aBlob ? URL.createObjectURL(aBlob) : null;
             setThemeImage(sUrl);
@@ -88,7 +87,7 @@ const Login = () => {
             localStorage.setItem('refreshToken', sReturn.refreshToken);
             sReturn.option && sReturn.option.experimentMode ? setExperiment(sReturn.option.experimentMode) : rmExperiment();
             // Themes are an experiment: the server has just said whether it is on (the browser's theme, or the dark defaults).
-            applyStoredTheme();
+            applyThemeState();
             const sViewPath = readViewPath(sIsView);
             // A broken value is dropped too, or every later sign-in would trip over it again.
             if (sIsView !== null && !sViewPath) localStorage.removeItem('view');

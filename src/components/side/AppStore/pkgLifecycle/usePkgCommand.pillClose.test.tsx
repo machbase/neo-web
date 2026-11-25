@@ -37,7 +37,8 @@ jest.mock('@/api/repository/onpremCatalog', () => ({
 jest.mock('@/api/repository/fileTree', () => ({ getFiles: jest.fn(async () => ({ data: { children: [] } })) }));
 jest.mock('@/utils/fileTreeParser', () => ({ fileTreeParser: jest.fn(() => []) }));
 jest.mock('@/utils', () => ({ ...jest.requireActual('@/utils'), isCurUserEqualAdmin: jest.fn(() => true) }));
-jest.mock('@/hooks/useExperiment', () => ({ useExperiment: () => ({ getExperiment: () => false }) }));
+jest.mock('@/hooks/useExperiment', () => ({ useExperiment: () => ({ getExperiment: () => false }), isExperimentOn: () => true, EXPERIMENT_CHANGE_EVENT: 'experiment-change', LOCAL_STORAGE_EXPERIMENT_KEY: 'experimentMode' }));
+jest.mock('@/design-system/theme', () => ({ ...jest.requireActual('@/design-system/theme'), checkThemeOwner: jest.fn(async () => undefined) }));
 jest.mock('@/components/mainContent/tabCloseUtils', () => ({ closeTabState: jest.fn(() => ({ nextBoardList: [], nextSelectedTabId: '' })) }));
 jest.mock('@/design-system/components', () => ({
     Toast: { warning: jest.fn(), success: jest.fn(), error: jest.fn(), info: jest.fn() },
@@ -97,28 +98,16 @@ test('uninstalling a package with no pill leaves the switcher untouched', async 
     expect(result.current.activeView).toBe('neo-pkg-a');
 });
 
-test('uninstalling the package whose theme is in use goes back to the dark default', async () => {
-    localStorage.setItem('neo.theme', JSON.stringify({ pkg: 'neo-pkg-b', stylesheet: 'theme.css', label: 'B', scheme: 'light' }));
+test('uninstalling a package asks the page to look for the theme state\'s owner again (an uninstall cannot reach a browser\'s storage)', async () => {
+    const { checkThemeOwner } = jest.requireMock('@/design-system/theme') as { checkThemeOwner: jest.Mock };
+    checkThemeOwner.mockClear();
     const { result } = renderCommand([], null);
 
     await act(async () => {
-        await result.current.run(appNamed('neo-pkg-b'), 'uninstall');
+        await result.current.run(appNamed('neo-pkg-theme-builder'), 'uninstall');
     });
 
-    expect(localStorage.getItem('neo.theme')).toBeNull();
-    localStorage.clear();
-});
-
-test('uninstalling another package leaves the theme in use', async () => {
-    localStorage.setItem('neo.theme', JSON.stringify({ pkg: 'neo-pkg-b', stylesheet: 'theme.css', label: 'B', scheme: 'light' }));
-    const { result } = renderCommand([], null);
-
-    await act(async () => {
-        await result.current.run(appNamed('neo-pkg-zzz'), 'uninstall');
-    });
-
-    expect(JSON.parse(localStorage.getItem('neo.theme') ?? 'null')?.pkg).toBe('neo-pkg-b');
-    localStorage.clear();
+    expect(checkThemeOwner).toHaveBeenCalledWith('neo-pkg-theme-builder');
 });
 
 // A FAILED UNINSTALL LEAVES THE PACKAGE INSTALLED, so its view is still valid —
