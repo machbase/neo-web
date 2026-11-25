@@ -444,79 +444,54 @@ src/design-system/tokens/
 ## Themes
 
 The web UI's colours are design tokens (`src/design-system/tokens`), and every colour token is a
-CSS variable: `$bg-primary` compiles to `var(--neo-bg-primary, #1e1e1e)`. With no theme loaded
-none of the variables is set, so each falls back to its dark default and the screen is the
-built-in dark theme. A theme sets the variables it changes.
+CSS variable: `$bg-primary` compiles to `var(--neo-bg-primary, #1e1e1e)`. With no theme none of the
+variables is set, so each falls back to its dark default and the screen is the built-in dark theme.
+A theme sets the variables it changes.
 
 Themes are an experiment: they apply only while the server's experiment mode is on (`themesEnabled`,
-the flag sign-in and the login check give). Off, every page — the sign-in page included — is the
-dark default, Settings has no Theme item, and an app's theme requests are refused with the reason;
-the choice and the browser's themes are kept for when it is on again.
+the flag sign-in and the login check give). Off, every page — the sign-in page included — is the dark
+default; the theme state is kept for when it is on again.
 
-### The Theme Builder package
+### The theme state — the Theme Builder writes it, the web UI reads it
 
-Themes reach the web UI from one package, Theme Builder (`neo-pkg-theme-builder`), installed from
-the App Store (`/public/<package>/`). Its `package.json` names the list of its presets:
+The theme in use is state kept in this browser, and the Theme Builder package (`neo-pkg-theme-builder`,
+from the App Store) is its one writer — the web UI knows nothing of the builder beyond this state
+(the builder's `contract/state-v1.md`):
 
-```json
-{
-    "name": "neo-pkg-theme-builder",
-    "version": "1.0.0",
-    "neoTheme": { "label": "Theme Builder", "index": "themes.json" }
-}
+```js
+localStorage['neo.theme.state'] = {
+    v: 1, owner: 'neo-pkg-theme-builder',
+    scheme: 'light' | 'dark',
+    theme: { pkg, stylesheet, label },     // what was chosen
+    set: { 'bg-primary': '#f0f2fb', … },   // the values the theme sets  → the web UI wears these
+    resolved: { … },                       // every token's final value → for package apps
+    tokens: 'neo-web v8.9.0',              // the token list `resolved` was worked out with
+    loginImage?: { picture: '<id>' },      // the sign-in picture (below)
+    at: 1764000000000,
+};
 ```
 
-The list is an array of `{ "id", "label", "stylesheet", "scheme" }` entries, optionally with
-`note` (a short word shown beside it, e.g. `Preset`) and `swatch` (up to eight colours drawn in
-its card). `index` may also be a list of files; a file that is missing is skipped. Settings →
-Theme shows the presets under *Ready to use* and, because the package has an app (`main.html`), an
-**Open Theme Builder** button. A theme is told apart by package and stylesheet (`themeKey`), so two
-presets of one package are two choices. The themes a user makes in the builder are kept in the
-browser (below).
+`theme/theme.ts` only reads it (`readThemeState`, checked again: storage is anyone's to edit). It
+wears `set` on `:root` and lets this CSS fill every other token, so the screen is right whatever token
+list the builder used; `scheme` goes on `<html>` (`data-neo-scheme`, `color-scheme`). It is applied
+before the first render, so a reload paints in the theme from its first frame, and followed through
+the browser's `storage` event — writing the state is the whole notification, and another tab follows
+too. `THEME_CHANGE_EVENT` fires on window when what the page wears changed. No key: Dark.
 
-### A theme's fields
+An uninstall cannot reach a browser's storage, so a state whose owner is not installed any more
+(`/public/<owner>/package.json` answers 404) is ignored and the page shows Dark (`checkThemeOwner`, at
+startup and right after an uninstall from the App Store).
 
-Each entry of the list has these fields. A package's `neoTheme` may also declare one theme itself,
-with `stylesheet` in place of `index`.
+The user's own themes and their sign-in pictures are the builder's. A picture is the file itself, kept
+in IndexedDB (`neo-theme` → `pictures`, key = the theme's id); the state of the theme in use names it
+and the sign-in page reads it (`theme/themePicture.ts`, read only), showing none until it is in and
+the built-in picture when there is none. A theme's picture fills the page (`object-fit: cover`); the
+built-in one keeps its look.
 
-- `stylesheet` — a `.css` file inside the package (relative, no `..`).
-- `scheme` — `light` or `dark`: the code editor's base colours and the page's `color-scheme`.
-- `label` — what Settings → Theme shows (defaults to the package name).
-- `loginImage` (optional) — the sign-in page's picture: a `.webp`, `.png`, `.jpg` or `.svg` inside the
-  package, relative like `stylesheet`. The sign-in page shows the picture of the theme the browser
-  last chose, from the package's versioned address, and the built-in one when it does not load. A
-  theme kept in the browser keeps its picture in its own entry (below). A theme's picture fills the
-  page (`object-fit: cover`); the built-in one keeps its look.
-
-The stylesheet sets variables on `:root`:
-
-```css
-:root {
-    --neo-bg-primary: #ffffff;
-    --neo-text-primary: #1f1f1f;
-}
-```
-
-A variable it leaves out keeps the dark default, so a theme can change one colour or all of them.
-
-### Themes kept in the browser
-
-The theme builder saves themes in the browser, not on the server: `localStorage['neo.themes']`
-holds `[{ id, label, scheme, css, swatch, note, loginImage? }]`, and such a theme is chosen as
-`{ pkg: '@local', stylesheet: '<id>.css' }`. They are the browser's, not an account's: whoever signs
-in on this browser sees and chooses the same themes, and saving needs no write permission. Only the
-`--neo-*` declarations of the kept text are applied (`localThemeCss`).
-
-The sign-in page's picture the builder sets is not in the entry: it is the file itself (a Blob),
-kept in IndexedDB (`neo-theme` → `pictures`, key `<id>`, `themePicture.ts`), and the entry only says
-it has one (`loginImage: true`) — so the list read before the first paint stays small, and the
-picture does not share localStorage's 5 MB. A WebP, PNG, JPEG, GIF or AVIF of at most 10 MB
-(`LOGIN_PICTURE_MAX_BYTES`) is kept; anything else (an SVG, text) is refused with a reason, and a
-stored one is checked again when read. The sign-in page reads the entry of the theme in use and then
-its picture, showing none until it is in. Deleting the theme deletes its picture.
-
-The choice is the browser's too (`neo.theme`, Dark included): the sign-in page and the pages after
-it show the same theme. Settings → Theme lists the browser themes under **My themes**.
+The web UI writes no theme state, takes no theme requests, and has no Theme item in Settings in this
+version: themes are chosen in the Theme Builder, and the item comes back once packages can add to the
+Settings menu. A package declaring `neoTheme` in its package.json is still shown as a theme package in
+the App Store (`declaresTheme`: no service of its own).
 
 ### Corners
 
@@ -537,34 +512,17 @@ other name is no effect. Listed in theme-tokens.json (`_effects.scss`).
 
 ### The theme variables, published
 
-The build publishes every theme variable with its dark default as `/web/ui/theme-tokens.json`
-(`[{ "name": "bg-primary", "dark": "#1e1e1e" }, …]`), read from `_colors.scss` and
-`_shadows.scss` by `theme/themeTokens.ts` (vite.config.ts). A theme builder edits that list, so
-it always matches the web UI it runs on.
+The build publishes every theme variable with its dark default, the token it falls back to, its kind
+and its part of the screen as `theme-tokens.json` (`dist/` and `/web/ui/`), read from the token
+sources by `theme/themeTokens.ts` (vite.config.ts). The Theme Builder takes a release's copy as its own
+token list (it does not read it from the server): rename or remove a token only with its old name kept
+for a while, since the builder and package apps use the names.
 
-### Requests from a package's app
+### What packages read
 
-An app tab (a same-origin iframe) can ask the page to show or choose a theme:
-
-```js
-parent.postMessage({ type: 'neo-theme', action: 'preview', vars: { 'bg-primary': '#fff' }, scheme: 'light' }, location.origin);
-parent.postMessage({ type: 'neo-theme', action: 'preview', vars: null }, location.origin); // stop
-parent.postMessage({ type: 'neo-theme', action: 'apply', choice: { pkg, stylesheet, label, scheme }, reload: true }, location.origin);
-```
-
-A preview sets the variables on top of the chosen theme until it is cleared or a theme is chosen;
-nothing is remembered. `apply` chooses a theme as the dialog does (`choice: null` is Dark);
-`reload` links the stylesheet again past every cache, for a stylesheet that was just rewritten.
-Only messages from a frame of the page on its own origin are taken, and the choice is validated
-like a manifest entry.
-
-### Choosing a theme
-
-Settings → Theme lists the built-in Dark, the browser's own themes and every installed
-theme. The choice is kept per browser (localStorage `neo.theme`, with the stylesheet path) and
-applied before the first render,
-so a reload paints in the theme from its first frame. A theme whose package was uninstalled (or
-that was deleted from its package's list) falls back to Dark; the Theme dialog then forgets it.
+The Theme Builder and its theme-sync (the script package apps load, the builder's `contract/theme-v1.md`)
+read what this web UI writes or publishes: `experimentMode`, and the token list above. Change either
+only with notice in the release notes; the theme state itself is the builder's.
 
 ### Parts of the screen
 
@@ -758,8 +716,8 @@ at oklch lightness 0.42).
 - Where colours are data, not CSS (Monaco's editor theme): `resolveCssColor()` reads the value the
   current theme gives, and `useThemeVersion()` changes when the theme does.
 - Chart options, canvas drawing and saved defaults are left as written: `var()` there breaks them.
-- CSS that depends on the scheme rather than on a colour: the loader sets `data-neo-scheme`
-  (`light`/`dark`) on `<html>` next to `data-neo-theme`, e.g. `:where(:root[data-neo-scheme='light'])`
+- CSS that depends on the scheme rather than on a colour: the page sets `data-neo-scheme`
+  (`light`/`dark`) on `<html>` from the theme state, e.g. `:where(:root[data-neo-scheme='light'])`
   gives the file-type and table-type icons their deeper shades. With no theme there is no attribute.
 - Charts the app draws itself through TQL (SQL result, FFT): `appChartTheme()` gives ECharts'
   `white` or `dark` and the surface colour, as values. The data viewer's ECharts options take a

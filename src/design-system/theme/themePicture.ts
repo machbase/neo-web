@@ -1,13 +1,13 @@
 // -----------------------------------------------------------------------------
-// SIGN-IN PICTURES of this browser's own themes — kept in IndexedDB as they are
+// SIGN-IN PICTURES of the user's themes — kept by the Theme Builder in IndexedDB
 // -----------------------------------------------------------------------------
-// A theme kept in the browser (theme.ts, THEMES IN THE BROWSER) can have a picture for the sign-in
-// page. The picture is the file itself (a Blob), not text: it stays out of the theme list in
-// localStorage, which is read whole before the first paint and shares about 5 MB with the rest of
-// the web UI. One record per theme, under its id; the theme's entry only says it has one.
+// A theme the user made in the Theme Builder can have a picture for the sign-in page. The builder
+// keeps the file itself (a Blob) in IndexedDB "neo-theme" / "pictures", under the theme's id, and the
+// theme state names the one of the theme in use (theme.ts, `loginImage`). The web UI only reads it:
+// the sign-in page shows it. What is read is checked again — storage is anyone's to edit.
 //
-// Reads and writes are asynchronous. Where there is no IndexedDB (an old or locked-down browser)
-// nothing is kept: a theme saved there has no picture, and the sign-in page shows the built-in one.
+// Where there is no IndexedDB (an old or locked-down browser) there is no picture, and the sign-in
+// page shows the built-in one.
 
 /** What a sign-in picture may be: a picture an `<img>` shows as it is, nothing that runs (no SVG). */
 export const LOGIN_PICTURE_TYPES = ['image/webp', 'image/png', 'image/jpeg', 'image/gif', 'image/avif'];
@@ -83,16 +83,5 @@ export const readThemePicture = async (aId: string): Promise<Blob | null> => {
         return isLoginPicture(sValue) ? sValue : null;
     } catch {
         return null;
-    }
-};
-
-/** Keeps a theme's sign-in picture (null: takes it away). Rejects with a reason the builder can show. */
-export const writeThemePicture = async (aId: string, aBlob: Blob | null): Promise<void> => {
-    try {
-        if (aBlob) await sStore.put(aId, aBlob);
-        else await sStore.delete(aId);
-    } catch (e) {
-        const sName = (e as { name?: unknown } | null)?.name;
-        throw new Error(sName === 'QuotaExceededError' ? "this browser's storage for the web UI is full" : e instanceof Error ? e.message : String(e));
     }
 };

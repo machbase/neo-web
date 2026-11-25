@@ -2,7 +2,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 import './design-system/global.scss';
-import { applyStoredTheme, listenForThemeRequests } from './design-system/theme';
+import { applyThemeState, checkThemeOwner, listenForThemeState } from './design-system/theme';
 import { listenForCursorFx } from './design-system/theme/cursorFx';
 
 // Prevent unhandled promise rejections from causing a blank screen
@@ -11,10 +11,12 @@ window.addEventListener('unhandledrejection', (event) => {
     event.preventDefault();
 });
 
-// Before the first render, so a chosen theme paints from the first frame.
-applyStoredTheme();
-// The theme builder (an app tab) previews and applies themes through messages.
-listenForThemeRequests();
+// Before the first render, so the theme in use paints from the first frame.
+applyThemeState();
+// The Theme Builder writes the theme state; the page follows it (another tab included).
+listenForThemeState();
+// A state whose owner was uninstalled since is not worn.
+void checkThemeOwner();
 // A theme can switch on a built-in pointer effect (Cyberpunk's Sandevistan trail).
 listenForCursorFx();
 

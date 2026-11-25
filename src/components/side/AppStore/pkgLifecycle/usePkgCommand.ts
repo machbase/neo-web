@@ -9,7 +9,7 @@
 // Admin-gated: non-admins see no buttons, but defensive guard here protects
 // against non-admin callers slipping through.
 
-import { declaresTheme, forgetPackageTheme } from '@/design-system/theme';
+import { checkThemeOwner, declaresTheme } from '@/design-system/theme';
 import { useRecoilCallback } from 'recoil';
 import { Toast } from '@/design-system/components';
 import { SEARCH_RES, APP_INFO } from '@/api/repository/appStore';
@@ -288,8 +288,9 @@ export function usePkgCommand() {
                 // from snapshot here would let us write back stale state that reverts
                 // installed_frontend back to true.
                 if (command === 'uninstall' && result.ok) {
-                    // its theme, when it was the one in use, gives way to the dark default now
-                    forgetPackageTheme(appName);
+                    // the theme state it wrote, when it was the theme's owner, is no longer worn (an
+                    // uninstall cannot reach a browser's storage: the page looks for the owner instead)
+                    void checkThemeOwner(appName);
                     const selectedTab = await snapshot.getPromise(gSelectedTab);
                     let nextSelectedId: string | null = null;
                     set(gBoardList, (currentBoardList: any) => {
